@@ -1,0 +1,5 @@
+{"url": {"vessel-details": "http://mol.thinkpalm.info:8085/api/cloud/vessel-details/{vesselId}", 
+         "loadable-patterns": "http://mol.thinkpalm.info:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/loadable-studies/{loadableStudyId}/loadable-patterns", 
+         "loadable-study-status": "http://mol.thinkpalm.info:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/loadable-studies/{loadableStudyId}/loadable-study-status", 
+         "database": "postgresql://postgres:postgres@127.0.0.1:5432/postgres",
+         "loadicator-result": "http://127.0.0.1:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/loadable-studies/{loadableStudiesId}/loadicator-result"}}

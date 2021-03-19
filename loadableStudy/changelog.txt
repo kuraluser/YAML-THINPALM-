@@ -1,0 +1,78 @@
+20210331
+Python
+- Add more ballast constraints
+	- Zero ballast at arrival of discharge port
+	- FPT, APT, AWBP, and AWBS are only allowed at departure of last loading port
+- Add loading order
+- Distinct plans generation
+	- Multiple cargos at single port
+		- Different loading sequence
+	- Single cargo at each port
+		- Disable cargo tanks
+	- Multiple cargos at multiple ports
+		- Currently not support
+- Add error format
+- Add manual allocation
+AMPL
+- Add more ballast constraints
+	- Zero ballast at arrival of discharge port
+	- FPT, APT, AWBP, and AWBS are only allowed at departure of last loading port
+ORTOOLS
+-
+
+20210228
+Python
+- Add onboard
+- Add loadline
+- Add initial ballast condition
+- Add loadicator check
+- Add manual commingle cargo
+- Add cargo rotation
+- Add ortools model
+	- No stability
+	- No commingle
+AMPL
+- Add onboard
+- Add manual commingle cargo
+- Add cargo rotation
+
+ORTOOLS
+- Add basic constraints
+
+
+20210131
+Python
+- Add SF and BM constraints
+- Add SF, BM and BSF results
+- Add config.json
+	- Config Thinkpalm API urls
+	- Config DB url
+- Add Ullage
+- Add Commingling 
+- Only first discharge port available
+	- Cargo discharge info not available
+- Add ballast constraints
+	- same ballast tanks at depart and arrival ports
+	- non-increasing ballast tanks for each loading port departure
+	- reducing ballast amount for each loading port, except for last loading port
+
+AMPL
+- Add symmetric loading
+- Add SF and BM constraints
+- Add Commingling 
+- Add ballast constraints
+
+20201222
+
+Python
+- Use async HTTP request
+- Add ROB to initial arrival shipStatus
+- Add arrival and departure ports in AMPL 
+	- stability of first arrival and last departure ignored
+- Add piecewise linear approx for cargo tanks
+- Add piecewise linear approx for LCB
+
+
+AMPL
+- Add piecewise linear approx for cargo tanks
+- Add piecewise linear approx for LCB
