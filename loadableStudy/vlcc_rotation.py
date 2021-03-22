@@ -36,7 +36,10 @@ class Check_rotations:
                         print('check rotation ...',list(r_)) 
                         self._check_rotations(list(r_), s_, ballast_plan_, s__, r__, plans['rotation'][s__])
                     else:
-                        self.constraints[str(s__)].append({str(plans['rotation'][s__]):'ok'})
+                        for l__,l_ in enumerate(plans['rotation'][s__]):
+                            str1 += self.input.loadable.info['parcel'][l_]['abbreviation'] + ' -> '
+                        
+                        self.constraints[str(s__)].append(str1[:-3] + 'is fine!!')
                         
             else:
                 print('no rotation needed ...')
@@ -89,9 +92,13 @@ class Check_rotations:
         new_output = Generate_plan(new_input)
         new_output.run(dat_file=dat_file,num_plans=1)
         
+        str1 = ''
+        for l__,l_ in enumerate(new_input.loadable.info['rotationCargo']):
+            str1 += self.input.loadable.info['parcel'][l_]['abbreviation'] + ' -> '
+        
         # new_output.plan['ship_status'] = []
         if new_output.plan['ship_status']:
-            self.constraints[str(plan_id)].append({str(new_input.loadable.info['rotationCargo']):'ok'})
+            self.constraints[str(plan_id)].append(str1[:-3] + 'is fine!!')
         else:
             ## set positive trim < 2
             print('set 0 < trim <= 2')
@@ -102,10 +109,12 @@ class Check_rotations:
             new_output = Generate_plan(new_input)
             new_output.run(dat_file=dat_file,num_plans=1)
             
+            
+                        
             if new_output.plan['ship_status']:
-                self.constraints[str(plan_id)].append({str(new_input.loadable.info['rotationCargo']):'ok with 0 < trim <= 2'})
+                self.constraints[str(plan_id)].append(str1[:-3] + 'is fine with 0 < trim <= 2!!')
             else:
-                self.constraints[str(plan_id)].append({str(new_input.loadable.info['rotationCargo']):'not ok'})
+                self.constraints[str(plan_id)].append(str1[:-3] + 'is not possible!!')
             
           
             
