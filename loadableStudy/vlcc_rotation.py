@@ -36,6 +36,7 @@ class Check_rotations:
                         print('check rotation ...',list(r_)) 
                         self._check_rotations(list(r_), s_, ballast_plan_, s__, r__, plans['rotation'][s__])
                     else:
+                        str1 = ''
                         for l__,l_ in enumerate(plans['rotation'][s__]):
                             str1 += self.input.loadable.info['parcel'][l_]['abbreviation'] + ' -> '
                         
