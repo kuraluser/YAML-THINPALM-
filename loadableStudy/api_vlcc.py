@@ -23,8 +23,7 @@ def gen_allocation(data):
         return {'message': 'Vessel details not available!!'}
     
     if data.get('loadablePlanPortWiseDetails', []):
-        print('Manual Mode -------------------------------------------')
-        out = manual_mode(data)
+        out = manual_mode(data)        
     else:
         print ('Auto Mode --------------------------------------------')
         out = auto_mode(data)
@@ -32,7 +31,15 @@ def gen_allocation(data):
     
     return out
 
+# def full_manual_mode(data):
+#     pass
+
 def manual_mode(data):
+    if not data.get('ballastEdited', False):
+        print('Manual Mode -------------------------------------------')
+    else:
+        print('Full Manual Mode -------------------------------------------')
+    
     out = []
     
     # data = get_plan(data)

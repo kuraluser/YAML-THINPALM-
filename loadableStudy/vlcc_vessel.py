@@ -11,7 +11,7 @@ import pickle
 import pwlf
 import matplotlib.pyplot as plt
 import json
-from scipy.interpolate import interp1d
+from scipy.interpolate import interp1d, interp2d
 plt.style.use('seaborn-whitegrid')
 
 tank_info_ = {'DSWTP':-1, 'DRWT':-1, 'FRWT':1, 'DSWTS':1, 
@@ -31,6 +31,7 @@ class Vessel:
         
         vessel_info_['banBallast'] = ['FPTU']   # 'AWBP','AWBS'
         vessel_info_['banCargo'] = {k_:[] for k_,v_ in inputs.loadable.info['parcel'].items()}
+        vessel_info_['slopTank'] = []
         
         ## 
         vessel_info_['name'] = vessel_json['vessel']['name']
@@ -77,22 +78,27 @@ class Vessel:
                     vessel_info_['tankId'][t_['id']] = t_['shortName'] 
                     vessel_info_['tankName'][t_['shortName']] = t_['id'] 
                     vessel_info_['category'][t_['shortName']] = categoryid_[t_['categoryId']]
+                    
+                if t_['slopTank']:
+                    vessel_info_['slopTank'].append(t_['shortName'])
                 
 #                print(t_['shortName'],t_['name'])
                 
         ##
-        vessel_info_['ullage'] = {}
-        for d_ in vessel_json['ullageDetails']:
-            # print(d_['id'])
-            if str(d_['tankId']) not in vessel_info_['ullage']:
-                vessel_info_['ullage'][str(d_['tankId'])] = {'id': [d_['id']], 'depth':[float(d_['ullageDepth'])], 'vol':[float(d_['evenKeelCapacityCubm'])]}
-            else:
-                vessel_info_['ullage'][str(d_['tankId'])] ['depth'].append(float(d_['ullageDepth']))
-                vessel_info_['ullage'][str(d_['tankId'])] ['vol'].append(float(d_['evenKeelCapacityCubm']))
-                # vessel_info_['ullage'][str(d_['tankId'])] ['id'].append(d_['id'])
+        # vessel_info_['ullage'] = {}
+        # for d_ in vessel_json['ullageDetails']:
+        #     # print(d_['id'])
+        #     if str(d_['tankId']) not in vessel_info_['ullage']:
+        #         vessel_info_['ullage'][str(d_['tankId'])] = {'id': [d_['id']], 'depth':[float(d_['ullageDepth'])], 'vol':[float(d_['evenKeelCapacityCubm'])]}
+        #     else:
+        #         vessel_info_['ullage'][str(d_['tankId'])] ['depth'].append(float(d_['ullageDepth']))
+        #         vessel_info_['ullage'][str(d_['tankId'])] ['vol'].append(float(d_['evenKeelCapacityCubm']))
+        #         # vessel_info_['ullage'][str(d_['tankId'])] ['id'].append(d_['id'])
         
         ## linear approx ullage
-        self._get_ullage_func(vessel_info_)    
+        self._get_ullage_func(vessel_info_, vessel_json['ullageDetails'])    
+        
+        self._get_ullage_corr(vessel_info_, vessel_json['ullageTrimCorrections'])
         
         ## 
         vessel_info_['hydrostatic'] = {}
@@ -553,12 +559,27 @@ class Vessel:
             with open(vessel_info_['name']  +'_trim.pickle', 'rb') as fp_:
                 vessel_info_['lcb_mtc'] = pickle.load(fp_)
                         
-    def _get_ullage_func(self, vessel_info_):
+    def _get_ullage_func(self, vessel_info_, ullageDetails):
         
         # with open('ullage_data.json', 'w') as f_:  
         #     json.dump({'data':vessel_info_['ullage']}, f_)
         
         if not Path(vessel_info_['name']+'_ullage.pickle').is_file():
+            
+            vessel_info_['ullage'] = {}
+            for d_ in ullageDetails: #vessel_json['ullageDetails']:
+                # print(d_['id'])
+                if str(d_['tankId']) not in vessel_info_['ullage']:
+                    vessel_info_['ullage'][str(d_['tankId'])] = {'id': [d_['id']], 'depth':[float(d_['ullageDepth'])], 'vol':[float(d_['evenKeelCapacityCubm'])]}
+                else:
+                    vessel_info_['ullage'][str(d_['tankId'])] ['depth'].append(float(d_['ullageDepth']))
+                    vessel_info_['ullage'][str(d_['tankId'])] ['vol'].append(float(d_['evenKeelCapacityCubm']))
+                    # vessel_info_['ullage'][str(d_['tankId'])] ['id'].append(d_['id'])
+            
+            # with open(vessel_info_['name']  +'_.pickle', 'wb') as fp_:
+            #     pickle.dump(vessel_info_, fp_)   
+            
+            
             func_ = {}
             for k_, v_ in vessel_info_['ullage'].items():
                 func_[k_] = interp1d(v_['vol'], v_['depth'])
@@ -573,11 +594,61 @@ class Vessel:
             with open(vessel_info_['name']  +'_ullage.pickle', 'rb') as fp_:
                 vessel_info_['ullage_func'] = pickle.load(fp_)
             
+    def _get_ullage_corr(self, vessel_info_, ullageCorrDetails):
+        
+        # with open('ullage_data.json', 'w') as f_:  
+        #     json.dump({'data':vessel_info_['ullage']}, f_)
+        
+        if not Path(vessel_info_['name']+'_ullage_corr.pickle').is_file():
+            
+            vessel_info_['ullageCorr'] = {}
+            
+            for d_ in ullageCorrDetails: #vessel_json['ullageDetails']:
+                # print(d_['id'])
+                if str(d_['tankId']) not in vessel_info_['ullageCorr']:
+                    vessel_info_['ullageCorr'][str(d_['tankId'])] = {'depth':[float(d_['ullageDepth'])], 'corr':[[float(d_['trimM1']),float(d_['trim0']), float(d_['trim1']),
+                                                                                                              float(d_['trim2']),float(d_['trim3']),float(d_['trim4']),
+                                                                                                              float(d_['trim5']),float(d_['trim6'])]]}
+                else:
+                    vessel_info_['ullageCorr'][str(d_['tankId'])] ['depth'].append(float(d_['ullageDepth']))
+                    vessel_info_['ullageCorr'][str(d_['tankId'])] ['corr'].append([float(d_['trimM1']),float(d_['trim0']), float(d_['trim1']),
+                                                                                   float(d_['trim2']),float(d_['trim3']),float(d_['trim4']),
+                                                                                   float(d_['trim5']),float(d_['trim6'])])
+                    # vessel_info_['ullage'][str(d_['tankId'])] ['id'].append(d_['id'])
+        
+            func_ = {}
+            for k_, v_ in vessel_info_['ullageCorr'].items():
+                
+                xx_, yy_, zz_ = [], [], []
+                for a_, b_ in zip(v_['depth'], v_['corr']):
+                    xx_ += [a_ for i_ in range(8)]
+                    yy_ += [-1, 0, 1, 2, 3, 4, 5, 6]
+                    zz_ += b_
+                
+                func_[k_] = interp2d(xx_, yy_, zz_)
+            
+            vessel_info_['ullage_corr'] = func_
+            
+            with open(vessel_info_['name']  +'_ullage_corr.pickle', 'wb') as fp_:
+                pickle.dump(func_, fp_)     
+                
+        else:
+            
+            with open(vessel_info_['name']  +'_ullage_corr.pickle', 'rb') as fp_:
+                vessel_info_['ullage_func_corr'] = pickle.load(fp_)
+    
     
  
             
             
-        
+#{'BFOSRV': 25619, 'WB5P': 25606, 'WB5S': 25607, 'AWBP': 25608, 'AWBS': 25609, 'APT': 25610, 
+#'FPTU': 25611, 'FO2P': 25614, 'FO2S': 25615, 'DOSRV1': 25624, 'DOSRV2': 25625, 'DRWT': 25636, 
+#'SLS': 25596, 'WB1S': 25599, 'WB2P': 25600, 'WB2S': 25601, 'FRWT': 25637, 'DSWTP': 25638, 
+#'WB3P': 25602, 'WB3S': 25603, 'WB4P': 25604, 'WB4S': 25605, 'DSWTS': 25639, '2C': 25581, 
+#'1P': 25585, '1S': 25586, '2P': 25587, '2S': 25588, 'DO1S': 25622, '4P': 25591, '4S': 25592, 
+#'5P': 25593, '1C': 25580, '3C': 25582, '4C': 25583, '5C': 25584, '3P': 25589, '3S': 25590, 
+#'5S': 25594, 'SLP': 25595, 'FPTL': 25597, 'WB1P': 25598, 'FO1P': 25612, 'FO1S': 25613, 
+#'HFOSRV': 25616, 'HFOSET': 25617, 'DO2S': 25623}        
     
         
         

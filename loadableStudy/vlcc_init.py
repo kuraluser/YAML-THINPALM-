@@ -38,9 +38,9 @@ class Process_input(object):
                               'cargoNomination': data['loadable']['cargoNomination'],
                               'cargoOperation': data['loadable']['cargoNominationOperationDetails'],
                               'commingleCargo': data['loadable'].get('commingleCargos',[]),
-                              'loadingPlan': data['loadable'].get('loadingPlan',{}),
-                              'ballastPlan': data['loadable'].get('ballastPlan',{}),
-                              'planDetails': data.get('loadablePlanPortWiseDetails',[])
+                              'loadingPlan': data['loadable'].get('loadingPlan',{}), # 
+                              'ballastPlan': data['loadable'].get('ballastPlan',{}), # 
+                              'planDetails': data.get('loadablePlanPortWiseDetails',[]) # for full and manual modes
                               }
                               
         self.loadable_id = data['loadable']['id']
@@ -70,7 +70,10 @@ class Process_input(object):
             self.air_temperature = round(float(self.air_temperature)*1.8+32,2)
             
         if self.loadable_json['planDetails']:
-            self.mode = 'Manual'
+            if not data.get('ballastEdited', False):
+                self.mode = 'Manual'
+            else:
+                self.mode = 'FullManual'
         else:
             self.mode = 'Auto'
         
@@ -84,7 +87,7 @@ class Process_input(object):
             self.loadable = Loadable(self) # basic info
             if self.mode in ['Auto']:
                 self.loadable._create_operations(self) # operation and commingle
-            elif self.mode in ['Manual']:
+            elif self.mode in ['Manual', 'FullManual']:
                 self.loadable._create_man_operations(self) # operation and commingle
                 
             self.vessel = Vessel(self)
@@ -257,7 +260,7 @@ class Process_input(object):
         
     def write_dat_file(self, file = 'input.dat'):
         
-        if not self.error and self.solver in ['AMPL']:
+        if not self.error and self.solver in ['AMPL'] and self.mode not in ['FullManual']:
         
             with open(file, "w") as text_file:
                 
@@ -539,9 +542,13 @@ class Process_input(object):
                 for k_, v_ in self.loadable.info['manualOperation'].items():
                     for k1_, v1_ in v_.items():
                         for v2_ in v1_:
-                            if v2_['tank'] not in locked_tank_:
-                                str1 += v2_['tank'] + ' ' 
-                                locked_tank_.append(v2_['tank'])
+                            if 'tankId' in v2_.keys():
+                                tank_ = self.vessel.info['tankId'][int(v2_['tankId'])]
+                            else:
+                                tank_ = v2_['tank']
+                            if tank_ not in locked_tank_:
+                                str1 += tank_ + ' ' 
+                                locked_tank_.append(tank_)
                                 
                 print(str1+';', file=text_file)
     #            
@@ -563,9 +570,16 @@ class Process_input(object):
                     tank_ = []
                     for k1_, v1_ in v_.items():
                         for v2_ in v1_:
-                            if v2_['tank']  not in tank_:
-                                str1 += v2_['tank'] + ' ' + '1' + ' '
-                                tank_.append(v2_['tank'])
+                            # tank__ =  self.vessel.info['tankId'][int(v2_['tankId'])]
+                            
+                            if 'tankId' in v2_.keys():
+                                tank__ = self.vessel.info['tankId'][int(v2_['tankId'])]
+                            else:
+                                tank__ = v2_['tank']
+                            
+                            if tank__  not in tank_:
+                                str1 += tank__ + ' ' + '1' + ' '
+                                tank_.append(tank__)
                     print(str1, file=text_file)
                 print(';', file=text_file)  
     #            
@@ -574,9 +588,16 @@ class Process_input(object):
                 for k_, v_ in self.loadable.info['manualOperation'].items():
                     for k1_, v1_ in v_.items():
                         for v2_ in v1_:
-                            str1 = k_ + ' ' + v2_['tank']  + ' ' + str(k1_) + ' ' + "{:.3f}".format(v2_['qty'])
+                            # tank_ = self.vessel.info['tankId'][int(v2_['tankId'])]
+                            if 'tankId' in v2_.keys():
+                                tank_ = self.vessel.info['tankId'][int(v2_['tankId'])]
+                            else:
+                                tank_ = v2_['tank']
+                            
+                            str1 = k_ + ' ' + tank_  + ' ' + str(k1_) + ' ' + "{:.3f}".format(v2_['qty'])
                             print(str1, file=text_file)
                 print(';', file=text_file)
+                
                 
                 
                 str1 = 'param B_locked := '

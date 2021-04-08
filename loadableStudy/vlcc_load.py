@@ -205,6 +205,7 @@ class Loadable:
             cargos_info_['commingleCargo']['mode'] = str(c_['purposeXid'])
             
             cargos_info_['commingleCargo']['slopOnly'] = c_.get('isSlopOnly',False)
+            
                 
         
         cargos_info_['operation'] = {k_:{}  for k_,v_ in self.info['parcel'].items()}
@@ -486,16 +487,20 @@ class Loadable:
                     cargos_info_['manualOperation'][parcel_] = {}
                     
                 qty_ = float(v__['wt']) 
-                tank_ = v__['tank']
+                tank_ = v__['tankId']
                     
                 if order_ not in cargos_info_['manualOperation'][parcel_].keys():
-                    cargos_info_['manualOperation'][parcel_][order_] = [{'qty':qty_, 'tank':tank_}]
+                    cargos_info_['manualOperation'][parcel_][order_] = [{'qty':qty_, 'tankId':tank_}]
                 else:
-                    cargos_info_['manualOperation'][parcel_][order_].append({'qty':qty_, 'tank':tank_})
+                    cargos_info_['manualOperation'][parcel_][order_].append({'qty':qty_, 'tankId':tank_})
             
         cargos_info_['preloadOperation'] = {}
         
         cargos_info_['ballastOperation'] = {}
+        if inputs.mode in ['FullManual']: 
+            for k_, v_ in inputs.loadable_json['ballastPlan'].items():
+                order_ = cargos_info_['arrDepVirtualPort'][k_]
+                cargos_info_['ballastOperation'][order_] = v_
         
         cargos_info_['fixedBallastPort'] = []
         # for k_, v_ in inputs.loadable_json['ballastPlan'].items():
@@ -522,24 +527,27 @@ class Loadable:
         
     def _cal_density(self, api, temperature_F):
         
-        temperature = ((temperature_F - 32)*5/9*100+0.5)/100
+        # temperature = ((temperature_F - 32)*5/9*100+0.5)/100
+        temperature = (temperature_F - 32)/1.8
         # temp_F_ = round(temperature*1.8+32,1)
         
-        sg_60_ = round(141.5/(api+131.5),4) # SG@60F
+        # sg_60_ = round(141.5/(api+131.5),4) # SG@60F
         
-        # density@15C in vacuum
-        if sg_60_ < 0.68:
-            density_15C_ = sg_60_ - 0.0001
-        elif sg_60_ < 0.7389:
-            density_15C_ = sg_60_ - 0.0002
-        elif sg_60_ < 0.7929:
-            density_15C_ = sg_60_ - 0.0003
-        elif sg_60_ < 0.8609:
-            density_15C_ = sg_60_ - 0.0004
-        elif sg_60_ < 0.9549:
-            density_15C_ = sg_60_ - 0.0005
-        else:
-            density_15C_ = sg_60_ - 0.0006
+        # # density@15C in vacuum
+        # if sg_60_ < 0.68:
+        #     density_15C_ = sg_60_ - 0.0001
+        # elif sg_60_ < 0.7389:
+        #     density_15C_ = sg_60_ - 0.0002
+        # elif sg_60_ < 0.7929:
+        #     density_15C_ = sg_60_ - 0.0003
+        # elif sg_60_ < 0.8609:
+        #     density_15C_ = sg_60_ - 0.0004
+        # elif sg_60_ < 0.9549:
+        #     density_15C_ = sg_60_ - 0.0005
+        # else:
+        #     density_15C_ = sg_60_ - 0.0006
+            
+        density_15C_ = 141.5/(api+0.08775+131.5)
             
         vcf_ = np.exp(-(613.97231/(density_15C_*1000)**2)*(temperature-15.0)*(1.0+(0.8*(613.97231/(density_15C_*1000)**2)*(temperature-15.0))))
         
@@ -574,64 +582,64 @@ class Loadable:
             # both ballast and cargo
             dep_ballast = p_['departureCondition']['loadablePlanBallastDetails']
             dep_cargo_  = p_['departureCondition']['loadablePlanStowageDetails']
-            dep_commingle_ =  p_['departureCondition']['loadableQuantityCommingleCargoDetails']
+            dep_commingle_ =  p_['departureCondition'].get('loadableQuantityCommingleCargoDetails',[])
             
             
-            # for l__, l_ in enumerate(arr_ballast_):
-            #     tank_ = l_['tank']
-            #     info_ = {}
-            #     info_['wt'] = float(l_['quantityMT'])
-            #     info_['tank'] = tank_
-            #     ballast_plan_[arr_port_].append(info_)
+            for l__, l_ in enumerate(arr_ballast_):
+                tankId_ = l_['tankId']
+                info_ = {}
+                info_['wt'] = float(l_['quantityMT'])
+                info_['tankId'] = tankId_
+                ballast_plan_[arr_port_].append(info_)
                 
                 
-            # for l__, l_ in enumerate(dep_ballast):
-            #     tank_ = l_['tank']
-            #     info_ = {}
-            #     info_['wt'] = float(l_['quantityMT'])
-            #     info_['tank'] = tank_
-            #     ballast_plan_[dep_port_].append(info_)
+            for l__, l_ in enumerate(dep_ballast):
+                tankId_ = l_['tankId']
+                info_ = {}
+                info_['wt'] = float(l_['quantityMT'])
+                info_['tankId'] = tankId_
+                ballast_plan_[dep_port_].append(info_)
                 
             
             for l__, l_ in enumerate(dep_commingle_):
                 # print(l_)
-                tank_ = l_['tank']
-                if tank_ not in tank_cargo_:
-                    tank_cargo_[tank_] = []
+                tankId_ = l_['tankId']
+                if tankId_ not in tank_cargo_:
+                    tank_cargo_[tankId_] = []
                 
                 for c_ in range(2):
                     parcel_ = 'P'+l_['cargoNomination'+ str(c_+1)+'Id']
                     info_ = {}
                     info_['parcel'] = parcel_
                     info_['wt'] = float(l_['cargo'+str(c_+1)+'MT'])
-                    info_['tank'] = tank_
+                    info_['tankId'] = tankId_
                     info_['port'] = dep_port_
                     
-                    if len(tank_cargo_[tank_]) == 0:
-                        tank_cargo_[tank_].append(info_)
+                    if len(tank_cargo_[tankId_]) == 0:
+                        tank_cargo_[tankId_].append(info_)
                         loading_plan_[dep_port_].append(info_)
                         
                     else:
                         # print('repeat cargo_tank')
-                        total_wt_ = sum([0.]+[i_['wt']  for i_ in tank_cargo_[tank_] if i_['parcel'] == info_['parcel']])
+                        total_wt_ = sum([0.]+[i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == info_['parcel']])
                         add_wt_ = info_['wt'] -  total_wt_
                         if add_wt_ > 0:
                             info_['wt'] = round(add_wt_,3)
-                            tank_cargo_[tank_].append(info_)
+                            tank_cargo_[tankId_].append(info_)
                             loading_plan_[dep_port_].append(info_)
                         
                         elif add_wt_ < 0:
                             last_port_ = max(cargos_info['cargoLastLoad'][parcel_])
-                            pre_wt_ = [ i_['wt']  for i_ in tank_cargo_[tank_] if i_['parcel'] == parcel_ and i_['port'] == last_port_ +'D']
+                            pre_wt_ = [ i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == parcel_ and i_['port'] == last_port_ +'D']
                             new_load_ = pre_wt_[0] + add_wt_
                             if new_load_ > 0:
-                                info1_ = {'parcel':parcel_, 'wt':pre_wt_[0], 'tank':tank_, 'port':last_port_ +'D'}
+                                info1_ = {'parcel':parcel_, 'wt':pre_wt_[0], 'tankId':tankId_, 'port':last_port_ +'D'}
                                 loading_plan_[last_port_+'D'].remove(info1_)
-                                tank_cargo_[tank_].remove(info1_)
+                                tank_cargo_[tankId_].remove(info1_)
                                 
                                 info1_['wt'] = new_load_
                                 loading_plan_[last_port_+'D'].append(info1_)
-                                tank_cargo_[tank_].append(info1_)
+                                tank_cargo_[tankId_].append(info1_)
                             else:
                                 inputs.error.append('Error in adjusting manual allocation!!')
                     
@@ -639,15 +647,15 @@ class Loadable:
             
             for l__, l_ in enumerate(dep_cargo_):
                 # parcel_ = l_['parcelId']
-                tank_ = l_['tank']
-                if tank_ not in tank_cargo_:
-                    tank_cargo_[tank_] = []
+                tankId_ = l_['tankId']
+                if tankId_ not in tank_cargo_:
+                    tank_cargo_[tankId_] = []
                 
-                if l_['cargoNominationId'] not in ['']:
+                if str(l_['cargoNominationId']) not in ['']:
                     info_ = {}
-                    info_['parcel'] = 'P'+l_['cargoNominationId']
+                    info_['parcel'] = 'P'+ str(l_['cargoNominationId'])
                     info_['wt'] = float(l_['quantityMT'])
-                    info_['tank'] = tank_
+                    info_['tankId'] = tankId_
                     info_['port'] = dep_port_
                     onboard_ = l_['onboard']
                     
@@ -655,32 +663,32 @@ class Loadable:
                         print(onboard_)
                     
                     # print(info_,l_)
-                    if len(tank_cargo_[tank_]) == 0:
+                    if len(tank_cargo_[tankId_]) == 0:
                         info_['wt'] -= onboard_                        
-                        tank_cargo_[tank_].append(info_)
+                        tank_cargo_[tankId_].append(info_)
                         loading_plan_[dep_port_].append(info_)
                         
                     else:
                         # print('repeat cargo_tank')
-                        total_wt_ = sum([0.]+[i_['wt']  for i_ in tank_cargo_[tank_] if i_['parcel'] == 'P'+l_['cargoNominationId']])
+                        total_wt_ = sum([0.]+[i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == 'P'+l_['cargoNominationId']])
                         add_wt_ = info_['wt'] -  total_wt_ - onboard_
                         if add_wt_ > 0:
                             info_['wt'] = round(add_wt_,3)
-                            tank_cargo_[tank_].append(info_)
+                            tank_cargo_[tankId_].append(info_)
                             loading_plan_[dep_port_].append(info_)
                             
                         elif add_wt_ < 0:
                             last_port_ = max(cargos_info['cargoLastLoad']['P'+l_['cargoNominationId']])
-                            pre_wt_ = [ i_['wt']  for i_ in tank_cargo_[tank_] if i_['parcel'] == 'P'+l_['cargoNominationId'] and i_['port'] == last_port_ +'D']
+                            pre_wt_ = [ i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == 'P'+l_['cargoNominationId'] and i_['port'] == last_port_ +'D']
                             new_load_ = pre_wt_[0] + add_wt_
                             if new_load_ > 0:
-                                info1_ = {'parcel':'P'+l_['cargoNominationId'], 'wt':pre_wt_[0], 'tank':tank_, 'port':last_port_ +'D'}
+                                info1_ = {'parcel':'P'+l_['cargoNominationId'], 'wt':pre_wt_[0], 'tankId':tankId_, 'port':last_port_ +'D'}
                                 loading_plan_[last_port_+'D'].remove(info1_)
-                                tank_cargo_[tank_].remove(info1_)
+                                tank_cargo_[tankId_].remove(info1_)
                                 
                                 info1_['wt'] = new_load_
                                 loading_plan_[last_port_+'D'].append(info1_)
-                                tank_cargo_[tank_].append(info1_)
+                                tank_cargo_[tankId_].append(info1_)
                             else:
                                 inputs.error.append('Error in adjusting manual allocation!!')
                             

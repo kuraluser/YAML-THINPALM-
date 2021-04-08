@@ -105,11 +105,23 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
     
     ## send feedback
     print('>>>> Update feedback to Thinkpalm')
-    status_url_ = config['url']['loadable-study-status'].format(vesselId=data['loadable']['vesselId'],voyageId=data['loadable']['voyageId'],loadableStudyId=data['loadable']['id'])
+    status_url_ = config['url']['loadable-study-status'].format(vesselId=data['loadable']['vesselId'],
+                                                                voyageId=data['loadable']['voyageId'],
+                                                                loadableStudyId=data['loadable']['id'])
     # print(status_url_)
     await post_response(status_url_, {"processId" : uid, "loadableStudyStatusId" : 5})
-    result_url_ = config['url']['loadable-patterns'].format(vesselId=data['loadable']['vesselId'],voyageId=data['loadable']['voyageId'],loadableStudyId=data['loadable']['id'])
-    # print(status_url_)
+    
+    
+    if result.get('validated', None) in [None]:
+        result_url_ = config['url']['loadable-patterns'].format(vesselId=data['loadable']['vesselId'],
+                                                                voyageId=data['loadable']['voyageId'],
+                                                                loadableStudyId=data['loadable']['id'])
+    else:
+        result_url_ = config['url']['validate-patterns'].format(vesselId=data['loadable']['vesselId'],
+                                                                voyageId=data['loadable']['voyageId'],
+                                                                loadableStudyId=data['loadable']['id'],
+                                                                loadablePatternId=data['loadable']['loadablePatternId'])
+    print(result_url_)
     await post_response(result_url_, result)
     
 
@@ -139,6 +151,8 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
     
     data_['vessel'] = None
     data_['processId'] = gID
+    data_['loadable']['loadablePatternId'] = data.get('loadablePatternId',101)
+    # data_['ballastEdited'] = True
     
     print('>>>> get vessel API')
     vessel_url_ = config['url']['vessel-details'].format(vesselId=data_['loadable']['vesselId'])
@@ -166,8 +180,8 @@ async def status_handler(userId: dict):
     
     return out
 
-@app.post("/loadicatior_results/")
-async def loadicatior_handler(data: dict):
+@app.post("/loadicator_results/")
+async def loadicator_handler(data: dict):
     
     query = users.select().where(users.c.id == data['processId'])
     # out = {'processId': data['processId'], 'status':None, 'result': None}

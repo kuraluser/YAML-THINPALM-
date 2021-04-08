@@ -161,11 +161,11 @@ class Multiple_plans(object):
         data = {}
         data['message'] = None
         data['processId'] = self.input.process_id
+        data['errors'] = []
         
         if len(self.plans['ship_status']) == 0:
             data['loadablePlanDetails'] = [] #self.plan['message']
             data['message'] = {**self.input.error, **self.plans['message']}
-            
             data['errors'] = self._format_errors(data['message'])
                         
             return data
@@ -263,8 +263,9 @@ class Multiple_plans(object):
                     info_['orderedQuantity'] = str(round(intend_,DEC_PLACE))
                     info_['differencePercentage'] = str(round((v_-intend_)/intend_*100,2))
                     info_['loadingOrder'] = str(self.plans['cargo_order'][sol][k_])
-                    info_["maxTolerance"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][1])
-                    info_["minTolerance"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][0])
+                    info_["maxTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][1])
+                    info_["minTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][0])
+                    info_['slopQuantity'] = self.plans['slop_qty'][sol].get(k_,0.)
           
           
                     plan.append(info_)
@@ -291,8 +292,9 @@ class Multiple_plans(object):
                     info_['cargoNominationId'] = v_[0]['parcel'][1:]
                     info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
                     
-                    vol_ = abs(v_[0]['wt'])/v_[0]['SG']
-                    info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
+                    # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
+                    info_['rdgUllage'] = str(v_[0]['rdgUllage'])
+                    info_['correctionFactor'] = str(v_[0]['correctionFactor'])
                    
                     plan.append(info_)
                     
@@ -311,8 +313,11 @@ class Multiple_plans(object):
                     info_['colorCode'] = self.input.vessel.info['cargoTanks'][k_]['colorCode']
                     info_['api'] = self.input.vessel.info['cargoTanks'][k_]['api']
                     
-                    vol_ = abs(v_[0]['wt'])/v_[0]['SG']
-                    info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
+                    # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
+                    info_['rdgUllage'] = str(v_[0]['rdgUllage'])
+                    info_['correctionFactor'] = str(v_[0]['correctionFactor'])
+                    
+                    
                     info_['cargoNominationId'] = ''
                     info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
                     
@@ -349,10 +354,14 @@ class Multiple_plans(object):
                     info_['api'] =  str(round(v_[0]['api'],2))
                     info_['tankId'] = self.input.vessel.info['tankName'][k_]
                     info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
-                    vol_ = abs(v_[0]['wt'])/v_[0]['SG']
-                    info_['rdgUllage'] = round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2)
+                    # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
+                   
+                    info_['rdgUllage'] = str(v_[0]['rdgUllage'])
+                    info_['correctionFactor'] = str(v_[0]['correctionFactor'])
+                   
                    
                     info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
+                    info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else str(0.00)
                     plan.append(info_)
                 
         elif category == 'ballastStatus':
@@ -366,14 +375,15 @@ class Multiple_plans(object):
                 
                 info_['tankId'] = str(self.input.vessel.info['tankName'][k_])
                 info_['tankName'] = self.input.vessel.info['ballastTanks'][k_]['name']
-                vol_ = np.floor(abs(v_[0]['wt'])/v_[0]['SG']) # + self.input.vessel.info['onboard'].get(k_,{}).get('vol',0.)
+                # vol_ = np.floor(abs(v_[0]['wt'])/v_[0]['SG']) # + self.input.vessel.info['onboard'].get(k_,{}).get('vol',0.)
                 
-                try:
-                    ul_= self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist()
-                except:
-                    print(k_, vol_)
-                    ul_ = 0.
-                info_['rdgLevel'] = str(round(ul_, 2))
+                # try:
+                #     ul_= self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist()
+                # except:
+                #     print(k_, vol_)
+                #     ul_ = 0.
+                info_['rdgLevel'] = str(v_[0]['rdgLevel'])
+                info_['correctionFactor'] = str(v_[0]['correctionFactor'])
                 
                 plan.append(info_)
                 
@@ -399,38 +409,7 @@ class Multiple_plans(object):
         return errors
         
     
-    def _cal_density(self, api, temperature_F):
-        
-        temperature = ((temperature_F - 32)*5/9*100+0.5)/100
-        # temp_F_ = round(temperature*1.8+32,1)
-        
-        sg_60_ = round(141.5/(api+131.5),4) # SG@60F
-        
-        # density@15C in vacuum
-        if sg_60_ < 0.68:
-            density_15C_ = sg_60_ - 0.0001
-        elif sg_60_ < 0.7389:
-            density_15C_ = sg_60_ - 0.0002
-        elif sg_60_ < 0.7929:
-            density_15C_ = sg_60_ - 0.0003
-        elif sg_60_ < 0.8609:
-            density_15C_ = sg_60_ - 0.0004
-        elif sg_60_ < 0.9549:
-            density_15C_ = sg_60_ - 0.0005
-        else:
-            density_15C_ = sg_60_ - 0.0006
-            
-        vcf_ = np.exp(-(613.97231/(density_15C_*1000)**2)*(temperature-15.0)*(1.0+(0.8*(613.97231/(density_15C_*1000)**2)*(temperature-15.0))))
-        
-        # density@15C in air == density_15C_-0.0011
-        density = (density_15C_-0.0011)*vcf_  # 
-        
-        # temp_diff_ = temperature - 15
-        # density_ = density_15C_ - 0.0006*temp_diff_
-        
-#        print(temp_F_,sg_60_,round(density_15C_,4),round(vcf_,5),round(density_,4))
-    
-        return round(density,4)
+
     
 
                 

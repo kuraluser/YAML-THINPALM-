@@ -5,6 +5,7 @@ Created on Mon Nov 16 14:50:33 2020
 @author: I2R
 """
 import numpy as np
+import json
 
 DEC_PLACE = 3
 
@@ -27,8 +28,9 @@ class Check_plans:
             for p__, p_ in enumerate(plans):
                 print('plan:', p__, '---------------------------------------------------------------------------------------------')            
                 stability_ = {}
-                for a_, b_ in cargo_tank[p__].items():
-                    print(a_,b_)
+                if len(cargo_tank) > 0:
+                    for a_, b_ in cargo_tank[p__].items():
+                        print(a_,b_)
                 for k_, v_ in p_.items(): # each port
                     plan_ = {**v_['cargo'], **v_['ballast'], **v_['other']}
                     result = self._check_plan(plan_, k_, seawater_density=self.input.loadable.info['seawaterDensity'][k_])
@@ -39,13 +41,38 @@ class Check_plans:
                     stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
                                      'meanDraft': "{:.2f}".format(result['dm']),
                                      'afterDraft': "{:.2f}".format(result['da']),
-                                     'trim': "{:.2f}".format(result['trim']),
+                                     'trim': "{:.2f}".format(0.00 if round(result['trim'],2) == 0 else result['trim']),
                                      'heel': None,
                                      'airDraft': "{:.2f}".format(result['airDraft']),
                                      'bendinMoment': "{:.2f}".format(result['maxBM'][1]),
                                      'shearForce':  "{:.2f}".format(result['maxSF'][1])}
+                    
+                    # update correction ullage
+                    trim_ = result['trim']
+                    
+                    for a_, b_ in plans[p__][k_]['cargo'].items():
+                        tankId_ = self.input.vessel.info['tankName'][a_]
+                        if str(tankId_) in self.input.vessel.info['ullage_func_corr'].keys():
+                            cf_ = self.input.vessel.info['ullage_func_corr'][str(tankId_)](b_[0]['rdgUllage'],trim_)[0]
+                            plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = round(cf_,3)
+                        else:
+                            # print(str(tankId_), a_, 'Missing correction data!!')
+                            plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = -100
+                        
+                    for a_, b_ in plans[p__][k_]['ballast'].items():
+                        tankId_ = self.input.vessel.info['tankName'][a_]
+                        if str(tankId_) in self.input.vessel.info['ullage_func_corr'].keys():
+                            cf_ = self.input.vessel.info['ullage_func_corr'][str(tankId_)](b_[0]['rdgLevel'],trim_)[0]
+                            plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = round(cf_,3)
+                        else:
+                            # print(str(tankId_), a_, 'Missing correction data!!')
+                            plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = -100
+                    
                                      
                 self.stability_values.append(stability_)
+                
+            #with open('ship_status.json', 'w') as fp:
+            #    json.dump(plans, fp)     
             
                 
                 
@@ -109,7 +136,7 @@ class Check_plans:
         bg_ = lcg_ - lcb_
         trim_ = bg_*disp_/mtc_/100
         
-        # print(mtc_,disp_)
+        # print(disp_, mtc_, lcb_)
         
         df_ = draft_ -  (0.5*lpp_ + lcf_)/lpp_*trim_
         da_ = df_ + trim_
@@ -240,6 +267,7 @@ class Check_plans:
             result['BM'] = {f_:BM_percent[f__] for f__,f_ in enumerate(frames_)}   
             result['maxSF'] = max_sf_  
             result['maxBM'] = max_bm_
+            # print(W_)
             
                 
             
