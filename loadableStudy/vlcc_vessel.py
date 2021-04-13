@@ -96,9 +96,9 @@ class Vessel:
         #         # vessel_info_['ullage'][str(d_['tankId'])] ['id'].append(d_['id'])
         
         ## linear approx ullage
-        self._get_ullage_func(vessel_info_, vessel_json['ullageDetails'])    
+        self._get_ullage_func(vessel_info_, {k_:v_ for k_,v_ in vessel_json.items() if k_ in ['ullageDetails','ullageTrimCorrections']})    
         
-        self._get_ullage_corr(vessel_info_, vessel_json['ullageTrimCorrections'])
+        # self._get_ullage_corr(vessel_info_, vessel_json['ullageTrimCorrections'])
         
         ## 
         vessel_info_['hydrostatic'] = {}
@@ -559,83 +559,96 @@ class Vessel:
             with open(vessel_info_['name']  +'_trim.pickle', 'rb') as fp_:
                 vessel_info_['lcb_mtc'] = pickle.load(fp_)
                         
-    def _get_ullage_func(self, vessel_info_, ullageDetails):
+    def _get_ullage_func(self, vessel_info_, ullage_data):
         
         # with open('ullage_data.json', 'w') as f_:  
         #     json.dump({'data':vessel_info_['ullage']}, f_)
         
         if not Path(vessel_info_['name']+'_ullage.pickle').is_file():
             
-            vessel_info_['ullage'] = {}
-            for d_ in ullageDetails: #vessel_json['ullageDetails']:
-                # print(d_['id'])
-                if str(d_['tankId']) not in vessel_info_['ullage']:
-                    vessel_info_['ullage'][str(d_['tankId'])] = {'id': [d_['id']], 'depth':[float(d_['ullageDepth'])], 'vol':[float(d_['evenKeelCapacityCubm'])]}
+            
+            ullageDetails = pd.DataFrame(ullage_data['ullageDetails'], dtype=np.float)
+            ullageTrimCorrections = pd.DataFrame(ullage_data['ullageTrimCorrections'], dtype=np.float)
+            ullageTrimCorrections.drop(columns=['trimM2', 'trimM3', 'trimM4', 'trimM5'], inplace=True)
+            
+            ullage_func = {}
+            ullage_corr = {}
+            for k_, v_ in vessel_info_['tankName'].items():
+                
+                print(k_,v_)
+                
+                ullage_ = ullageDetails[ullageDetails['tankId'] == v_]
+                ullage_ = ullage_.sort_values(by='evenKeelCapacityCubm')
+                
+                ullage_corr_ = ullageTrimCorrections[ullageTrimCorrections['tankId'] == v_]
+                ullage_corr_ = ullage_corr_.sort_values(by='ullageDepth')
+                
+                yy_ = []
+                if k_ in vessel_info_['ballastTanks']:
+                    yy_ = ullage_['soundDepth']
+                elif k_ in vessel_info_['cargoTanks']:
+                    yy_ = ullage_['ullageDepth']
+                
+                if len(yy_) >  0:
+                    
+                    ullage_func[str(v_)] = interp1d(ullage_['evenKeelCapacityCubm'], yy_)
+                    ullage_corr[str(v_)] = ullage_corr_.values.tolist()
                 else:
-                    vessel_info_['ullage'][str(d_['tankId'])] ['depth'].append(float(d_['ullageDepth']))
-                    vessel_info_['ullage'][str(d_['tankId'])] ['vol'].append(float(d_['evenKeelCapacityCubm']))
-                    # vessel_info_['ullage'][str(d_['tankId'])] ['id'].append(d_['id'])
+                    print(k_,v_, 'is empty or not needed!!')
             
-            # with open(vessel_info_['name']  +'_.pickle', 'wb') as fp_:
-            #     pickle.dump(vessel_info_, fp_)   
-            
-            
-            func_ = {}
-            for k_, v_ in vessel_info_['ullage'].items():
-                func_[k_] = interp1d(v_['vol'], v_['depth'])
-            
-            vessel_info_['ullage_func'] = func_
+            vessel_info_['ullage']  = ullage_func
+            vessel_info_['ullageCorr']  = ullage_corr
             
             with open(vessel_info_['name']  +'_ullage.pickle', 'wb') as fp_:
-                pickle.dump(func_, fp_)     
+                pickle.dump([ullage_func, ullage_corr], fp_)     
                 
         else:
             
             with open(vessel_info_['name']  +'_ullage.pickle', 'rb') as fp_:
-                vessel_info_['ullage_func'] = pickle.load(fp_)
+                vessel_info_['ullage'], vessel_info_['ullageCorr'] = pickle.load(fp_)
             
-    def _get_ullage_corr(self, vessel_info_, ullageCorrDetails):
+    # def _get_ullage_corr(self, vessel_info_, ullageCorrDetails):
         
-        # with open('ullage_data.json', 'w') as f_:  
-        #     json.dump({'data':vessel_info_['ullage']}, f_)
+    #     # with open('ullage_data.json', 'w') as f_:  
+    #     #     json.dump({'data':vessel_info_['ullage']}, f_)
         
-        if not Path(vessel_info_['name']+'_ullage_corr.pickle').is_file():
+    #     if not Path(vessel_info_['name']+'_ullage_corr.pickle').is_file():
             
-            vessel_info_['ullageCorr'] = {}
+    #         vessel_info_['ullageCorr'] = {}
             
-            for d_ in ullageCorrDetails: #vessel_json['ullageDetails']:
-                # print(d_['id'])
-                if str(d_['tankId']) not in vessel_info_['ullageCorr']:
-                    vessel_info_['ullageCorr'][str(d_['tankId'])] = {'depth':[float(d_['ullageDepth'])], 'corr':[[float(d_['trimM1']),float(d_['trim0']), float(d_['trim1']),
-                                                                                                              float(d_['trim2']),float(d_['trim3']),float(d_['trim4']),
-                                                                                                              float(d_['trim5']),float(d_['trim6'])]]}
-                else:
-                    vessel_info_['ullageCorr'][str(d_['tankId'])] ['depth'].append(float(d_['ullageDepth']))
-                    vessel_info_['ullageCorr'][str(d_['tankId'])] ['corr'].append([float(d_['trimM1']),float(d_['trim0']), float(d_['trim1']),
-                                                                                   float(d_['trim2']),float(d_['trim3']),float(d_['trim4']),
-                                                                                   float(d_['trim5']),float(d_['trim6'])])
-                    # vessel_info_['ullage'][str(d_['tankId'])] ['id'].append(d_['id'])
+    #         for d_ in ullageCorrDetails: #vessel_json['ullageDetails']:
+    #             # print(d_['id'])
+    #             if str(d_['tankId']) not in vessel_info_['ullageCorr']:
+    #                 vessel_info_['ullageCorr'][str(d_['tankId'])] = {'depth':[float(d_['ullageDepth'])], 'corr':[[float(d_['trimM1']),float(d_['trim0']), float(d_['trim1']),
+    #                                                                                                           float(d_['trim2']),float(d_['trim3']),float(d_['trim4']),
+    #                                                                                                           float(d_['trim5']),float(d_['trim6'])]]}
+    #             else:
+    #                 vessel_info_['ullageCorr'][str(d_['tankId'])] ['depth'].append(float(d_['ullageDepth']))
+    #                 vessel_info_['ullageCorr'][str(d_['tankId'])] ['corr'].append([float(d_['trimM1']),float(d_['trim0']), float(d_['trim1']),
+    #                                                                                float(d_['trim2']),float(d_['trim3']),float(d_['trim4']),
+    #                                                                                float(d_['trim5']),float(d_['trim6'])])
+    #                 # vessel_info_['ullage'][str(d_['tankId'])] ['id'].append(d_['id'])
         
-            func_ = {}
-            for k_, v_ in vessel_info_['ullageCorr'].items():
+    #         func_ = {}
+    #         for k_, v_ in vessel_info_['ullageCorr'].items():
                 
-                xx_, yy_, zz_ = [], [], []
-                for a_, b_ in zip(v_['depth'], v_['corr']):
-                    xx_ += [a_ for i_ in range(8)]
-                    yy_ += [-1, 0, 1, 2, 3, 4, 5, 6]
-                    zz_ += b_
+    #             xx_, yy_, zz_ = [], [], []
+    #             for a_, b_ in zip(v_['depth'], v_['corr']):
+    #                 xx_ += [a_ for i_ in range(8)]
+    #                 yy_ += [-1, 0, 1, 2, 3, 4, 5, 6]
+    #                 zz_ += b_
                 
-                func_[k_] = interp2d(xx_, yy_, zz_)
+    #             func_[k_] = interp2d(xx_, yy_, zz_)
             
-            vessel_info_['ullage_corr'] = func_
+    #         vessel_info_['ullage_corr'] = func_
             
-            with open(vessel_info_['name']  +'_ullage_corr.pickle', 'wb') as fp_:
-                pickle.dump(func_, fp_)     
+    #         with open(vessel_info_['name']  +'_ullage_corr.pickle', 'wb') as fp_:
+    #             pickle.dump(func_, fp_)     
                 
-        else:
+    #     else:
             
-            with open(vessel_info_['name']  +'_ullage_corr.pickle', 'rb') as fp_:
-                vessel_info_['ullage_func_corr'] = pickle.load(fp_)
+    #         with open(vessel_info_['name']  +'_ullage_corr.pickle', 'rb') as fp_:
+    #             vessel_info_['ullage_func_corr'] = pickle.load(fp_)
     
     
  

@@ -293,8 +293,10 @@ class Multiple_plans(object):
                     info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
                     
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
+                    info_['corrUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
-                    info_['correctionFactor'] = str(v_[0]['correctionFactor'])
+                    
                    
                     plan.append(info_)
                     
@@ -314,9 +316,9 @@ class Multiple_plans(object):
                     info_['api'] = self.input.vessel.info['cargoTanks'][k_]['api']
                     
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
+                    info_['corrUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
-                    info_['correctionFactor'] = str(v_[0]['correctionFactor'])
-                    
                     
                     info_['cargoNominationId'] = ''
                     info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
@@ -342,7 +344,7 @@ class Multiple_plans(object):
                      
                     
                     
-                    info_['priority'] = str(self.input.loadable.info['commingleCargo']['priority'])
+                    # info_['priority'] = str(self.input.loadable.info['commingleCargo']['priority'])
                     info_['cargo1Percentage'] = str(round(v_[0]['wt1percent']*100,2))
                     info_['cargo2Percentage'] = str(round(v_[0]['wt2percent']*100,2))
                     info_['cargo1MT'] = str(v_[0]['wt1'])
@@ -356,9 +358,9 @@ class Multiple_plans(object):
                     info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                    
+                    info_['corrUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
-                    info_['correctionFactor'] = str(v_[0]['correctionFactor'])
-                   
                    
                     info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
                     info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else str(0.00)
@@ -382,8 +384,9 @@ class Multiple_plans(object):
                 # except:
                 #     print(k_, vol_)
                 #     ul_ = 0.
+                info_['corrLevel'] = str(round(v_[0]['corrLevel'],3))
+                info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                 info_['rdgLevel'] = str(v_[0]['rdgLevel'])
-                info_['correctionFactor'] = str(v_[0]['correctionFactor'])
                 
                 plan.append(info_)
                 

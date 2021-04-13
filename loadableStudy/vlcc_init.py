@@ -77,6 +77,7 @@ class Process_input(object):
         else:
             self.mode = 'Auto'
         
+        self.case_number = data.get('caseNumber', None)
         
     def prepare_dat_file(self, ballast_weight=1000):
         
@@ -227,7 +228,7 @@ class Process_input(object):
                 draft_corr_.append(float(df_['draftCorrection']))
                 
                 # BM
-                df_ = df_bm_[df_bm_["frameNumber"].isin([f_])]  
+                df_ = df_bm_[df_bm_["frameNumber"].isin([float(f_)])]  
                 df_ = df_[df_['baseDraft'].isin([base_draft_])]
                 base_value__.append(float(df_['baseValue']))
                 draft_corr__.append(float(df_['draftCorrection']))
@@ -406,7 +407,7 @@ class Process_input(object):
                 print('# cargo density @ low temperature (in t/m3)',file=text_file)#  
                 str1 = 'param densityCargo_High  := ' 
                 for i_,j_ in self.loadable.info['parcel'].items():
-                    str1 +=  str(i_) + ' ' + "{:.4f}".format(j_['mintempSG'])  + ' '
+                    str1 +=  str(i_) + ' ' + "{:.6f}".format(j_['mintempSG'])  + ' '
                 print(str1+';', file=text_file)
      
                 print('# cargo density @ high temperature (in t/m3)',file=text_file)#  
@@ -414,7 +415,7 @@ class Process_input(object):
                 density_ = []
                 for i_,j_ in self.loadable.info['parcel'].items():
                     density_.append(j_['maxtempSG'])
-                    str1 +=  str(i_) + ' ' + "{:.4f}".format(j_['maxtempSG'])  + ' '
+                    str1 +=  str(i_) + ' ' + "{:.6f}".format(j_['maxtempSG'])  + ' '
                 print(str1+';', file=text_file)
     #           
                 str1 = 'param aveCargoDensity  := ' 

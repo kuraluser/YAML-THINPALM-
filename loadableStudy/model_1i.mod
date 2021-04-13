@@ -420,7 +420,7 @@ param BV_BM {f in 1..Fr, p in P} default 0;
 param CD_BM {f in 1..Fr, p in P} default 0;
 
 param numSolutions integer default 3;
-param runtimeLimit integer default 60;
+param runtimeLimit integer default 20;
 param seed integer default 0;
 
 param tolerance := 0; # tolerance for rounding
@@ -704,7 +704,8 @@ subject to Constr19a {p in P}: mn[0,p] = 0;
 subject to Constr19b {f in 1..Fr, p in P_stable}: mn[f,p] = mn[f-1,p] + sum {t in T} LCG_ct[f,t]*weightRatio_ct[f,t]*wC[t,p]/1000 + sum {t in TB} LCG_bt[f,t]*weightRatio_bt[f,t]*wB[t,p]/1000 + sum {t in OtherTanks} LCG_ot[f,t]*weightRatio_ot[f,t]*weightOtherTank[t,p]/1000; 
 
 # mean_draft=pwl(displacement)
-subject to Constr18d {p in P}: mean_draft[p] = (<<bDraft1,bDraft2,bDraft3,bDraft4,bDraft5,bDraft6,bDraft7,bDraft8,bDraft9; mDraft1, mDraft2, mDraft3, mDraft4, mDraft5, mDraft6, mDraft7, mDraft8, mDraft9, mDraft10 >> displacement1[p])*densitySeaWater[p]/1.025 + adjMeanDraft;
+#subject to Constr18d {p in P}: mean_draft[p] = (<<bDraft1,bDraft2,bDraft3,bDraft4,bDraft5,bDraft6,bDraft7,bDraft8,bDraft9; mDraft1, mDraft2, mDraft3, mDraft4, mDraft5, mDraft6, mDraft7, mDraft8, mDraft9, mDraft10 >> displacement1[p])*densitySeaWater[p]/1.025 + adjMeanDraft;
+subject to Constr18d {p in P}: mean_draft[p] = <<bDraft1,bDraft2,bDraft3,bDraft4,bDraft5,bDraft6,bDraft7,bDraft8,bDraft9; mDraft1, mDraft2, mDraft3, mDraft4, mDraft5, mDraft6, mDraft7, mDraft8, mDraft9, mDraft10 >> displacement[p] + adjMeanDraft;
 
 # SF -> zero trim
 # sf_lower <= BVsf + CD*(Mean_draft – base_draft)  – W[f] <= sf_upper

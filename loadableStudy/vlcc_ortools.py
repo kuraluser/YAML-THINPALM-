@@ -398,7 +398,7 @@ def vlcc_ortools(inputs):
     #lower loading bound for each ballast tank
     lowerBoundB1 = {}
     for i in range(len(TB)):
-        upperBoundB1[TB[i]] = 1.0
+        upperBoundB1[TB[i]] = 0.99
         # upperBoundB2[TB[i]] = 0.0
         lowerBoundB1[TB[i]] = 0.0
         # lowerBoundB2[TB[i]] = 0.0

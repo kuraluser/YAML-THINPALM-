@@ -142,16 +142,18 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
     data_ = {}
     
     if data.get('loadableStudy', []):
+        # manual/fullManual mode
         # manual mode
         data_['loadable'] = data['loadableStudy']
         data_['loadablePlanPortWiseDetails'] = data['loadablePlanPortWiseDetails']
+        data_['caseNumber'] = data.get('caseNumber', None)
+        data_['loadable']['loadablePatternId'] = data.get('loadablePatternId',111111)
         
     else:
         data_['loadable'] = data
     
     data_['vessel'] = None
     data_['processId'] = gID
-    data_['loadable']['loadablePatternId'] = data.get('loadablePatternId',101)
     # data_['ballastEdited'] = True
     
     print('>>>> get vessel API')

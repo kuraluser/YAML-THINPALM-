@@ -6,6 +6,7 @@ Created on Mon Nov 16 14:50:33 2020
 """
 import numpy as np
 import json
+import pandas as pd
 
 DEC_PLACE = 3
 
@@ -35,7 +36,7 @@ class Check_plans:
                     plan_ = {**v_['cargo'], **v_['ballast'], **v_['other']}
                     result = self._check_plan(plan_, k_, seawater_density=self.input.loadable.info['seawaterDensity'][k_])
                     
-                    print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],DEC_PLACE), 'Trim:', round(result['trim'],DEC_PLACE))
+                    print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],DEC_PLACE))
                     print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
                     
                     stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
@@ -52,30 +53,78 @@ class Check_plans:
                     
                     for a_, b_ in plans[p__][k_]['cargo'].items():
                         tankId_ = self.input.vessel.info['tankName'][a_]
-                        if str(tankId_) in self.input.vessel.info['ullage_func_corr'].keys():
-                            cf_ = self.input.vessel.info['ullage_func_corr'][str(tankId_)](b_[0]['rdgUllage'],trim_)[0]
-                            plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = round(cf_,3)
+                        if str(tankId_) in self.input.vessel.info['ullageCorr'].keys():
+                            cf_ = self._get_correction(str(tankId_), b_[0]['corrUllage'], trim_)
+                            rdgUllage_ = b_[0]['corrUllage'] - cf_/100 if cf_ not in [None] else b_[0]['corrUllage']
+                            
+                            plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else None
+                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(rdgUllage_,3)
+                            
                         else:
                             # print(str(tankId_), a_, 'Missing correction data!!')
-                            plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = -100
+                            plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = None
+                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(b_[0]['corrUllage'],3)
+                            
                         
                     for a_, b_ in plans[p__][k_]['ballast'].items():
                         tankId_ = self.input.vessel.info['tankName'][a_]
-                        if str(tankId_) in self.input.vessel.info['ullage_func_corr'].keys():
-                            cf_ = self.input.vessel.info['ullage_func_corr'][str(tankId_)](b_[0]['rdgLevel'],trim_)[0]
-                            plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = round(cf_,3)
+                        if str(tankId_) in self.input.vessel.info['ullageCorr'].keys():
+                            # print(b_[0].keys())
+                            cf_ = self._get_correction(str(tankId_), b_[0]['corrLevel'], trim_)
+                            rdgLevel_ = b_[0]['corrLevel'] - cf_/100 if cf_ not in [None] else b_[0]['corrLevel']
+                            
+                            plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else None
+                            plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = round(rdgLevel_,3) 
+                            
+                            
                         else:
                             # print(str(tankId_), a_, 'Missing correction data!!')
-                            plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = -100
+                            plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = None
+                            plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = b_[0]['corrLevel']
+                            
                     
                                      
                 self.stability_values.append(stability_)
                 
-            #with open('ship_status.json', 'w') as fp:
-            #    json.dump(plans, fp)     
+            with open('ship_status.json', 'w') as fp:
+                json.dump(plans, fp)     
             
                 
-                
+    def _get_correction(self, tank, ullage, trim):
+        
+       
+        # out = 0
+        data = self.input.vessel.info['ullageCorr'][tank]
+        data = pd.DataFrame(data,  dtype=np.float, columns=[ 'id', 'tankId', 'ullageDepth', 'trimM1', 'trim0', 'trim1', 'trim2', 'trim3', 'trim4', 'trim5', 'trim6'])
+        # print(tank, ullage , trim)
+        ullage_range = data['ullageDepth'].to_numpy()
+        if trim < -1 or trim > 6 or ullage < ullage_range[0] or ullage > ullage_range[-1]:
+            return None
+        
+        a_ = np.where(data['ullageDepth'] <= ullage)[0][-1]     
+         # b_ = np.where(data['ullageDepth'] >= ullage)[0][0]
+        
+        trim_range = np.array([-1,0,1,2,3,4,5,6])
+        a__ = np.where(trim_range <= trim)[0][-1]     
+         # b__ = np.where(trim_range >= trim)[0][0]
+        
+         # ullage x trim
+        data_ = data.iloc[a_:a_+2,a__+3:a__+5].to_numpy()
+        x_ = ullage_range[a_:a_+2]
+        y_ = trim_range[a__:a__+2]
+        
+        z1_ = [(ullage-x_[0])*(data_[1][0]-data_[0][0])/(x_[1]-x_[0]) + data_[0][0], 
+                (ullage-x_[0])*(data_[1][1]-data_[0][1])/(x_[1]-x_[0]) +  data_[0][1]]
+        
+        
+        out = (trim-y_[0])*(z1_[1]-z1_[0])/(y_[1]-y_[0]) + z1_[0]
+        
+       #  print(x_,y_,data_)
+        
+        
+        
+        return out
+    
                 
                 
                 
@@ -148,7 +197,7 @@ class Check_plans:
         result['dm'] = dm_
         result['dc'] = draft_
         
-        
+        # print(da_,df_)
         km_ = np.interp(disp_, self.input.vessel.info['hydrostatic']['displacement'], self.input.vessel.info['hydrostatic']['tkm'])
         kg_ = v_mom_/disp_
         gm_ = km_ - kg_
@@ -179,6 +228,27 @@ class Check_plans:
 #                   }
 #        
 #        da_,  trim_ = 20.74, -0.4
+        
+        # use back default seawater density
+        draft_ = np.interp(disp_, self.input.vessel.info['hydrostatic']['displacement'], self.input.vessel.info['hydrostatic']['draft'])
+        mtc_   = np.interp(disp_, self.input.vessel.info['hydrostatic']['displacement'], self.input.vessel.info['hydrostatic']['mtc'])
+        lcb_ = np.interp(disp_, self.input.vessel.info['hydrostatic']['displacement'], self.input.vessel.info['hydrostatic']['lcb'])
+        lcf_   = np.interp(disp_, self.input.vessel.info['hydrostatic']['displacement'], self.input.vessel.info['hydrostatic']['lcf'])
+        # mid.f = lcf; mid.b = lcb
+#        print(draft_,mtc_,lcb_,lcf_)
+        lcg_ = l_mom_/ disp_
+        bg_ = lcg_ - lcb_
+        trim_ = bg_*disp_/mtc_/100
+        
+        # print(disp_, mtc_, lcb_)
+        
+        df_ = draft_ -  (0.5*lpp_ + lcf_)/lpp_*trim_
+        da_ = df_ + trim_
+        
+        # print(da_)
+
+
+        
         base_drafts, indx = np.unique(self.input.vessel.info['SSTable']['baseDraft'].to_numpy(dtype=np.float), return_index=True)
         ind_ = np.where(da_ >= base_drafts)
         if len(ind_[0]) > 0:
@@ -242,10 +312,11 @@ class Check_plans:
                 if SF_percent[f__] > max_sf_[1]:
                     max_sf_ = [f_, round(SF_percent[f__],2)]
                 # BM
-                df_ = df_bm_[df_bm_["frameNumber"].isin([f_])]  
+                df_ = df_bm_[df_bm_["frameNumber"].isin([float(f_)])]
                 df_ = df_[df_['baseDraft'].isin([base_draft_])]
+                # print(df_)
                 sb_ = df_['baseValue'].to_numpy()[0] + (da_-base_draft_)*df_['draftCorrection'].to_numpy()[0] + trim_*df_['trimCorrection'].to_numpy()[0]
-    #            print(f_, ss_, sb_)
+                # print(f_, ss_, sb_)
                 BM_[f__] = (W_[f__] * tankGroupLCG_[str(f__+1)] - sb_ + M_[f__])*1000
                 BM_limits_[f__] = BMlimits_[str(f_)][0] if BM_[f__] < 0 else BMlimits_[str(f_)][1]
                 BM_percent[f__] = BM_[f__]/BM_limits_[f__]*100
@@ -256,7 +327,7 @@ class Check_plans:
                 # print(f_, round(da_,3), round(W_[f__],3),round(ss_,3), round(SF_[f__]/1000,3), round(M_[f__],3), round(sb_,3), round(BM_[f__],3))
                 
                 # print(f_, round(da_,3), round(W_[f__],3),round(ss_,3), round(SF_[f__]/1000,3))
-                # print(f_, round(da_,3), round(W_[f__],3),round(sb_,3), round(BM_[f__]/1000,3))
+                # print(f_, round(da_,3), round(W_[f__],3),round(sb_,3), round(BM_[f__]/1000,3), BM_percent[f__])
                 
                 # print(f_, ss_ ,sb_)
                 # print(f_ ,SF_[f__]/1000,BM_[f__]/1000)

@@ -531,23 +531,24 @@ class Loadable:
         temperature = (temperature_F - 32)/1.8
         # temp_F_ = round(temperature*1.8+32,1)
         
-        # sg_60_ = round(141.5/(api+131.5),4) # SG@60F
-        
-        # # density@15C in vacuum
-        # if sg_60_ < 0.68:
-        #     density_15C_ = sg_60_ - 0.0001
-        # elif sg_60_ < 0.7389:
-        #     density_15C_ = sg_60_ - 0.0002
-        # elif sg_60_ < 0.7929:
-        #     density_15C_ = sg_60_ - 0.0003
-        # elif sg_60_ < 0.8609:
-        #     density_15C_ = sg_60_ - 0.0004
-        # elif sg_60_ < 0.9549:
-        #     density_15C_ = sg_60_ - 0.0005
-        # else:
-        #     density_15C_ = sg_60_ - 0.0006
+        if 10 <= api < 18.4:
+            density15c = 141500/(api+131.5) - 0.55
+        elif 18.4 <= api < 31.9:
+            density15c = 141500/(api+131.5) - 0.505
+        elif 31.9 <= api < 45.3:
+            density15c = 141500/(api+131.5) - 0.44
+        elif 45.3 <= api < 57.6:
+            density15c = 141500/(api+131.5) - 0.27
+        elif 57.6 <= api < 80.6:
+            density15c = 141500/(api+131.5) - 0.16
+        elif 80.6 <= api < 85:
+            density15c = 141500/(api+131.5) - 0.1
+        else:
+            density15c = None
             
-        density_15C_ = 141.5/(api+0.08775+131.5)
+        density_15C_ = density15c/1000
+            
+        # density_15C_ = 141.5/(api+0.08775+131.5)
             
         vcf_ = np.exp(-(613.97231/(density_15C_*1000)**2)*(temperature-15.0)*(1.0+(0.8*(613.97231/(density_15C_*1000)**2)*(temperature-15.0))))
         
@@ -559,13 +560,39 @@ class Loadable:
         
 #        print(temp_F_,sg_60_,round(density_15C_,4),round(vcf_,5),round(density_,4))
     
-        return round(density,4)
+        return round(density,6)
     
     def _get_plan(self,inputs, cargos_info):
+        
+        onboard_json = inputs.vessel_json['onBoard']
+        # onboard_json = [{"id": 29632,"portId": 1,"tankId": 25580,
+        #                  "cargoId": None,
+        #                  "volume": "100",
+        #                  "plannedArrivalWeight": "100.0000"
+        #                  }]
+        
+        onBoard = {}
+        for o__, o_ in enumerate(onboard_json):
+            tank_ = o_['tankId']
+            # port_order_ = '1A'
+            
+            # print(o_)
+            wt_ = float(o_['plannedArrivalWeight']) if o_['plannedArrivalWeight'] not in [None] else 0.
+            vol1_ = float(o_['volume']) if o_['volume'] not in [None] else 0.
+            if wt_ > 0. and vol1_ > 0.:
+                onBoard[tank_] = wt_
+                
+                
+        
+        
     
         loading_plan_, ballast_plan_ = {},{}
         
-        plan_ = inputs.loadable_json['planDetails']
+        plan_ = []
+        
+        for k_, v_ in inputs.port.info['portOrder'].items():
+            plan_.append([q_ for q__, q_ in enumerate(inputs.loadable_json['planDetails']) if v_ == q_['portCode']][0])
+        
         tank_cargo_ = {}
         for p__, p_ in enumerate(plan_):
             port_ = str(p__+1)
@@ -608,7 +635,7 @@ class Loadable:
                     tank_cargo_[tankId_] = []
                 
                 for c_ in range(2):
-                    parcel_ = 'P'+l_['cargoNomination'+ str(c_+1)+'Id']
+                    parcel_ = 'P'+str(l_['cargoNomination'+ str(c_+1)+'Id'])
                     info_ = {}
                     info_['parcel'] = parcel_
                     info_['wt'] = float(l_['cargo'+str(c_+1)+'MT'])
@@ -650,6 +677,8 @@ class Loadable:
                 tankId_ = l_['tankId']
                 if tankId_ not in tank_cargo_:
                     tank_cargo_[tankId_] = []
+                    
+                parcel_ = 'P'+str(l_['cargoNominationId'])
                 
                 if str(l_['cargoNominationId']) not in ['']:
                     info_ = {}
@@ -657,10 +686,10 @@ class Loadable:
                     info_['wt'] = float(l_['quantityMT'])
                     info_['tankId'] = tankId_
                     info_['port'] = dep_port_
-                    onboard_ = l_['onboard']
+                    onboard_ = onBoard.get(tankId_,0.)
                     
                     if onboard_ > 0:
-                        print(onboard_)
+                        print(tankId_,onboard_)
                     
                     # print(info_,l_)
                     if len(tank_cargo_[tankId_]) == 0:
@@ -670,7 +699,7 @@ class Loadable:
                         
                     else:
                         # print('repeat cargo_tank')
-                        total_wt_ = sum([0.]+[i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == 'P'+l_['cargoNominationId']])
+                        total_wt_ = sum([0.]+[i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == parcel_])
                         add_wt_ = info_['wt'] -  total_wt_ - onboard_
                         if add_wt_ > 0:
                             info_['wt'] = round(add_wt_,3)
@@ -678,11 +707,11 @@ class Loadable:
                             loading_plan_[dep_port_].append(info_)
                             
                         elif add_wt_ < 0:
-                            last_port_ = max(cargos_info['cargoLastLoad']['P'+l_['cargoNominationId']])
-                            pre_wt_ = [ i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == 'P'+l_['cargoNominationId'] and i_['port'] == last_port_ +'D']
+                            last_port_ = max(cargos_info['cargoLastLoad'][parcel_])
+                            pre_wt_ = [ i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == parcel_ and i_['port'] == last_port_ +'D']
                             new_load_ = pre_wt_[0] + add_wt_
                             if new_load_ > 0:
-                                info1_ = {'parcel':'P'+l_['cargoNominationId'], 'wt':pre_wt_[0], 'tankId':tankId_, 'port':last_port_ +'D'}
+                                info1_ = {'parcel':parcel_, 'wt':pre_wt_[0], 'tankId':tankId_, 'port':last_port_ +'D'}
                                 loading_plan_[last_port_+'D'].remove(info1_)
                                 tank_cargo_[tankId_].remove(info1_)
                                 

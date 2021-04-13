@@ -218,13 +218,13 @@ class Generate_plan:
                     fillingRatio_ =  round(vol_/capacity_,DEC_PLACE)
                     
                     tankId_ = self.input.vessel.info['tankName'][i_[2]]
-                    rdgUllage_ = round(self.input.vessel.info['ullage_func'][str(tankId_)](vol_).tolist(), 3)
+                    corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 3)
 
                     info_ = {'parcel':i_[1], 'wt': round(wt_,DEC_PLACE), 'SG': density_,
                              'fillRatio': fillingRatio_, 'tcg':tcg_, 
                              'temperature':self.input.loadable.info['parcel'][i_[1]]['temperature'],
                              'api':self.input.loadable.info['parcel'][i_[1]]['api'],
-                             'rdgUllage': rdgUllage_}
+                             'corrUllage': corrUllage_}
                     
                     # print(i_[3],i_[2],info_)
                     
@@ -259,7 +259,7 @@ class Generate_plan:
                             temp__ = [self.input.loadable.info['commingleCargo']['t1'], self.input.loadable.info['commingleCargo']['t2']]
                             api_, temp_ = self._get_commingleAPI(api__, wt__, temp__)
                             
-                            density_ = self._cal_density(round(api_,2), round(temp_,1))
+                            density_ = self.input.loadable._cal_density(round(api_,2), round(temp_,1))
                             vol_ = weight_/density_ 
                             
                             fillingRatio_ = round(vol_/capacity_,DEC_PLACE)
@@ -272,7 +272,8 @@ class Generate_plan:
                                                  self.input.vessel.info['tankTCG']['tcg'][k1_]['tcg'])
                             
                             tankId_ = self.input.vessel.info['tankName'][k1_]
-                            rdgUllage_ = round(self.input.vessel.info['ullage_func'][str(tankId_)](vol_).tolist(), 3)
+                            corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 3)
+
                                   
                             info_ = {'parcel':parcel_, 'wt': round(weight_,3), 'SG': round(density_,4),
                                      'fillRatio': fillingRatio_, 'tcg':tcg_, 
@@ -280,7 +281,7 @@ class Generate_plan:
                                      'api':api_,
                                      'wt1':wt1_, 'wt2':wt2_,
                                      'wt1percent':wt1_/(wt1_+wt2_), 'wt2percent':wt2_/(wt1_+wt2_),
-                                     'rdgUllage':rdgUllage_}
+                                     'corrUllage':corrUllage_}
                             
                             # print(info_)
                             
@@ -296,19 +297,20 @@ class Generate_plan:
                     wt_ = round(v_['wt'] ,DEC_PLACE) 
                     density_ = round(v_['wt']/v_['vol1'], 4)
                     capacity_ = self.input.vessel.info['cargoTanks'][k_]['capacityCubm']
-                    
+                    vol_ = v_['vol1']
                     tcg_ = 0.
                     if k_ in self.input.vessel.info['tankTCG']['tcg']:
                         tcg_ = np.interp(wt_/density_, self.input.vessel.info['tankTCG']['tcg'][k_]['vol'],
                                          self.input.vessel.info['tankTCG']['tcg'][k_]['tcg'])
                     
                     tankId_ = self.input.vessel.info['tankName'][k_]
-                    rdgUllage_ = round(self.input.vessel.info['ullage_func'][str(tankId_)](vol_).tolist(), 3)
+                    corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 3)
+
                         
                     info_ = {'parcel':'onboard', 'wt': wt_, 'SG': density_,
                              'fillRatio': round(v_['vol']/capacity_,DEC_PLACE), 'tcg':tcg_, 
                              'temperature':None,
-                             'rdgUllage': rdgUllage_}
+                             'corrUllage': corrUllage_}
                     
                     for k1_, v1_ in ship_status_dep_.items():
                         if not v1_.get(k_, []):
@@ -337,17 +339,17 @@ class Generate_plan:
                         
                     tankId_ = self.input.vessel.info['tankName'][i_[1]]     
                     try:
-                        rdgLevel_ = self.input.vessel.info['ullage_func'][str(tankId_)](vol_).tolist()
+                        corrLevel_ = self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist()
                     except:
                         print(k_, vol_)
-                        rdgLevel_ = 0.
+                        corrLevel_ = 0.
                     
                 
                     ballast_weight_[str(int(i_[2]))][i_[1]] = [{'wt': round(wt_,DEC_PLACE), 
                                                       'SG':density_,
                                                       'fillRatio': round(i_[3]/density_/capacity_,DEC_PLACE),
                                                       'tcg':tcg_,
-                                                      'rdgLevel':round(rdgLevel_,3)}]
+                                                      'corrLevel':round(corrLevel_,3)}]
             
             
                            
@@ -406,15 +408,15 @@ class Generate_plan:
                 
             tankId_ = self.input.vessel.info['tankName'][i_]     
             try:
-                rdgLevel_ = self.input.vessel.info['ullage_func'][str(tankId_)](vol_).tolist()
+                corrLevel_ = self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist()
             except:
-                print(k_, vol_)
-                rdgLevel_ = 0.
+                print(i_, vol_, ': correctLevel not available!!')
+                corrLevel_ = 0.
             
             initial_ballast_weight_[i_] = [{'wt': round(wt_,DEC_PLACE),
                                                   'SG':density_,
                                                   'fillRatio': round(j_/density_/capacity_,DEC_PLACE),
-                                                  'tcg':tcg_, 'rdgLevel':round(rdgLevel_,3)}]
+                                                  'tcg':tcg_, 'corrLevel':round(corrLevel_,3)}]
         self.initial_ballast_weight = initial_ballast_weight_
             
  
@@ -462,14 +464,14 @@ class Generate_plan:
                     fillingRatio_ =  round(vol_/capacity_,DEC_PLACE)
                     
                     tankId_ = i_['tankId']
-                    rdgUllage_ = round(self.input.vessel.info['ullage_func'][str(tankId_)](vol_).tolist(), 3)
+                    corrUllage_ = self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist()
 
                     
                     info_ = {'parcel':cargo_, 'wt': round(wt_,DEC_PLACE), 'SG': density_,
                              'fillRatio': fillingRatio_, 'tcg':tcg_, 
                              'temperature':self.input.loadable.info['parcel'][cargo_]['temperature'],
                              'api':self.input.loadable.info['parcel'][cargo_]['api'],
-                             'rdgUllage':rdgUllage_}
+                             'corrUllage':corrUllage_}
                     
                     
                     for p_ in range(virtualport_, self.input.loadable.info['lastVirtualPort']+1):
@@ -506,7 +508,7 @@ class Generate_plan:
                         temp__ = [self.input.loadable.info['commingleCargo']['t1'], self.input.loadable.info['commingleCargo']['t2']]
                         api_, temp_ = self._get_commingleAPI(api__, wt__, temp__)
                         
-                        density_ = self._cal_density(round(api_,2), round(temp_,1))
+                        density_ = self.input.loadable._cal_density(round(api_,2), round(temp_,1))
                         vol_ = weight_/density_ 
                         
                         fillingRatio_ = round(vol_/capacity_,DEC_PLACE)
@@ -519,7 +521,8 @@ class Generate_plan:
                                              self.input.vessel.info['tankTCG']['tcg'][k1_]['tcg'])
                         
                         tankId_ = self.input.vessel.info['tankName'][k1_]
-                        rdgUllage_ = round(self.input.vessel.info['ullage_func'][str(tankId_)](vol_).tolist(), 3)
+                        corrUllage_ = self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist()
+
                            
                         info_ = {'parcel':parcel_, 'wt': round(weight_,3), 'SG': round(density_,4),
                                  'fillRatio': fillingRatio_, 'tcg':tcg_, 
@@ -527,7 +530,7 @@ class Generate_plan:
                                  'api':api_,
                                  'wt1':round(wt1_,DEC_PLACE), 'wt2':round(wt2_,DEC_PLACE),
                                  'wt1percent':wt1_/(wt1_+wt2_), 'wt2percent':wt2_/(wt1_+wt2_),
-                                 'rdgUllage':rdgUllage_}
+                                 'corrUllage':corrUllage_}
                         
                         # print(info_)
                         
@@ -552,14 +555,14 @@ class Generate_plan:
                 
                 tankId_ = v__['tankId']    
                 try:
-                    rdgLevel_ = self.input.vessel.info['ullage_func'][str(tankId_)](vol_).tolist()
+                    corrLevel_ = self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist()
                 except:
                     print(k_, vol_)
-                    rdgLevel_ = 0.
+                    corrLevel_ = 0.
                 
                 ballast_weight_[k_][tank_] = [{'wt': round(wt_,DEC_PLACE), 'SG':density_,
                                                   'fillRatio': round(v__['wt']/density_/capacity_,DEC_PLACE),
-                                                  'tcg':tcg_, 'rdgLevel':rdgLevel_}]
+                                                  'tcg':tcg_, 'corrLevel':corrLevel_}]
                 
             
         
@@ -580,12 +583,12 @@ class Generate_plan:
                     
                     
                 tankId_ = self.input.vessel.info['tankName'][k_]
-                rdgUllage_ = round(self.input.vessel.info['ullage_func'][str(tankId_)](vol_).tolist(), 3)
+                corrUllage_ = self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist()
 
                     
                 info_ = {'parcel':'onboard', 'wt': round(wt_,DEC_PLACE), 'SG': round(density_,4),
                          'fillRatio': round(v_['vol']/capacity_,DEC_PLACE), 'tcg':tcg_, 
-                         'temperature':None, 'rdgUllage':rdgUllage_}
+                         'temperature':None, 'corrUllage':corrUllage_}
                 
                 for k1_, v1_ in ship_status_dep_.items():
                     if not v1_.get(k_, []):
@@ -732,7 +735,8 @@ class Generate_plan:
         else:
             self.plan['message'] = self.input.error
             
-            
+    
+    # for fully manual and manual
     def gen_json(self, constraints, stability_values):
         data = {}
         data['message'] = None
@@ -763,7 +767,12 @@ class Generate_plan:
         data['loadablePlanDetails'] = []
         for s_ in range(len(self.plan['ship_status'])):
             plan = {}
-            plan['caseNumber'] = str(s_+1)
+            
+            if self.input.mode in ['Manual', 'FullManual']:
+                plan['caseNumber'] = self.input.case_number
+            else:
+                plan['caseNumber'] = str(s_+1)
+                
             plan['loadablePlanPortWiseDetails'] = []
             plan['constraints'] = constraints.get(str(s_),{})
             plan['stabilityParameters'] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(self.input.port.info['lastLoadingPort'])+'D']]
@@ -827,6 +836,9 @@ class Generate_plan:
         return data
 
     def _get_status(self,sol,port,category):
+        
+        # print('enter vlcc_gen.py')
+        
         plan_ = []
         virtual_ = self.input.loadable.info['arrDepVirtualPort'][port]
         
@@ -880,12 +892,14 @@ class Generate_plan:
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
                     
-                    info_['rdgUllage']  = str(v_[0]['rdgUllage'])
-                    info_['correctionFactor'] = v_[0]['correctionFactor']
+                    info_['corrUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
+                    info_['rdgUllage'] = str(v_[0]['rdgUllage'])
+                    
                     plan_.append(info_)
                     
                 elif type(v_[0]['parcel']) == str:
-                	# only onboard 
+                 	# only onboard 
                     info_ = {}
                     info_['tank'] = k_
                     info_['quantityMT'] = str(abs(v_[0]['wt']))
@@ -901,7 +915,10 @@ class Generate_plan:
                     
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
-                    info_['rdgUllage']  = str(v_[0]['rdgUllage'])
+                    info_['corrUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
+                    info_['rdgUllage'] = str(v_[0]['rdgUllage'])
+                                        
                     info_['cargoNominationId'] = ''
                     info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     
@@ -922,12 +939,12 @@ class Generate_plan:
                     info_['cargo2Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][1]]['abbreviation']
                     info_['priority'] = str(self.input.loadable.info['commingleCargo']['priority'])
                     
-                    info_['parcel1Id'] = v_[0]['parcel'][0][1:]
-                    info_['parcel2Id'] = v_[0]['parcel'][1][1:]
+                    info_['cargoNomination1Id'] = v_[0]['parcel'][0][1:]
+                    info_['cargoNomination2Id'] = v_[0]['parcel'][1][1:]
                      
                     
                     
-                    info_['priority'] = str(self.input.loadable.info['commingleCargo']['priority'])
+                    # info_['priority'] = str(self.input.loadable.info['commingleCargo']['priority'])
                     info_['cargo1Percentage'] = str(round(v_[0]['wt1percent']*100,2))
                     info_['cargo2Percentage'] = str(round(v_[0]['wt2percent']*100,2))
                     info_['cargo1MT'] = str(v_[0]['wt1'])
@@ -940,10 +957,12 @@ class Generate_plan:
                     info_['tankId'] = self.input.vessel.info['tankName'][k_]
                     info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
-                    # info_['rdgUllage'] = round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2)
-                    info_['rdgUllage']  = str(v_[0]['rdgUllage'])
-                    info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     
+                    info_['corrUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
+                    info_['rdgUllage'] = str(v_[0]['rdgUllage'])
+                   
+                    info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else 0.
                     plan_.append(info_)
                 
@@ -958,15 +977,17 @@ class Generate_plan:
                 
                 info_['tankId'] = str(self.input.vessel.info['tankName'][k_])
                 info_['tankName'] = self.input.vessel.info['ballastTanks'][k_]['name']
-                vol_ = np.floor(abs(v_[0]['wt'])/v_[0]['SG']) # + self.input.vessel.info['onboard'].get(k_,{}).get('vol',0.)
+                # vol_ = np.floor(abs(v_[0]['wt'])/v_[0]['SG']) # + self.input.vessel.info['onboard'].get(k_,{}).get('vol',0.)
                 
-                try:
-                    ul_= self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist()
-                except:
-                    print(k_, vol_)
-                    ul_ = 0.
-                info_['rdgLevel'] = str(round(ul_, 2))
-                info_['correctionFactor'] = v_[0]['correctionFactor']
+                # try:
+                #     ul_= self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist()
+                # except:
+                #     print(k_, vol_)
+                #     ul_ = 0.
+                info_['corrLevel'] = str(round(v_[0]['corrLevel'],3))
+                info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
+                info_['rdgLevel'] = str(v_[0]['rdgLevel'])
+                
                 
                 plan_.append(info_)
                 
@@ -993,41 +1014,6 @@ class Generate_plan:
         return errors
   
             
-    def _cal_density(self, api, temperature_F):
-        
-        # temperature = ((temperature_F - 32)*5/9*100+0.5)/100
-        temperature = (temperature_F - 32)/1.8
-        # temp_F_ = round(temperature*1.8+32,1)
-        
-        # sg_60_ = round(141.5/(api+131.5),4) # SG@60F
-        
-        # density@15C in vacuum
-        # if sg_60_ < 0.68:
-        #     density_15C_ = sg_60_ - 0.0001
-        # elif sg_60_ < 0.7389:
-        #     density_15C_ = sg_60_ - 0.0002
-        # elif sg_60_ < 0.7929:
-        #     density_15C_ = sg_60_ - 0.0003
-        # elif sg_60_ < 0.8609:
-        #     density_15C_ = sg_60_ - 0.0004
-        # elif sg_60_ < 0.9549:
-        #     density_15C_ = sg_60_ - 0.0005
-        # else:
-        #     density_15C_ = sg_60_ - 0.0006
-            
-        density_15C_ = 141.5/(api+0.08775+131.5)
-            
-        vcf_ = np.exp(-(613.97231/(density_15C_*1000)**2)*(temperature-15.0)*(1.0+(0.8*(613.97231/(density_15C_*1000)**2)*(temperature-15.0))))
-        
-        # density@15C in air == density_15C_-0.0011
-        density = (density_15C_-0.0011)*vcf_  # 
-        
-        # temp_diff_ = temperature - 15
-        # density_ = density_15C_ - 0.0006*temp_diff_
-        
-#        print(temp_F_,sg_60_,round(density_15C_,4),round(vcf_,5),round(density_,4))
-    
-        return round(density,4)
-                
+
         
         
