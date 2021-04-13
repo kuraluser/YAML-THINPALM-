@@ -849,17 +849,17 @@ class Generate_plan:
                 for k_, v_ in self.plan['cargo_status'][sol][virtual_].items():
                     if v_ > 0.:
                         info_ = {}
-                        info_["cargoId"] = str(self.input.loadable.info['parcel'][k_]['cargoId'])
+                        info_["cargoId"] = int(self.input.loadable.info['parcel'][k_]['cargoId'])
                         info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
                         info_['estimatedAPI'] = str(self.input.loadable.info['parcel'][k_]['api'])
                         info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])
                         info_['loadableMT'] = str(v_)
-                        info_['priority'] = str(self.input.loadable.info['parcel'][k_]['priority'])
+                        info_['priority'] = int(self.input.loadable.info['parcel'][k_]['priority'])
                         info_['colorCode'] = self.input.loadable.info['parcel'][k_]['color']
                         intend_ = self.input.loadable.info['toLoadIntend'][k_]
                         info_['orderedQuantity'] = str(round(intend_,DEC_PLACE))
                         info_['differencePercentage'] = str(round((v_-intend_)/intend_*100,2))
-                        info_['loadingOrder'] = str(self.plan['cargo_order'][sol][k_])
+                        info_['loadingOrder'] = int(self.plan['cargo_order'][sol][k_])
                         info_["maxTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][1])
                         info_["minTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][0])
                         info_['slopQuantity'] = self.plan['slop_qty'][sol].get(k_,0.)
@@ -937,7 +937,7 @@ class Generate_plan:
                     info_['quantity'] = str(abs(v_[0]['wt']))
                     info_['cargo1Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][0]]['abbreviation']
                     info_['cargo2Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][1]]['abbreviation']
-                    info_['priority'] = str(self.input.loadable.info['commingleCargo']['priority'])
+                    info_['priority'] = int(self.input.loadable.info['commingleCargo']['priority'])
                     
                     info_['cargoNomination1Id'] = v_[0]['parcel'][0][1:]
                     info_['cargoNomination2Id'] = v_[0]['parcel'][1][1:]
