@@ -877,7 +877,7 @@ class Generate_plan:
                     info_['quantityMT'] = str(abs(v_[0]['wt']))
                     
                     info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['abbreviation']
-                    info_['tankId'] = str(self.input.vessel.info['tankName'][k_])
+                    info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
                     info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
                     info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
                     
@@ -886,7 +886,7 @@ class Generate_plan:
                     info_['colorCode'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['color']
                     info_['api'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['api'])
                     
-                    info_['cargoNominationId'] = v_[0]['parcel'][1:]
+                    info_['cargoNominationId'] = int(v_[0]['parcel'][1:])
                     info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
                     
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
@@ -904,7 +904,7 @@ class Generate_plan:
                     info_['tank'] = k_
                     info_['quantityMT'] = str(abs(v_[0]['wt']))
                     info_['cargoAbbreviation'] = None
-                    info_['tankId'] = str(self.input.vessel.info['tankName'][k_])
+                    info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
                     
                     
                     info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
@@ -939,8 +939,8 @@ class Generate_plan:
                     info_['cargo2Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][1]]['abbreviation']
                     info_['priority'] = int(self.input.loadable.info['commingleCargo']['priority'])
                     
-                    info_['cargoNomination1Id'] = v_[0]['parcel'][0][1:]
-                    info_['cargoNomination2Id'] = v_[0]['parcel'][1][1:]
+                    info_['cargoNomination1Id'] = int(v_[0]['parcel'][0][1:])
+                    info_['cargoNomination2Id'] = int(v_[0]['parcel'][1][1:])
                      
                     
                     
@@ -954,7 +954,7 @@ class Generate_plan:
                     info_['temp'] = str(v_[0]['temperature'])
                     
                     info_['api'] =  str(round(v_[0]['api'],2))
-                    info_['tankId'] = self.input.vessel.info['tankName'][k_]
+                    info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
                     info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     
@@ -975,7 +975,7 @@ class Generate_plan:
                 info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
                 info_['sg'] = str(v_[0]['SG'])
                 
-                info_['tankId'] = str(self.input.vessel.info['tankName'][k_])
+                info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
                 info_['tankName'] = self.input.vessel.info['ballastTanks'][k_]['name']
                 # vol_ = np.floor(abs(v_[0]['wt'])/v_[0]['SG']) # + self.input.vessel.info['onboard'].get(k_,{}).get('vol',0.)
                 
@@ -999,7 +999,7 @@ class Generate_plan:
                 info_['tank'] = k_
                 info_['quantity'] = str(abs(v_[0]['wt']))
                 info_['sg'] = str(v_[0]['SG'])
-                info_['tankId'] = str(self.input.vessel.info['tankName'][k_])
+                info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
              
                 plan_.append(info_)
         
