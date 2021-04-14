@@ -182,7 +182,7 @@ class Multiple_plans(object):
         data['loadablePlanDetails'] = []
         for s_ in range(len(self.plans['ship_status'])):
             plan = {}
-            plan['caseNumber'] = str(s_+1)
+            plan['caseNumber'] = int(s_+1)
             plan['loadablePlanPortWiseDetails'] = []
             plan['constraints'] = constraints[str(s_)]
             plan['stabilityParameters'] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(self.input.port.info['lastLoadingPort'])+'D']]
@@ -190,9 +190,9 @@ class Multiple_plans(object):
             
             for p__,p_ in enumerate(path_):
                 plan_ = {}
-                plan_['portId'] = str(self.input.port.info['portRotation'][p_]['portId'])
+                plan_['portId'] = int(self.input.port.info['portRotation'][p_]['portId'])
                 plan_['portCode'] = p_
-                plan_['portRotationId'] = self.input.port.info['portRotation'][p_]['portRotationId']
+                plan_['portRotationId'] = int(self.input.port.info['portRotation'][p_]['portRotationId'])
                 # arrival
                 plan_['arrivalCondition'] = {"loadableQuantityCargoDetails":[],
                                               "loadableQuantityCommingleCargoDetails":[],
@@ -265,7 +265,7 @@ class Multiple_plans(object):
                     info_['loadingOrder'] = int(self.plans['cargo_order'][sol][k_])
                     info_["maxTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][1])
                     info_["minTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][0])
-                    info_['slopQuantity'] = self.plans['slop_qty'][sol].get(k_,0.)
+                    info_['slopQuantity'] = str(self.plans['slop_qty'][sol].get(k_,0.))
           
           
                     plan.append(info_)
@@ -290,7 +290,7 @@ class Multiple_plans(object):
                     info_['api'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['api'])
                     
                     info_['cargoNominationId'] = int(v_[0]['parcel'][1:])
-                    info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
+                    info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     info_['corrUllage'] = str(round(v_[0]['corrUllage'],3))
@@ -321,7 +321,7 @@ class Multiple_plans(object):
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                     
                     info_['cargoNominationId'] = ''
-                    info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
+                    info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     
                     plan.append(info_)
                     
@@ -362,7 +362,7 @@ class Multiple_plans(object):
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                    
-                    info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
+                    info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else str(0.00)
                     plan.append(info_)
                 

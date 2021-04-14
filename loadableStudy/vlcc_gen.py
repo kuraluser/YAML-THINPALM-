@@ -771,7 +771,7 @@ class Generate_plan:
             if self.input.mode in ['Manual', 'FullManual']:
                 plan['caseNumber'] = self.input.case_number
             else:
-                plan['caseNumber'] = str(s_+1)
+                plan['caseNumber'] = int(s_+1)
                 
             plan['loadablePlanPortWiseDetails'] = []
             plan['constraints'] = constraints.get(str(s_),{})
@@ -780,9 +780,9 @@ class Generate_plan:
             
             for p__,p_ in enumerate(path_):
                 plan_ = {}
-                plan_['portId'] = str(self.input.port.info['portRotation'][p_]['portId'])
+                plan_['portId'] = int(self.input.port.info['portRotation'][p_]['portId'])
                 plan_['portCode'] = p_
-                plan_['portRotationId'] = self.input.port.info['portRotation'][p_]['portRotationId']
+                plan_['portRotationId'] = int(self.input.port.info['portRotation'][p_]['portRotationId'])
                 # arrival
                 plan_['arrivalCondition'] = {"loadableQuantityCargoDetails":[],
                                               "loadableQuantityCommingleCargoDetails":[],
@@ -862,7 +862,7 @@ class Generate_plan:
                         info_['loadingOrder'] = int(self.plan['cargo_order'][sol][k_])
                         info_["maxTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][1])
                         info_["minTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][0])
-                        info_['slopQuantity'] = self.plan['slop_qty'][sol].get(k_,0.)
+                        info_['slopQuantity'] = str(self.plan['slop_qty'][sol].get(k_,0.))
               
               
                         plan_.append(info_)
@@ -887,7 +887,7 @@ class Generate_plan:
                     info_['api'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['api'])
                     
                     info_['cargoNominationId'] = int(v_[0]['parcel'][1:])
-                    info_['onboard'] = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
+                    info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
