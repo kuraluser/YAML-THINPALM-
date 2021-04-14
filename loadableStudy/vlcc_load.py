@@ -528,37 +528,42 @@ class Loadable:
     def _cal_density(self, api, temperature_F):
         
         # temperature = ((temperature_F - 32)*5/9*100+0.5)/100
-        temperature = (temperature_F - 32)/1.8
-        # temp_F_ = round(temperature*1.8+32,1)
+        # temperature = (temperature_F - 32)/1.8
+        # # temp_F_ = round(temperature*1.8+32,1)
         
-        if 10 <= api < 18.4:
-            density15c = 141500/(api+131.5) - 0.55
-        elif 18.4 <= api < 31.9:
-            density15c = 141500/(api+131.5) - 0.505
-        elif 31.9 <= api < 45.3:
-            density15c = 141500/(api+131.5) - 0.44
-        elif 45.3 <= api < 57.6:
-            density15c = 141500/(api+131.5) - 0.27
-        elif 57.6 <= api < 80.6:
-            density15c = 141500/(api+131.5) - 0.16
-        elif 80.6 <= api < 85:
-            density15c = 141500/(api+131.5) - 0.1
-        else:
-            density15c = None
+        # if 10 <= api < 18.4:
+        #     density15c = 141500/(api+131.5) - 0.55
+        # elif 18.4 <= api < 31.9:
+        #     density15c = 141500/(api+131.5) - 0.505
+        # elif 31.9 <= api < 45.3:
+        #     density15c = 141500/(api+131.5) - 0.44
+        # elif 45.3 <= api < 57.6:
+        #     density15c = 141500/(api+131.5) - 0.27
+        # elif 57.6 <= api < 80.6:
+        #     density15c = 141500/(api+131.5) - 0.16
+        # elif 80.6 <= api < 85:
+        #     density15c = 141500/(api+131.5) - 0.1
+        # else:
+        #     density15c = None
             
-        density_15C_ = density15c/1000
+        # density_15C_ = density15c/1000
             
-        # density_15C_ = 141.5/(api+0.08775+131.5)
+        # # density_15C_ = 141.5/(api+0.08775+131.5)
             
-        vcf_ = np.exp(-(613.97231/(density_15C_*1000)**2)*(temperature-15.0)*(1.0+(0.8*(613.97231/(density_15C_*1000)**2)*(temperature-15.0))))
+        # vcf_ = np.exp(-(613.97231/(density_15C_*1000)**2)*(temperature-15.0)*(1.0+(0.8*(613.97231/(density_15C_*1000)**2)*(temperature-15.0))))
         
-        # density@15C in air == density_15C_-0.0011
-        density = (density_15C_-0.0011)*vcf_  # 
+        # # density@15C in air == density_15C_-0.0011
+        # density = (density_15C_-0.0011)*vcf_  # 
         
-        # temp_diff_ = temperature - 15
-        # density_ = density_15C_ - 0.0006*temp_diff_
         
-#        print(temp_F_,sg_60_,round(density_15C_,4),round(vcf_,5),round(density_,4))
+        ## https://www.myseatime.com/blog/detail/cargo-calculations-on-tankers-astm-tables
+    
+        a60 = 341.0957/(141360.198/(api+131.5))**2
+        dt = temperature_F-60
+        vcf_ = np.exp(-a60*dt*(1+0.8*a60*dt))
+        t13_ = (535.1911/(api+131.5)-0.0046189)*0.42/10
+        density = t13_*vcf_*6.2898
+        
     
         return round(density,6)
     
