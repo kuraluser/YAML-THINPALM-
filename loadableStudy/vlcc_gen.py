@@ -774,7 +774,7 @@ class Generate_plan:
                 plan['caseNumber'] = int(s_+1)
                 
             plan['loadablePlanPortWiseDetails'] = []
-            plan['constraints'] = constraints.get(str(s_),{})
+            plan['constraints'] = constraints.get(str(s_),[])
             plan['stabilityParameters'] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(self.input.port.info['lastLoadingPort'])+'D']]
             plan['slopQuantity'] = str(self.plan['slop_qty'][s_]) if len(self.plan['slop_qty']) > 0 else None
             
