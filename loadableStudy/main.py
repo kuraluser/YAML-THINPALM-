@@ -200,13 +200,17 @@ async def loadicator_handler(data: dict):
     # out = {'processId': data['processId'], 'status':None, 'result': None}
     #out['status'] = await database.fetch_val(query,column=3)
     result = await database.fetch_val(query,column=2)
-    limits = result['message']['limits']
+    
+    #print(result['message'])
+    limits = result['message']
     out = loadicator(data, limits)
     # print('>>>Send loadicator results')
     logger.info(data["processId"] + ": Upload loadicator result")
-    loadicator_url_ = config['url']['loadable-patterns'].format(vesselId=limits['vesselId'],voyageId=limits['voyageId'],loadableStudyId=limits['id'])
-    # print(status_url_)
-    await post_response(loadicator_url_, out)
+    loadicator_url_ = config['url']['loadicator-result'].format(vesselId=limits['limits']['vesselId'],
+                                                                voyageId=limits['limits']['voyageId'],
+                                                                loadableStudyId=limits['limits']['id'])
+    print(loadicator_url_)
+    await post_response(loadicator_url_, out, data["processId"])
     return out
 
 
