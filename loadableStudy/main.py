@@ -84,7 +84,7 @@ async def post_response(url, payload, gID):
             resp_ = await client.post(url, json=payload)
             resp_.raise_for_status()
             # print(url,resp_)
-            logger.info(gID + ": "+ resp_)
+            # logger.info(gID + ": "+ resp_)
     except httpx.HTTPError  as err:
         # print(f"HTTP Exception: {err}")
         logger.info(gID + ": "+ f"HTTP Exception - {err}")
