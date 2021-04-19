@@ -893,7 +893,7 @@ class Generate_plan:
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
                     
-                    info_['corrUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],3))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                     
@@ -916,7 +916,7 @@ class Generate_plan:
                     
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
-                    info_['corrUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],3))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                                         
@@ -959,7 +959,7 @@ class Generate_plan:
                     info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     
-                    info_['corrUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],3))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                    
