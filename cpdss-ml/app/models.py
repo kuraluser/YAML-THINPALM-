@@ -14,7 +14,7 @@ class CargoInfo(Base):
     cargo_info_id = Column(Integer, primary_key=True)
     ship = Column(String, nullable=False)
     port = Column(String, nullable=False)
-    cargo_id = Column(Integer, ForeignKey('cargo.cargo_id'), nullable=False)
+    cargo_xid = Column(Integer, ForeignKey('cargo.cargo_id'), nullable=False)
     api = Column(Float, nullable=False)
     temperature = Column(Float, nullable=False)
     weekno = Column(Integer, nullable=False)
@@ -24,7 +24,7 @@ class CargoInfo(Base):
 class InstructionsFeatures(Base):
     __tablename__ = "instructions_feature_mapping"
     ins_feature_id = Column(Integer, primary_key=True)
-    ins_id = Column(Integer, ForeignKey('instructions.ins_id'), nullable=False)
+    ins_xid = Column(Integer, ForeignKey('instructions.ins_id'), nullable=False)
     feature = Column(String, nullable=False)
     feature_type = Column(String, nullable=False)
 
@@ -39,22 +39,22 @@ class Instructions(Base):
 class InstructionsMapping(Base):
     __tablename__ = "instructions_mapping"
     ins_map_id = Column(Integer, primary_key=True)
-    ins_id = Column(Integer, ForeignKey('instructions.ins_id'), nullable=False)
-    ops_id = Column(Integer, ForeignKey('voyage_operations.ops_id'), nullable=False)
-    voy_id = Column(Integer, ForeignKey('voyage.ins_id'), nullable=False)
+    ins_xid = Column(Integer, ForeignKey('instructions.ins_id'), nullable=False)
+    ops_xid = Column(Integer, ForeignKey('voyage_operations.ops_id'), nullable=False)
+    vessel = Column(String, nullable=False)
 
 
 class VoyageDetails(Base):
     __tablename__ = "voyage_details"
     voy_details_id = Column(Integer, primary_key=True)
-    cargo_id = Column(Integer, ForeignKey('cargo.cargo_id'), nullable=False)
+    cargo_xid = Column(Integer, ForeignKey('cargo.cargo_id'), nullable=False)
     api = Column(Float, nullable=False)
     temperature = Column(Float, nullable=False)
     nomination = Column(Float, nullable=False)
     maxtol = Column(String, nullable=False)
     mintol = Column(Float, nullable=False)
-    ops_id = Column(Integer, ForeignKey('voyage_operations.ops_id'), nullable=False)
-    voy_id = Column(Integer, ForeignKey('voyage.ins_id'), nullable=False)
+    ops_xid = Column(Integer, ForeignKey('voyage_operations.ops_id'), nullable=False)
+    voy_xid = Column(Integer, ForeignKey('voyage.ins_id'), nullable=False)
     port = Column(String, nullable=False)
     vessel = Column(String, nullable=False)
 
@@ -65,7 +65,7 @@ class VoyageDetails(Base):
 class VoyageOperations(Base):
     __tablename__ = "voyage_operations"
     ops_id = Column(Integer, primary_key=True)
-    voy_id = Column(Integer, ForeignKey('voyage.ins_id'), nullable=False)
+    voy_xid = Column(Integer, ForeignKey('voyage.ins_id'), nullable=False)
     port = Column(String, nullable=False)
     vessel = Column(String, nullable=False)
     operation = Column(String, nullable=False)
@@ -85,7 +85,7 @@ class VoyageOperations(Base):
 class VoyagePump(Base):
     __tablename__ = "voyage_pump"
     pump_id = Column(Integer, primary_key=True)
-    ops_id = Column(Integer, ForeignKey('voyage_operations.ops_id'), nullable=False)
+    ops_xid = Column(Integer, ForeignKey('voyage_operations.ops_id'), nullable=False)
     seq = Column(Integer, nullable=False)
     pressure = Column(Float, nullable=False)
     rate = Column(Float, nullable=False)
@@ -94,9 +94,9 @@ class VoyagePump(Base):
 class VoyageStowages(Base):
     __tablename__ = "voyage_stowages"
     stowage_id = Column(Integer, primary_key=True)
-    voy_id = Column(Integer, ForeignKey('voyage.ins_id'), nullable=False)
+    voy_xid = Column(Integer, ForeignKey('voyage.ins_id'), nullable=False)
     tank = Column(String, nullable=False)
-    cargo_id = Column(Integer, ForeignKey('cargo.cargo_id'), nullable=False)
+    cargo_xid = Column(Integer, ForeignKey('cargo.cargo_id'), nullable=False)
     bbls = Column(Float, nullable=False)
     mt = Column(Float, nullable=False)
 
@@ -113,7 +113,7 @@ class Voyages(Base):
 class NominationFeatures(Base):
     __tablename__ = "nomination_features"
     feature_id = Column(Integer, primary_key=True)
-    voy_id = Column(Integer, ForeignKey('voyage.ins_id'), nullable=False)
+    voy_xid = Column(Integer, ForeignKey('voyage.ins_id'), nullable=False)
     nomination0 = Column(Float, nullable=False)
     nomination1 = Column(Float, nullable=False)
     nomination2 = Column(Float, nullable=False)
@@ -137,4 +137,4 @@ class NominationFeatures(Base):
                 self.api0, self.api1, self.api2, self.api3, self.api4, self.api5, self.api6, self.total_vol, self.ports]
 
     def getVoyID(self):
-        return self.voy_id
+        return self.voy_xid

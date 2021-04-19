@@ -48,10 +48,12 @@ def get_db():
 # Pump Rates -
 @app.post("/pumprates")
 def getPumpRates(pumpinfo: schemas.PumpInfo, db: Session = Depends(get_db)):
-    portVesselDetails = crud.getVoyagesAtPort(db, port=pumpinfo.Port, vessel=pumpinfo.Vessel)
-    if portVesselDetails is None:
-        return None
-        # raise HTTPException(status_code=404, detail="Port or Vessel Not Found. Currently only Gassan available.")
+    if len(pumpinfo.Vessel) == 0:
+        raise HTTPException(status_code=404, detail="Input Error. Vessel not given.")
+    else:
+        portVesselDetails = crud.getVoyagesAtPort(db, port=pumpinfo.Port, vessel=pumpinfo.Vessel)
+        if portVesselDetails is None:
+            return None
 
     count = len(portVesselDetails)
     deviation = [i.deviation_rate for i in portVesselDetails if pd.notna(i.deviation_rate)]
@@ -165,7 +167,7 @@ def getNominationSimilarity(nominationinfo: schemas.NominationInfo, db: Session 
             for nplan in nomination_plan:
                 if not pd.isna(nplan.nomination):
                     # Cargo
-                    cargo = crud.getCargo(db, cargoid=nplan.cargo_id)[0]
+                    cargo = crud.getCargo(db, cargoid=nplan.cargo_xid)[0]
                     # Nomination
                     amount = nplan.nomination
                     # Min Tolerance
@@ -187,7 +189,7 @@ def getNominationSimilarity(nominationinfo: schemas.NominationInfo, db: Session 
             stowage_plan = crud.getStowage(db, voyid=voyid)
             clean_stowage = {}
             for tank in stowage_plan:
-                cargo = crud.getCargo(db, cargoid=tank.cargo_id)[0]
+                cargo = crud.getCargo(db, cargoid=tank.cargo_xid)[0]
                 clean_stowage[tank.tank] = {'Cargo': cargo, 'Vol (BBLS)': round(np.nan_to_num(tank.bbls), 5),
                                             'Weight (MT)': round(np.nan_to_num(tank.mt), 5)}
 
