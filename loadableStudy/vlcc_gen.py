@@ -850,6 +850,7 @@ class Generate_plan:
                     if v_ > 0.:
                         info_ = {}
                         info_["cargoId"] = int(self.input.loadable.info['parcel'][k_]['cargoId'])
+                        info_["cargoNominationId"] = int(k_[1:])
                         info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
                         info_['estimatedAPI'] = str(self.input.loadable.info['parcel'][k_]['api'])
                         info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])

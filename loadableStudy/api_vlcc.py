@@ -112,32 +112,35 @@ def loadicator(data, limits):
         for u_, v_ in zip(results_['ldTrim'],results_['ldStrength']):
             assert u_['portId'] == v_['portId']
             info_ = {}
-            info_['portId'] = str(u_['portId'])
-            info_['synopticalId'] = str(u_['synopticalId'])
-            info_['operationId'] = str(limits['limits']['operationId'][str(info_['portId'])])
+            info_['portId'] = int(u_['portId'])
+            info_['synopticalId'] = int(u_['synopticalId'])
+            info_['operationId'] = int(limits['limits']['operationId'][str(info_['portId'])])
             info_["calculatedDraftFwdPlanned"] = u_["foreDraftValue"]
             info_["calculatedDraftMidPlanned"] = u_["meanDraftValue"]
             info_["calculatedDraftAftPlanned"] = u_["aftDraftValue"]
             info_["calculatedTrimPlanned"] = u_["trimValue"]
             info_["blindSector"] = None
-            info_["list"] = u_["heelValue"]
+            info_["list"] = str(u_["heelValue"])
             info_["deflection"] = None
+            info_['airDraft'] = u_['airDraftValue']
             
             info_["SF"] = v_["shearingForcePersentValue"]
             info_['BM'] = v_["bendingMomentPersentValue"]
-            info_['errorDetails'] = u_["errorDetails"] + v_["errorDetails"]
+            info_['errorDetails'] = [u_["errorDetails"], v_["errorDetails"]]
             
             sag_ = 0.
             mid_ship_draft_ = float(u_["meanDraftValue"]) + sag_
             info_['judgement'] = []
             # max permissible draft
             max_draft_ = max([float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_]) 
-            if limits['limits']['draft'][info_['portId']] < max_draft_:
+            if limits['limits']['draft'][str(info_['portId'])] < max_draft_:
                 info_['judgement'].append('Failed max permissible draft check!')
             # loadline 
             if limits['limits']['draft']['loadline'] < max_draft_:
                 info_['judgement'].append('Failed loadline check!')
             # airDraft
+            if limits['limits']['airDraft'][str(info_['portId'])] < float(info_['airDraft']):
+                info_['judgement'].append('Failed airdraft check!')
             
             # SF
             if float(v_["shearingForcePersentValue"]) > 100:
@@ -159,32 +162,37 @@ def loadicator(data, limits):
             for u_, v_ in zip(p_['ldTrim'],p_['ldStrength']):
                 assert u_['portId'] == v_['portId']
                 info_ = {}
-                info_['portId'] = str(u_['portId'])
-                info_['synopticalId'] = str(u_.get('synopticalId',""))
-                info_['operationId'] = str(limits['limits']['operationId'][str(info_['portId'])])
+                info_['portId'] = int(u_['portId'])
+                info_['synopticalId'] = int(u_.get('synopticalId',""))
+                info_['operationId'] = int(limits['limits']['operationId'][str(info_['portId'])])
+                
                 info_["calculatedDraftFwdPlanned"] = u_["foreDraftValue"]
                 info_["calculatedDraftMidPlanned"] = u_["meanDraftValue"]
                 info_["calculatedDraftAftPlanned"] = u_["aftDraftValue"]
                 info_["calculatedTrimPlanned"] = u_["trimValue"]
                 info_["blindSector"] = None
-                info_["list"] = u_["heelValue"]
+                info_["list"] = str(u_["heelValue"])
                 info_["deflection"] = None
+                info_['airDraft'] = u_['airDraftValue']
                 
                 info_["SF"] = v_["shearingForcePersentValue"]
                 info_['BM'] = v_["bendingMomentPersentValue"]
-                info_['errorDetails'] = u_["errorDetails"] + v_["errorDetails"]
+                info_['errorDetails'] = [u_["errorDetails"], v_["errorDetails"]]
+                
                 
                 sag_ = 0.
                 mid_ship_draft_ = float(u_["meanDraftValue"]) + sag_
                 info_['judgement'] = []
                 # max permissible draft
                 max_draft_ = max([float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_]) 
-                if limits['limits']['draft'][info_['portId']] < max_draft_:
+                if limits['limits']['draft'][str(info_['portId'])] < max_draft_:
                     info_['judgement'].append('Failed max permissible draft check!')
                 # loadline 
                 if limits['limits']['draft']['loadline'] < max_draft_:
                     info_['judgement'].append('Failed loadline check!')
                 # airDraft
+                if limits['limits']['airDraft'][str(info_['portId'])] < float(info_['airDraft']):
+                    info_['judgement'].append('Failed airdraft check!')
                 
                 # SF
                 if float(v_["shearingForcePersentValue"]) > 100:
