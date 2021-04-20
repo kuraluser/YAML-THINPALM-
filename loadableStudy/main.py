@@ -18,13 +18,19 @@ from pydantic import BaseModel, Field
 from typing import List
 import json
 from api_vlcc import gen_allocation, loadicator
-
+from vlcc_ullage import get_correction, cal_density
+import pickle
+import numpy as np
 import httpx
 from loguru import logger
 
 ## load configuration --------------------------------------------------------
 with open('config.json', "r") as f_:
    config = json.load(f_)
+   
+with open('KAZUSA_ullage.pickle', 'rb') as fp_:
+    # vessel_info['ullage_func'] = pickle.load(fp_)
+    _, ullageCorr, ullageInv, _ = pickle.load(fp_)
    
 
 ## Postgres Database --------------------------------------------------------
@@ -204,7 +210,7 @@ async def loadicator_handler(data: dict):
     #print(result['message'])
     limits = result['message']
     out = loadicator(data, limits)
-    # print('>>>Send loadicator results')
+    # # print('>>>Send loadicator results')
     logger.info(data["processId"] + ": Upload loadicator result")
     loadicator_url_ = config['url']['loadicator-result'].format(vesselId=limits['limits']['vesselId'],
                                                                 voyageId=limits['limits']['voyageId'],
@@ -213,6 +219,24 @@ async def loadicator_handler(data: dict):
     await post_response(loadicator_url_, out, data["processId"])
     return out
 
+@app.get("/ullage_results/")
+async def ullage_handler(data: dict):
+           
+    tankId = data['tankId']
+    cf = get_correction(str(tankId), float(data["rdgUllage"]), float(data["trim"]), ullageCorr)
+    if cf not in [None]:
+        corr_ullage =  float(data["rdgUllage"]) + cf/100 
+        vol = ullageInv[str(tankId)](corr_ullage) 
+        density = cal_density(float(data["api"]), float(data["temp"]))
+        wt = density*vol 
+        
+        return {"id":data["id"], "correctionFactor": round(cf/100,3), "correctedUllage": round(corr_ullage,3),
+                "obsM3": np.round(vol,3), "quantityMt": round(wt,3)}
+        
+    else:
+        return {"id":data["id"], "correctionFactor": None, "correctedUllage": None, "obsM3": None, "quantityMt": None}
+    
+    
 
 @app.get("/users/{userId}", response_model=DbList)
 async def find_user_by_id(userId: str):
@@ -228,6 +252,7 @@ async def delete_user(userId: str):
         "status": True,
         "message": "This user has been deleted successfully."
         }
+
 
 
 @app.on_event("startup")

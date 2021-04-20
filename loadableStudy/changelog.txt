@@ -1,6 +1,7 @@
 20210430
 Python
 - Add fully manual allocation
+- Add ullage correction API
 AMPL
 - 
 ORTOOLS

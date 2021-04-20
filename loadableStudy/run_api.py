@@ -24,6 +24,23 @@ fname = 'loadableStudy_4826.json' # non-zero ballast at last loading port
 # fname1 = 'result66c2.json' # manual mode corresponding zero ballast at discharge
 # fname1 = 'result23c2.json' # manual mode corresponding zero ballast at discharge
 
+fname1 = 'loadableStudy70rob2.json' #  non-zero ballast 20sec full load
+# fname1 = 'result70rob2.json' # manual mode corresponding; use with generate_manual_plan
+
+
+# fname1 = 'loadablePattern_request_2885.json' # manual
+
+
+fname1 = 'loadableStudy_5572.json' # single cargo
+# fname1 = 'loadableStudy_5574.json' # 
+# fname1 = 'loadableStudy_5575.json' #
+# fname1 = 'loadableStudy_5576.json' # Draft error
+# fname1 = 'loadableStudy_5577.json' # Draft error
+# fname1 = 'loadableStudy_5578.json' # Port rotation error
+# fname1 = 'loadableStudy_5579.json' # 
+
+fname1 = 'loadablePattern_request_2911.json'
+
 
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #
