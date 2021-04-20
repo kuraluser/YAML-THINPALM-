@@ -65,6 +65,8 @@ fname = 'loadableStudy_5009.json'
 # fname = 'loadablePattern_request_2911.json'
 # fname = 'loadableStudy_6165.json'
 
+fname = 'loadableStudy_6164.json'
+
 
 ## to be modified in main.py --------------------------------------------
 data = {}

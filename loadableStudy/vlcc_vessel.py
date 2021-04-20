@@ -572,13 +572,16 @@ class Vessel:
             ullageTrimCorrections.drop(columns=['trimM2', 'trimM3', 'trimM4', 'trimM5'], inplace=True)
             
             ullage_func = {}
+            ullage_inv_func = {}
             ullage_corr = {}
+            ullage_data = {}
+            
             for k_, v_ in vessel_info_['tankName'].items():
                 
                 print(k_,v_)
                 
                 ullage_ = ullageDetails[ullageDetails['tankId'] == v_]
-                ullage_ = ullage_.sort_values(by='evenKeelCapacityCubm')
+                ullage_ = ullage_.sort_values(by='ullageDepth')
                 
                 ullage_corr_ = ullageTrimCorrections[ullageTrimCorrections['tankId'] == v_]
                 ullage_corr_ = ullage_corr_.sort_values(by='ullageDepth')
@@ -592,7 +595,10 @@ class Vessel:
                 if len(yy_) >  0:
                     
                     ullage_func[str(v_)] = interp1d(ullage_['evenKeelCapacityCubm'], yy_)
+                    ullage_inv_func[str(v_)] = interp1d(yy_, ullage_['evenKeelCapacityCubm'])
                     ullage_corr[str(v_)] = ullage_corr_.values.tolist()
+                    ullage_data[str(v_)] = ullage_.values.tolist()
+                    
                 else:
                     print(k_,v_, 'is empty or not needed!!')
             
@@ -600,12 +606,12 @@ class Vessel:
             vessel_info_['ullageCorr']  = ullage_corr
             
             with open(vessel_info_['name']  +'_ullage.pickle', 'wb') as fp_:
-                pickle.dump([ullage_func, ullage_corr], fp_)     
+                pickle.dump([ullage_func, ullage_corr, ullage_inv_func, ullage_data], fp_)     
                 
         else:
             
             with open(vessel_info_['name']  +'_ullage.pickle', 'rb') as fp_:
-                vessel_info_['ullage'], vessel_info_['ullageCorr'] = pickle.load(fp_)
+                vessel_info_['ullage'], vessel_info_['ullageCorr'], _, _ = pickle.load(fp_)
             
     # def _get_ullage_corr(self, vessel_info_, ullageCorrDetails):
         
