@@ -230,8 +230,8 @@ async def ullage_handler(data: dict):
         density = cal_density(float(data["api"]), float(data["temp"]))
         wt = density*vol 
         
-        return {"id":data["id"], "correctionFactor": round(cf/100,3), "correctedUllage": round(corr_ullage,3),
-                "obsM3": np.round(vol,3), "quantityMt": round(wt,3)}
+        return {"id":data["id"], "correctionFactor": str(round(cf/100,3)), "correctedUllage": str(round(corr_ullage,3)),
+                "obsM3": str(np.round(vol,3)), "quantityMt": str(round(wt,3))}
         
     else:
         return {"id":data["id"], "correctionFactor": None, "correctedUllage": None, "obsM3": None, "quantityMt": None}
