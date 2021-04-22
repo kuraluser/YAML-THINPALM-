@@ -385,7 +385,7 @@ class Multiple_plans(object):
                 # except:
                 #     print(k_, vol_)
                 #     ul_ = 0.
-                info_['corrLevel'] = str(round(v_[0]['corrLevel'],3))
+                info_['correctedUllage'] = str(round(v_[0]['corrLevel'],3))
                 info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                 info_['rdgLevel'] = str(v_[0]['rdgLevel'])
                 
@@ -408,7 +408,7 @@ class Multiple_plans(object):
     def _format_errors(self, message):
         errors = []
         for k_, v_ in message.items():
-            errors.append({"errorHeading":k_, "errorDetails":v_})
+            errors.append({"errorHeading":k_, "errorDetails":[v_]})
         
         return errors
         

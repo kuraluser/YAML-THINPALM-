@@ -137,6 +137,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
                                                                 loadablePatternId=data['loadable']['loadablePatternId'])
     print(result_url_)
     logger.info(uid + ": Upload result")
+    # print(result)
     await post_response(result_url_, result, uid)
     
 
@@ -193,9 +194,9 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
 @app.get("/status/")
 async def status_handler(userId: dict):
     query = users.select().where(users.c.id == userId['processId'])
-    out = {'processId': userId['processId'], 'status':None, 'result': None}
-    out['status'] = await database.fetch_val(query,column=3)
-    out['result'] = await database.fetch_val(query,column=2)
+    # out = {'processId': userId['processId'], 'status':None, 'result': None}
+    # out['status'] = await database.fetch_val(query,column=3)
+    out = await database.fetch_val(query,column=2)
     
     return out
 

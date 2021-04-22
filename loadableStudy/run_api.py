@@ -40,7 +40,11 @@ fname1 = 'loadableStudy_5572.json' # single cargo
 # fname1 = 'loadableStudy_5579.json' # 
 
 fname1 = 'loadablePattern_request_2911.json'
+fname1 = 'loadableStudy_6164.json'
+fname1 = 'loadableStudy_6287.json'
+fname1 = 'loadableStudy_6318.json'
 
+fname1 = 'request0422a.json' # infeasible
 
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #

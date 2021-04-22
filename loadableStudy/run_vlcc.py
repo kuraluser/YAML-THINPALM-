@@ -66,6 +66,11 @@ fname = 'loadableStudy_5009.json'
 # fname = 'loadableStudy_6165.json'
 
 fname = 'loadableStudy_6164.json'
+fname = 'loadableStudy_6318.json' # missing maxDraft at port 2
+fname = 'loadableStudy_6159.json'
+
+fname = 'request0421.json' # deballast limit relax
+# fname = 'request0422a.json' # deballast limit relax
 
 
 ## to be modified in main.py --------------------------------------------
