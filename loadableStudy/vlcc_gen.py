@@ -731,7 +731,7 @@ class Generate_plan:
                     self._process_ampl(result, num_plans=num_plans)
                     self._process_checking_plans(result)
                 else:
-                    self.plan['message']['Optimization Error'] = str(result['message'])
+                    self.plan['message']['Optimization Error'] = [result['message']]
         else:
             self.plan['message'] = self.input.error
             
@@ -1010,7 +1010,7 @@ class Generate_plan:
     def _format_errors(self, message):
         errors = []
         for k_, v_ in message.items():
-            errors.append({"errorHeading":k_, "errorDetails":[v_]})
+            errors.append({"errorHeading":k_, "errorDetails":v_})
     
         return errors
   

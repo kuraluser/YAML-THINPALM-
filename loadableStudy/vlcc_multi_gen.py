@@ -408,7 +408,7 @@ class Multiple_plans(object):
     def _format_errors(self, message):
         errors = []
         for k_, v_ in message.items():
-            errors.append({"errorHeading":k_, "errorDetails":[v_]})
+            errors.append({"errorHeading":k_, "errorDetails":v_})
         
         return errors
         

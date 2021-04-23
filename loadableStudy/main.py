@@ -220,7 +220,7 @@ async def loadicator_handler(data: dict):
     await post_response(loadicator_url_, out, data["processId"])
     return out
 
-@app.get("/ullage_results/")
+@app.post("/ullage_results/")
 async def ullage_handler(data: dict):
            
     tankId = data['tankId']

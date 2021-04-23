@@ -25,6 +25,7 @@ class Port:
            
         for p__, p_ in enumerate(inputs.port_json['portRotation']):
             if p_['portOrder'] <= last_loading_port_ + 1:
+                # print(p_['portId'])
                 detail_ = port_details_[p_['portId']]
                 ports_info_['portRotation'][detail_['code']] = {}
                 ports_info_['portRotation'][detail_['code']]['order'] = p_['portOrder']
@@ -53,6 +54,7 @@ class Port:
         ports_info_['maxDraft'] = {str(v_['portId']): v_['maxDraft'] for k_,v_ in ports_info_['portRotation'].items() }
         ports_info_['maxAirDraft'] = {str(v_['portId']): v_['maxAirDraft'] for k_,v_ in ports_info_['portRotation'].items() }
         
+        # print(ports_info_)
         
                     
         self.info = ports_info_     
@@ -76,6 +78,16 @@ class Port:
                 inputs.error['Port Rotation Error'] = ['Discharging port not present!!']
             else:
                 inputs.error['Port Rotation Error'].append('Discharging port not present!!')
+                
+        for k_, v_ in ports_info_['maxDraft'].items():
+            if v_ in [None]:
+                port_ =  ports_info_['portOrder'][ports_info_['idPortOrder'][k_]]
+                if 'Max Draft Error' not in inputs.error.keys():
+                    inputs.error['Max Draft Error'] = ['Max Draft Error at '+ port_ +'!!']
+                else:
+                    inputs.error['Max Draft Error'].append('Max Draft Error at '+ port_ +'!!')
+                    
+                    
             
             
         
