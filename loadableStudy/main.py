@@ -228,7 +228,11 @@ async def ullage_handler(data: dict):
     if cf not in [None]:
         corr_ullage =  float(data["rdgUllage"]) + cf/100 
         vol = ullageInv[str(tankId)](corr_ullage) 
-        density = cal_density(float(data["api"]), float(data["temp"]))
+        density = data.get('sg', None)
+        if density in [None]:
+            density = cal_density(float(data["api"]), float(data["temp"]))
+        else:
+            density = float(density)
         wt = density*vol 
         
         return {"id":data["id"], "correctionFactor": str(round(cf/100,3)), "correctedUllage": str(round(corr_ullage,3)),
