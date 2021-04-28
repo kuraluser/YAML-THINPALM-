@@ -73,6 +73,8 @@ fname = 'request0421.json' # deballast limit relax
 # fname = 'request0422a.json' # deballast limit relax
 fname = 'request0422a.json'
 
+fname = 'loadablePattern_request_3314.json'
+
 
 ## to be modified in main.py --------------------------------------------
 data = {}

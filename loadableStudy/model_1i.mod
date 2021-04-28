@@ -420,7 +420,7 @@ param BV_BM {f in 1..Fr, p in P} default 0;
 param CD_BM {f in 1..Fr, p in P} default 0;
 
 param numSolutions integer default 3;
-param runtimeLimit integer default 20;
+param runtimeLimit integer default 60;
 param seed integer default 0;
 
 param tolerance := 0; # tolerance for rounding

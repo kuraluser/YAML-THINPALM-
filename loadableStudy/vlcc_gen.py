@@ -61,7 +61,7 @@ class Generate_plan:
                 print("{:.3f}".format(self.input.loadable.info['toLoadPort'].max()), "{:.3f}".format(tot_load[0][1]))
                 
             else:
-                message = 'Solve result: ' + solve_result +'. No solution is available!!'
+                message = ['Solve result: ' + solve_result +'. No solution is available!!']
                 print(message)
 #                upsertToDB(stat_file, 'Optimization terminated with error.\n' + str(e))
             
@@ -111,7 +111,7 @@ class Generate_plan:
                 print("{:.3f}".format(self.input.loadable.info['toLoadPort'].max()), "{:.3f}".format(tot_load[0][1]))
             
             else:
-                message = 'Solve result: No solution is available!!'
+                message = ['Solve result: No solution is available!!']
                 print(message)
                 
         except Exception as err:
@@ -731,7 +731,7 @@ class Generate_plan:
                     self._process_ampl(result, num_plans=num_plans)
                     self._process_checking_plans(result)
                 else:
-                    self.plan['message']['Optimization Error'] = [result['message']]
+                    self.plan['message']['Optimization Error'] = result['message']
         else:
             self.plan['message'] = self.input.error
             
@@ -746,13 +746,13 @@ class Generate_plan:
         data['validated'] = True if self.input.mode in ['Manual', 'FullManual'] else False
         
         if len(self.plan['ship_status']) == 0:
-            data['loadablePlanDetails'] = [] #self.plan['message']
+            data['loadablePlanDetails'] = None #self.plan['message']
             #data['message'] = self.input.error + self.plan['message']
             
             data['message'] = {**self.input.error, **self.plan['message']}
             
             data['errors'] = self._format_errors(data['message'])
-            
+            data['validated'] = False
             return data
         
         
