@@ -1,0 +1,20 @@
+2021-04-30 15:10:59.692 | INFO     | main:task_handler:176 - 3a23f9d7-8c91-4a9c-b47b-c2e2d821bd36: Get vessel API
+2021-04-30 15:11:05.797 | INFO     | main:get_vessel_details:79 - 3a23f9d7-8c91-4a9c-b47b-c2e2d821bd36: HTTP Exception - 
+2021-04-30 15:11:05.797 | INFO     | main:get_vessel_details:80 - 3a23f9d7-8c91-4a9c-b47b-c2e2d821bd36: Get vessel FILE
+2021-04-30 15:11:05.969 | INFO     | main:task_handler:182 - 3a23f9d7-8c91-4a9c-b47b-c2e2d821bd36: Add new loadable
+2021-04-30 15:11:16.258 | INFO     | main:start_cpu_bound_task:117 - 3a23f9d7-8c91-4a9c-b47b-c2e2d821bd36: Allocation completed
+2021-04-30 15:11:16.258 | INFO     | main:start_cpu_bound_task:123 - 3a23f9d7-8c91-4a9c-b47b-c2e2d821bd36: Update status
+2021-04-30 15:11:21.274 | INFO     | main:post_response:96 - 3a23f9d7-8c91-4a9c-b47b-c2e2d821bd36: HTTP Exception - 
+2021-04-30 15:11:21.274 | INFO     | main:start_cpu_bound_task:139 - 3a23f9d7-8c91-4a9c-b47b-c2e2d821bd36: Upload result
+2021-04-30 15:11:26.311 | INFO     | main:post_response:96 - 3a23f9d7-8c91-4a9c-b47b-c2e2d821bd36: HTTP Exception - 
+2021-04-30 15:12:40.070 | INFO     | main:loadicator_handler:215 - 3a23f9d7-8c91-4a9c-b47b-c2e2d821bd36: Upload loadicator result
+2021-04-30 16:25:39.504 | INFO     | main:task_handler:176 - 6e105da8-cc43-48a8-b9d5-e40ef8cd7d94: Get vessel API
+2021-04-30 16:25:45.583 | INFO     | main:get_vessel_details:79 - 6e105da8-cc43-48a8-b9d5-e40ef8cd7d94: HTTP Exception - 
+2021-04-30 16:25:45.583 | INFO     | main:get_vessel_details:80 - 6e105da8-cc43-48a8-b9d5-e40ef8cd7d94: Get vessel FILE
+2021-04-30 16:25:45.755 | INFO     | main:task_handler:182 - 6e105da8-cc43-48a8-b9d5-e40ef8cd7d94: Add new loadable
+2021-04-30 16:25:56.085 | INFO     | main:start_cpu_bound_task:117 - 6e105da8-cc43-48a8-b9d5-e40ef8cd7d94: Allocation completed
+2021-04-30 16:25:56.085 | INFO     | main:start_cpu_bound_task:123 - 6e105da8-cc43-48a8-b9d5-e40ef8cd7d94: Update status
+2021-04-30 16:26:01.086 | INFO     | main:post_response:96 - 6e105da8-cc43-48a8-b9d5-e40ef8cd7d94: HTTP Exception - 
+2021-04-30 16:26:01.086 | INFO     | main:start_cpu_bound_task:139 - 6e105da8-cc43-48a8-b9d5-e40ef8cd7d94: Upload result
+2021-04-30 16:26:06.117 | INFO     | main:post_response:96 - 6e105da8-cc43-48a8-b9d5-e40ef8cd7d94: HTTP Exception - 
+2021-04-30 16:27:04.451 | INFO     | main:loadicator_handler:215 - 6e105da8-cc43-48a8-b9d5-e40ef8cd7d94: Upload loadicator result

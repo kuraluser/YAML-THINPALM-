@@ -11,6 +11,9 @@ import json
 fname1 = 'loadicator_request_v66.json'
 fname1 = 'loadicator_6001a.json'
 
+fname1 = 'loadicator_6606.json'
+
+
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #
 url3 = 'http://127.0.0.1:8000/loadicator_results'

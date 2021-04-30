@@ -218,7 +218,7 @@ class Generate_plan:
                     fillingRatio_ =  round(vol_/capacity_,DEC_PLACE)
                     
                     tankId_ = self.input.vessel.info['tankName'][i_[2]]
-                    corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 3)
+                    corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
 
                     info_ = {'parcel':i_[1], 'wt': round(wt_,DEC_PLACE), 'SG': density_,
                              'fillRatio': fillingRatio_, 'tcg':tcg_, 
@@ -273,7 +273,7 @@ class Generate_plan:
                                                  self.input.vessel.info['tankTCG']['tcg'][k1_]['tcg'])
                             
                             tankId_ = self.input.vessel.info['tankName'][k1_]
-                            corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 3)
+                            corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
 
                                   
                             info_ = {'parcel':parcel_, 'wt': round(weight_,3), 'SG': round(density_,4),
@@ -306,7 +306,7 @@ class Generate_plan:
                                          self.input.vessel.info['tankTCG']['tcg'][k_]['tcg'])
                     
                     tankId_ = self.input.vessel.info['tankName'][k_]
-                    corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 3)
+                    corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
 
                         
                     info_ = {'parcel':'onboard', 'wt': wt_, 'SG': density_,
@@ -903,7 +903,7 @@ class Generate_plan:
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
                     
-                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                     info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
@@ -927,7 +927,7 @@ class Generate_plan:
                     
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
-                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                                         
@@ -971,7 +971,7 @@ class Generate_plan:
                     info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     
-                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],3))
+                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                    
@@ -1001,7 +1001,7 @@ class Generate_plan:
                 # except:
                 #     print(k_, vol_)
                 #     ul_ = 0.
-                info_['correctedUllage'] = str(round(v_[0]['corrLevel'],3))
+                info_['correctedUllage'] = str(round(v_[0]['corrLevel'],6))
                 info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                 info_['rdgLevel'] = str(v_[0]['rdgLevel'])
                 

@@ -45,6 +45,11 @@ fname1 = 'loadableStudy_6287.json'
 fname1 = 'loadableStudy_6318.json'
 
 fname1 = 'request0422a.json' # infeasible
+# fname1 = 'request0421.json' # deballast limit relax
+fname1 = 'loadableStudy_6540.json'
+
+fname1 = 'loadablePattern_request_3325.json'
+fname1 = 'loadableStudy_6606.json'
 
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #

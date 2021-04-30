@@ -213,11 +213,11 @@ async def loadicator_handler(data: dict):
     out = loadicator(data, limits)
     # # print('>>>Send loadicator results')
     logger.info(data["processId"] + ": Upload loadicator result")
-    loadicator_url_ = config['url']['loadicator-result'].format(vesselId=limits['limits']['vesselId'],
-                                                                voyageId=limits['limits']['voyageId'],
-                                                                loadableStudyId=limits['limits']['id'])
-    print(loadicator_url_)
-    await post_response(loadicator_url_, out, data["processId"])
+    # loadicator_url_ = config['url']['loadicator-result'].format(vesselId=limits['limits']['vesselId'],
+    #                                                             voyageId=limits['limits']['voyageId'],
+    #                                                             loadableStudyId=limits['limits']['id'])
+    # print(loadicator_url_)
+    # await post_response(loadicator_url_, out, data["processId"])
     return out
 
 @app.post("/ullage_results/")
@@ -235,7 +235,7 @@ async def ullage_handler(data: dict):
             density = float(density)
         wt = density*vol 
         
-        return {"id":data["id"], "correctionFactor": str(round(cf/100,3)), "correctedUllage": str(round(corr_ullage,3)),
+        return {"id":data["id"], "correctionFactor": str(round(cf/100,3)), "correctedUllage": str(round(corr_ullage,6)),
                 "obsM3": str(np.round(vol,2)), "quantityMt": str(round(wt,1))}
         
     else:

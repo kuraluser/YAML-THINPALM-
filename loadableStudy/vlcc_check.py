@@ -58,12 +58,12 @@ class Check_plans:
                             rdgUllage_ = b_[0]['corrUllage'] - cf_/100 if cf_ not in [None] else b_[0]['corrUllage']
                             
                             plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else None
-                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(rdgUllage_,3)
+                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(rdgUllage_,6)
                             
                         else:
                             # print(str(tankId_), a_, 'Missing correction data!!')
                             plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = None
-                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(b_[0]['corrUllage'],3)
+                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(b_[0]['corrUllage'],6)
                             
                         
                     for a_, b_ in plans[p__][k_]['ballast'].items():
@@ -74,7 +74,7 @@ class Check_plans:
                             rdgLevel_ = b_[0]['corrLevel'] - cf_/100 if cf_ not in [None] else b_[0]['corrLevel']
                             
                             plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else None
-                            plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = round(rdgLevel_,3) 
+                            plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = round(rdgLevel_,6) 
                             
                             
                         else:
