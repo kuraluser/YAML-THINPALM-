@@ -567,8 +567,8 @@ subject to Condition111 {p in P_last_loading}: -intended <= sum{c in C, pp in P:
 
 
 ## symmetric loading
-#subject to Condition112a {c in C}: x[c,'1P'] = x[c,'1S'];
-#subject to Condition112b {c in C}: x[c,'2P'] = x[c,'2S'];
+subject to Condition112a {c in C}: x[c,'1P'] = x[c,'1S'];
+subject to Condition112b {c in C}: x[c,'2P'] = x[c,'2S'];
 subject to Condition112c1 {c in C}: x[c,'3P'] = x[c,'3S'];
 subject to Condition112c2 {c in C}: x[c,'4P'] = x[c,'4S'];
 subject to Condition112c3 {c in C}: x[c,'5P'] = x[c,'5S'];
