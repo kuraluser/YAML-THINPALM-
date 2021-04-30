@@ -978,6 +978,8 @@ class Generate_plan:
                     info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else 0.
                     info_['colorCode'] = self.input.loadable.info['commingleCargo']['colorCode']
+                    info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
+                    
                     
                     plan_.append(info_)
                 

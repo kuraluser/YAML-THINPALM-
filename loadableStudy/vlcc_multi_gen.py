@@ -163,6 +163,7 @@ class Multiple_plans(object):
         data['processId'] = self.input.process_id
         data['user'] = self.input.user
         data['role'] = self.input.role
+        
         data['errors'] = []
         
         if len(self.plans['ship_status']) == 0:
@@ -304,7 +305,6 @@ class Multiple_plans(object):
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                     info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
                     
-                    
                    
                     plan.append(info_)
                     
@@ -374,7 +374,9 @@ class Multiple_plans(object):
                    
                     info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else str(0.00)
+                    
                     info_['colorCode'] = self.input.loadable.info['commingleCargo']['colorCode']
+                    info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
                     
                     plan.append(info_)
                 
@@ -399,9 +401,9 @@ class Multiple_plans(object):
                 info_['correctedUllage'] = str(round(v_[0]['corrLevel'],3))
                 info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                 info_['rdgLevel'] = str(v_[0]['rdgLevel'])
+                
                 info_['volume'] = str(round(v_[0]['volume'],2))
                 info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
-               
                 
                 plan.append(info_)
                 
