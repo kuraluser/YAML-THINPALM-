@@ -270,7 +270,7 @@ param minCargoAmt default 1000;
 
 ## cargo tank
 set cargoTankNonSym within T cross T; # non-sym cargo tanks
-set symmetricVolTank within T cross T default  {('SLS','SLP'), ('3P','3S'), ('4P','4S'), ('5P','5S')};
+set symmetricVolTank within T cross T default  {('1P','1S'), ('2P','2S'), ('SLS','SLP'), ('3P','3S'), ('4P','4S'), ('5P','5S')};
 
 
 ## stability: set and params
@@ -578,8 +578,8 @@ subject to Condition112a2 {(u,v) in symmetricVolTank, p in P_last_loading}:     
 
 
 
-subject to Condition112d1 {c in C, p in P_last_loading}: qw[c,'1P',p] = qw[c,'1S',p];
-subject to Condition112d2 {c in C, p in P_last_loading}: qw[c,'2P',p] = qw[c,'2S',p];
+#subject to Condition112d1 {c in C, p in P_last_loading}: qw[c,'1P',p] = qw[c,'1S',p];
+#subject to Condition112d2 {c in C, p in P_last_loading}: qw[c,'2P',p] = qw[c,'2S',p];
 #subject to Condition112c {c in C, p in P_last_loading}: qw[c,'3P',p] = qw[c,'3S',p];
 #subject to Condition112d {c in C, p in P_last_loading}: qw[c,'4P',p] = qw[c,'4S',p];
 #subject to Condition112e {c in C, p in P_last_loading}: qw[c,'5P',p] = qw[c,'5S',p];

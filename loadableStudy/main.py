@@ -236,7 +236,7 @@ async def ullage_handler(data: dict):
         wt = density*vol 
         
         return {"id":data["id"], "correctionFactor": str(round(cf/100,3)), "correctedUllage": str(round(corr_ullage,3)),
-                "obsM3": str(np.round(vol,3)), "quantityMt": str(round(wt,3))}
+                "obsM3": str(np.round(vol,2)), "quantityMt": str(round(wt,1))}
         
     else:
         return {"id":data["id"], "correctionFactor": None, "correctedUllage": None, "obsM3": None, "quantityMt": None}

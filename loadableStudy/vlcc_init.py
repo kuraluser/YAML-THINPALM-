@@ -595,7 +595,7 @@ class Process_input(object):
                             else:
                                 tank_ = v2_['tank']
                             
-                            str1 = k_ + ' ' + tank_  + ' ' + str(k1_) + ' ' + "{:.3f}".format(v2_['qty'])
+                            str1 = k_ + ' ' + tank_  + ' ' + str(k1_) + ' ' + "{:.1f}".format(v2_['qty'])
                             print(str1, file=text_file)
                 print(';', file=text_file)
                 
