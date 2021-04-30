@@ -43,6 +43,8 @@ class Process_input(object):
                               'planDetails': data.get('loadablePlanPortWiseDetails',[]) # for full and manual modes
                               }
                               
+        self.user = data['loadable'].get('user', None)
+        self.role = data['loadable'].get('role', None)         
         self.loadable_id = data['loadable']['id']
         self.vessel_id   = data['loadable']['vesselId']
         self.voyage_id   = data['loadable']['voyageId']

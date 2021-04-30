@@ -161,10 +161,12 @@ class Multiple_plans(object):
         data = {}
         data['message'] = None
         data['processId'] = self.input.process_id
+        data['user'] = self.input.user
+        data['role'] = self.input.role
         data['errors'] = []
         
         if len(self.plans['ship_status']) == 0:
-            data['loadablePlanDetails'] = [] #self.plan['message']
+            data['loadablePlanDetails'] = None #self.plan['message']
             data['message'] = {**self.input.error, **self.plans['message']}
             data['errors'] = self._format_errors(data['message'])
                         
@@ -193,6 +195,9 @@ class Multiple_plans(object):
                 plan_['portId'] = int(self.input.port.info['portRotation'][p_]['portId'])
                 plan_['portCode'] = p_
                 plan_['portRotationId'] = int(self.input.port.info['portRotation'][p_]['portRotationId'])
+                plan_['seaWaterTemperature'] = str(self.input.port.info['portRotation'][p_]['seaWaterTemperature'])
+                plan_['ambientTemperature'] = str(self.input.port.info['portRotation'][p_]['ambientTemperature'])
+                
                 # arrival
                 plan_['arrivalCondition'] = {"loadableQuantityCargoDetails":[],
                                               "loadableQuantityCommingleCargoDetails":[],
@@ -297,6 +302,8 @@ class Multiple_plans(object):
                     info_['correctedUllage'] = str(round(v_[0]['corrUllage'],3))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
+                    info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
+                    
                     
                    
                     plan.append(info_)
@@ -323,6 +330,8 @@ class Multiple_plans(object):
                     
                     info_['cargoNominationId'] = ''
                     info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
+                    info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
+                    
                     
                     plan.append(info_)
                     
@@ -365,6 +374,8 @@ class Multiple_plans(object):
                    
                     info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else str(0.00)
+                    info_['colorCode'] = self.input.loadable.info['commingleCargo']['colorCode']
+                    
                     plan.append(info_)
                 
         elif category == 'ballastStatus':
@@ -388,6 +399,9 @@ class Multiple_plans(object):
                 info_['correctedUllage'] = str(round(v_[0]['corrLevel'],3))
                 info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                 info_['rdgLevel'] = str(v_[0]['rdgLevel'])
+                info_['volume'] = str(round(v_[0]['volume'],2))
+                info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
+               
                 
                 plan.append(info_)
                 

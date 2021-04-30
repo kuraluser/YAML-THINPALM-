@@ -224,7 +224,8 @@ class Generate_plan:
                              'fillRatio': fillingRatio_, 'tcg':tcg_, 
                              'temperature':self.input.loadable.info['parcel'][i_[1]]['temperature'],
                              'api':self.input.loadable.info['parcel'][i_[1]]['api'],
-                             'corrUllage': corrUllage_}
+                             'corrUllage': corrUllage_,
+                             'maxTankVolume':capacity_}
                     
                     # print(i_[3],i_[2],info_)
                     
@@ -281,7 +282,8 @@ class Generate_plan:
                                      'api':api_,
                                      'wt1':wt1_, 'wt2':wt2_,
                                      'wt1percent':wt1_/(wt1_+wt2_), 'wt2percent':wt2_/(wt1_+wt2_),
-                                     'corrUllage':corrUllage_}
+                                     'corrUllage':corrUllage_,
+                                     'maxTankVolume':capacity_}
                             
                             # print(info_)
                             
@@ -310,7 +312,8 @@ class Generate_plan:
                     info_ = {'parcel':'onboard', 'wt': wt_, 'SG': density_,
                              'fillRatio': round(v_['vol']/capacity_,DEC_PLACE), 'tcg':tcg_, 
                              'temperature':None,
-                             'corrUllage': corrUllage_}
+                             'corrUllage': corrUllage_,
+                             'maxTankVolume': capacity_}
                     
                     for k1_, v1_ in ship_status_dep_.items():
                         if not v1_.get(k_, []):
@@ -349,7 +352,9 @@ class Generate_plan:
                                                       'SG':density_,
                                                       'fillRatio': round(i_[3]/density_/capacity_,DEC_PLACE),
                                                       'tcg':tcg_,
-                                                      'corrLevel':round(corrLevel_,3)}]
+                                                      'corrLevel':round(corrLevel_,3),
+                                                      'maxTankVolume':capacity_,
+                                                      'volume':vol_}]
             
             
                            
@@ -741,6 +746,8 @@ class Generate_plan:
         data = {}
         data['message'] = None
         data['processId'] = self.input.process_id
+        data['user'] = self.input.user
+        data['role'] = self.input.role
         data['errors'] = []
         
         data['validated'] = True if self.input.mode in ['Manual', 'FullManual'] else False
@@ -783,6 +790,9 @@ class Generate_plan:
                 plan_['portId'] = int(self.input.port.info['portRotation'][p_]['portId'])
                 plan_['portCode'] = p_
                 plan_['portRotationId'] = int(self.input.port.info['portRotation'][p_]['portRotationId'])
+                plan_['seaWaterTemperature'] = str(self.input.port.info['portRotation'][p_]['seaWaterTemperature'])
+                plan_['ambientTemperature'] = str(self.input.port.info['portRotation'][p_]['ambientTemperature'])
+                
                 # arrival
                 plan_['arrivalCondition'] = {"loadableQuantityCargoDetails":[],
                                               "loadableQuantityCommingleCargoDetails":[],
@@ -896,6 +906,7 @@ class Generate_plan:
                     info_['correctedUllage'] = str(round(v_[0]['corrUllage'],3))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
+                    info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
                     
                     plan_.append(info_)
                     
@@ -922,6 +933,7 @@ class Generate_plan:
                                         
                     info_['cargoNominationId'] = ''
                     info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
+                    info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
                     
                     
                     plan_.append(info_)
@@ -965,6 +977,8 @@ class Generate_plan:
                    
                     info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                     info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else 0.
+                    info_['colorCode'] = self.input.loadable.info['commingleCargo']['colorCode']
+                    
                     plan_.append(info_)
                 
         elif category == 'ballastStatus':
@@ -988,6 +1002,10 @@ class Generate_plan:
                 info_['correctedUllage'] = str(round(v_[0]['corrLevel'],3))
                 info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                 info_['rdgLevel'] = str(v_[0]['rdgLevel'])
+                
+                info_['volume'] = str(round(v_[0]['volume'],2))
+                info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
+                
                 
                 
                 plan_.append(info_)

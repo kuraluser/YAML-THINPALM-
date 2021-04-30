@@ -21,7 +21,9 @@ class Port:
         port_details_ = {}
         for p__, p_ in enumerate(inputs.port_json['portDetails']):
             port_details_[p_['id']] = {'densitySeaWater':p_['densitySeaWater'],
-                                       'code': p_['code'], 'tideHeight': float(p_["tideHeight"]) if p_.get("tideHeight",None) not in [None, ""] else 0.}
+                                       'code': p_['code'], 'tideHeight': float(p_["tideHeight"]) if p_.get("tideHeight",None) not in [None, ""] else 0.,
+                                       'seaWaterTemperature':p_.get('seaWaterTemperature', 0.),
+                                       'ambientTemperature':p_.get('ambientTemperature', 0.)}
            
         for p__, p_ in enumerate(inputs.port_json['portRotation']):
             if p_['portOrder'] <= last_loading_port_ + 1:
@@ -42,9 +44,13 @@ class Port:
                 ports_info_['portRotation'][detail_['code']]['maxAirDraft'] = float(p_["maxAirDraft"]) if p_.get("maxAirDraft",None) not in [None, ""] else 200
                 ports_info_['portRotation'][detail_['code']]['tideHeight'] = detail_['tideHeight']
                 
+                ports_info_['portRotation'][detail_['code']]['ambientTemperature'] = detail_['ambientTemperature']
+                ports_info_['portRotation'][detail_['code']]['seaWaterTemperature'] = detail_['seaWaterTemperature']
+                
             ## berth info
         
         ports_info_['numPort'] = len(ports_info_['portRotation'])
+        
 #        print(ports_info_['portOrder'])
         # arrival and departure ports for ballast synchronize
         # ports_info_['ballastList'] = [2*i_-1 for i_ in range(1,last_loading_port_+1)] 
@@ -52,7 +58,8 @@ class Port:
         # ports_info_['finalBallastPort'] = []
         ports_info_['operationId'] = {str(v_['portId']): str(v_['operationId']) for k_,v_ in ports_info_['portRotation'].items() }
         ports_info_['maxDraft'] = {str(v_['portId']): v_['maxDraft'] for k_,v_ in ports_info_['portRotation'].items() }
-        ports_info_['maxAirDraft'] = {str(v_['portId']): v_['maxAirDraft'] for k_,v_ in ports_info_['portRotation'].items() }
+        ports_info_['maxAirDraft'] = {str(v_['portId']): v_['maxAirDraft'] for k_,v_ in ports_info_['portRotation'].items()}
+        ports_info_['ambientTemperature'] = {str(v_['order']): float(v_['ambientTemperature']) for k_,v_ in ports_info_['portRotation'].items()}
         
         # print(ports_info_)
         
