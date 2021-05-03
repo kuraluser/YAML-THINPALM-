@@ -29,6 +29,7 @@ class Vessel:
         
         vessel_info_ = {}
         
+        vessel_info_['hasLoadicator'] = vessel_json['vessel'].get('hasLoadicator', False)
         vessel_info_['banBallast'] = ['FPTU']   # 'AWBP','AWBS'
         vessel_info_['banCargo'] = {k_:[] for k_,v_ in inputs.loadable.info['parcel'].items()}
         vessel_info_['slopTank'] = []

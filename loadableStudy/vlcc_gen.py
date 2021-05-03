@@ -748,6 +748,7 @@ class Generate_plan:
         data['processId'] = self.input.process_id
         data['user'] = self.input.user
         data['role'] = self.input.role
+        data['hasLoadicator'] = self.input.vessel.info['hasLoadicator']
         data['errors'] = []
         
         data['validated'] = True if self.input.mode in ['Manual', 'FullManual'] else False
@@ -782,7 +783,7 @@ class Generate_plan:
                 
             plan['loadablePlanPortWiseDetails'] = []
             plan['constraints'] = constraints.get(str(s_),[])
-            plan['stabilityParameters'] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(self.input.port.info['lastLoadingPort'])+'D']]
+            # plan['stabilityParameters'] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(self.input.port.info['lastLoadingPort'])+'D']]
             plan['slopQuantity'] = str(self.plan['slop_qty'][s_]) if len(self.plan['slop_qty']) > 0 else None
             
             for p__,p_ in enumerate(path_):
@@ -811,7 +812,8 @@ class Generate_plan:
                     plan_['arrivalCondition']["loadablePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'A', 'robStatus')
                     # get loadableQuantityCommingleCargoDetails
                     plan_['arrivalCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'commingleStatus')
-                    
+                    plan_['arrivalCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'A']]
+                
                 
                 # departure
                 plan_['departureCondition'] = {"loadableQuantityCargoDetails":[],
@@ -832,7 +834,8 @@ class Generate_plan:
                     plan_['departureCondition']["loadablePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'D', 'robStatus')
                     # get loadableQuantityCommingleCargoDetails
                     plan_['departureCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'D', 'commingleStatus')
-                    
+                    plan_['departureCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'D']]
+                 
                 
                 plan['loadablePlanPortWiseDetails'].append(plan_)
                 

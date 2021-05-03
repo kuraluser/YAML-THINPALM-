@@ -80,6 +80,8 @@ class Process_input(object):
             self.mode = 'Auto'
         
         self.case_number = data.get('caseNumber', None)
+        self.deballast_percent = 1
+        self.commingle_temperature = None
         
     def prepare_dat_file(self, ballast_weight=1000):
         

@@ -35,7 +35,7 @@ class Multiple_plans(object):
                 list_ = self.input.loadable.info['rotationCheck'][0]
                 permute_list_ = permutations(list_)
                 for r__, r_ in enumerate(permute_list_):
-                    print(r__, r_)
+                    print('possible permutation: ',r__, r_)
                     if r__ <= 5:
                         if list_ != list(r_):
                              new_input = self.multiple_input
@@ -163,6 +163,7 @@ class Multiple_plans(object):
         data['processId'] = self.input.process_id
         data['user'] = self.input.user
         data['role'] = self.input.role
+        data['hasLoadicator'] = self.input.vessel.info['hasLoadicator']
         
         data['errors'] = []
         
@@ -188,7 +189,7 @@ class Multiple_plans(object):
             plan['caseNumber'] = int(s_+1)
             plan['loadablePlanPortWiseDetails'] = []
             plan['constraints'] = constraints[str(s_)]
-            plan['stabilityParameters'] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(self.input.port.info['lastLoadingPort'])+'D']]
+            # plan['stabilityParameters'] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(self.input.port.info['lastLoadingPort'])+'D']]
             plan['slopQuantity'] = str(self.plans['slop_qty'][s_])
             
             for p__,p_ in enumerate(path_):
@@ -198,6 +199,7 @@ class Multiple_plans(object):
                 plan_['portRotationId'] = int(self.input.port.info['portRotation'][p_]['portRotationId'])
                 plan_['seaWaterTemperature'] = str(self.input.port.info['portRotation'][p_]['seaWaterTemperature'])
                 plan_['ambientTemperature'] = str(self.input.port.info['portRotation'][p_]['ambientTemperature'])
+               
                 
                 # arrival
                 plan_['arrivalCondition'] = {"loadableQuantityCargoDetails":[],
@@ -217,7 +219,7 @@ class Multiple_plans(object):
                     plan_['arrivalCondition']["loadablePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'A', 'robStatus')
                     # get loadableQuantityCommingleCargoDetails
                     plan_['arrivalCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'commingleStatus')
-                    
+                    plan_['arrivalCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'A']]
                 
                 # departure
                 plan_['departureCondition'] = {"loadableQuantityCargoDetails":[],
@@ -238,7 +240,8 @@ class Multiple_plans(object):
                     plan_['departureCondition']["loadablePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'D', 'robStatus')
                     # get loadableQuantityCommingleCargoDetails
                     plan_['departureCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'D', 'commingleStatus')
-                    
+                    plan_['departureCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'D']]
+
                 
                 plan['loadablePlanPortWiseDetails'].append(plan_)
                 

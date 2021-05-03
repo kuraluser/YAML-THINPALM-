@@ -14,6 +14,9 @@ class Loadable:
         cargos_info_ = {}
         cargos_info_['parcel'] = {}
         cargos_info_['sg'] = []
+        cargos_info_['maxPriority'] = 0
+        cargos_info_['priority'] = {i_:[] for i_ in range(10)}
+        
         
         
         # operations_ = {}
@@ -40,8 +43,20 @@ class Loadable:
                     inputs.error['API Error'].append(message_)
             
             ## temperature, correction factor
+            first_loading_port_ = 1
+            for o__, o_ in enumerate(inputs.loadable_json['cargoOperation']):
+                if c_['id'] == o_['cargoNominationId']:
+                    port_order_ = int(inputs.port.info['idPortOrder'][str(o_['portId'])])
+                    first_loading_port_ = min(first_loading_port_, port_order_)
+                    
+            ambient_ = []
+            for k_, v_ in inputs.port.info['ambientTemperature'].items():
+                if first_loading_port_ <= int(k_):
+                    ambient_.append(round(float(v_)*1.8+32,2))
+                    
+                
             temp_F_, api_ = c_['temperature'], c_['api']
-            temp_F_ = max(temp_F_, inputs.air_temperature)
+            temp_F_ = max(temp_F_, inputs.air_temperature, max(ambient_))
             
             sg_ = self._cal_density(api_,temp_F_)
             
@@ -53,6 +68,8 @@ class Loadable:
             cargos_info_['parcel'][cargo_id_]['mintempSG']  = sg_
             cargos_info_['sg'].append(sg_)
             
+            cargos_info_['maxPriority'] = max(cargos_info_['maxPriority'], c_['priority'])
+            cargos_info_['priority'][c_['priority']].append(cargo_id_)
        
         self.info = cargos_info_ 
         
@@ -176,7 +193,10 @@ class Loadable:
               
             if str(c_['purposeXid']) == str(1):
                 print('Commingle cargo in auto mode!!')
-                cargos_info_['commingleCargo']['temperature'] = min(t1_,t2_) + abs(t1_-t2_)*0.6
+                if inputs.commingle_temperature in [None]:
+                    cargos_info_['commingleCargo']['temperature'] = min(t1_,t2_) + abs(t1_-t2_)*0.6
+                else:
+                    cargos_info_['commingleCargo']['temperature'] = inputs.commingle_temperature
                 print('approx commingle temperature:', cargos_info_['commingleCargo']['temperature'])
                 
             else:
