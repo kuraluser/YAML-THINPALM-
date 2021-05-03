@@ -30,7 +30,10 @@ class Generate_plan:
             model_ = 'model_1i.mod'
             print(model_)
             ampl = AMPL()
-            ampl.option['show_presolve_messages'] = True
+            # ampl.option['show_presolve_messages'] = True
+            if self.input.mode in ['Manual']:
+                ampl.option['presolve'] = False
+                
             ampl.read(model_)
             ampl.readData(dat_file)
             ampl.read('run_ampl.run')

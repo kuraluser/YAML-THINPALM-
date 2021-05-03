@@ -81,6 +81,8 @@ fname = 'loadablePattern_request_3325.json'
 fname = 'request_commingle0429a.json'
 fname = 'loadablePattern_request_3325.json'
 
+fname = 'loadablePattern_request_3546.json'
+
 ## to be modified in main.py --------------------------------------------
 data = {}
 with open(fname) as f_:
