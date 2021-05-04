@@ -49,7 +49,7 @@ class Check_plans:
                                      'shearForce':  "{:.2f}".format(result['maxSF'][1])}
                     
                     # update correction ullage
-                    trim_ = result['trim']
+                    trim_ = round(result['trim'],2)
                     
                     for a_, b_ in plans[p__][k_]['cargo'].items():
                         tankId_ = self.input.vessel.info['tankName'][a_]

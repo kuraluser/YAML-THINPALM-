@@ -307,7 +307,7 @@ class Vessel:
                                   'WB2P':9000, 'WB2S':9000,
                                   'WB3P':9000, 'WB3S':9000,
                                   'WB4P':8900, 'WB4S':8900,
-                                  'WB5P':7600, 'WB5S':7200},
+                                  'WB5P':7600, 'WB5S':7600},
                                     'dec':['APT','FPTL','WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S','AWBP','AWBS'],
                                     'inc':[]}
         
