@@ -333,7 +333,7 @@ def vlcc_ortools(inputs):
     cargoTankNonSym  = inputs.vessel.info['notSym']
     
     # symmetricVolTank 
-    symmetricVolTank = [('SLS','SLP'), ('3P','3S'), ('4P','4S'), ('5P','5S')]
+    symmetricVolTank = [('SLS','SLP'), ('3P','3S'), ('4P','4S'), ('5P','5S'),  ('1P','1S'), ('2P','2S')]
     
     
     # cargo with highest load
@@ -882,9 +882,9 @@ def vlcc_ortools(inputs):
         for j in list(set(T)-set(Tc[i])):
             for k in P:
                 # Condition 020  cargo c is not allocated to tank t if t is not compatible with cargo c
-                solver.Add(w[i][j][k]/densityCargo_Low[i] == x[i,j])
+                solver.Add(w[i][j][k]/densityCargo_Low[i] == x[i][j])
                 # Condition 021  cargo c is not allocated to tank t if t is not compatible with cargo c
-                solver.Add(qw2f[i][j][k]/10/densityCargo_Low[i] == x[i,j])
+                solver.Add(qw2f[i][j][k]/10/densityCargo_Low[i] == x[i][j])
                 
     # Condition 03 Condition 04
     for i in list(set(C)-set(C_loaded)-set(C_locked)):
@@ -1093,6 +1093,8 @@ def vlcc_ortools(inputs):
     # symmetric loading
     # Condition112c1, 112c2, 112c3, 112d1 112d2
     for i in C:
+        solver.Add(x[i]['1P'] == x[i]['1S']) 
+        solver.Add(x[i]['2P'] == x[i]['2S'])
         solver.Add(x[i]['3P'] == x[i]['3S']) 
         solver.Add(x[i]['4P'] == x[i]['4S'])
         solver.Add(x[i]['5P'] == x[i]['5S'])
@@ -1103,9 +1105,9 @@ def vlcc_ortools(inputs):
         # subject to Condition112a2 {(u,v) in symmetricVolTank, p in P_last_loading}:     -0.1 <= sum{c in C}qw[c,u,p]/densityCargo_Low[c]/capacityCargoTank[u] - sum{c in C}qw[c,v,p]/densityCargo_Low[c]/capacityCargoTank[v];
         #
         
-        for j in P_last_loading:
-            solver.Add(qw2f[i]['1P'][j]/10 == qw2f[i]['1S'][j]/10)
-            solver.Add(qw2f[i]['2P'][j]/10 == qw2f[i]['2S'][j]/10)            
+#        for j in P_last_loading:
+#            solver.Add(qw2f[i]['1P'][j]/10 == qw2f[i]['1S'][j]/10)
+#            solver.Add(qw2f[i]['2P'][j]/10 == qw2f[i]['2S'][j]/10)            
             
     # Condition112a1, 112a2 
     for u, v in symmetricVolTank:
