@@ -31,7 +31,11 @@ with open('config.json', "r") as f_:
 with open('KAZUSA_ullage.pickle', 'rb') as fp_:
     # vessel_info['ullage_func'] = pickle.load(fp_)
     _, ullageCorr, ullageInv, _ = pickle.load(fp_)
-   
+
+with open('KAZUSA.pickle', 'rb') as fp_:
+    # vessel_info['ullage_func'] = pickle.load(fp_)
+    vessel_details = pickle.load(fp_)
+
 
 ## Postgres Database --------------------------------------------------------
 #DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
@@ -235,11 +239,16 @@ async def ullage_handler(data: dict):
             density = float(density)
         wt = density*vol 
         
+        tank_ = vessel_details['tankId'][int(tankId)]
+        capacity_ = vessel_details['cargoTanks'][tank_]['capacityCubm']
+        fr = vol/capacity_*100
+        
         return {"id":data["id"], "correctionFactor": str(round(cf/100,3)), "correctedUllage": str(round(corr_ullage,6)),
-                "obsM3": str(np.round(vol,2)), "quantityMt": str(round(wt,1))}
+                "obsM3": str(np.round(vol,2)), "quantityMt": str(round(wt,1)), "fillingRatio":str(round(fr,2)) }
         
     else:
-        return {"id":data["id"], "correctionFactor": None, "correctedUllage": None, "obsM3": None, "quantityMt": None}
+        return {"id":data["id"], "correctionFactor": None, "correctedUllage": None, "obsM3": None, 
+                "quantityMt": None, 'fillingRatio':None}
     
     
 
