@@ -83,6 +83,8 @@ class Process_input(object):
         self.deballast_percent = 1
         self.commingle_temperature = None
         
+        self.has_loadicator = self.vessel_json['vessel'].get('hasLoadicator',False)
+        
     def prepare_dat_file(self, ballast_weight=1000):
         
         if not self.error:

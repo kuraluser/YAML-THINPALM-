@@ -163,7 +163,7 @@ class Multiple_plans(object):
         data['processId'] = self.input.process_id
         data['user'] = self.input.user
         data['role'] = self.input.role
-        data['hasLoadicator'] = self.input.vessel.info['hasLoadicator']
+        data['hasLoadicator'] = self.input.has_loadicator
         
         data['errors'] = []
         

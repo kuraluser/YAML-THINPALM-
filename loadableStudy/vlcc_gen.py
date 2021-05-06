@@ -751,7 +751,7 @@ class Generate_plan:
         data['processId'] = self.input.process_id
         data['user'] = self.input.user
         data['role'] = self.input.role
-        data['hasLoadicator'] = self.input.vessel.info['hasLoadicator']
+        data['hasLoadicator'] = self.input.has_loadicator
         data['errors'] = []
         
         data['validated'] = True if self.input.mode in ['Manual', 'FullManual'] else False
