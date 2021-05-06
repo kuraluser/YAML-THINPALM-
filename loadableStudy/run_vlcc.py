@@ -85,6 +85,7 @@ fname = 'loadablePattern_request_3546.json'
 
 fname = 'loadablestudy_6669.json'
 fname = 'loadablestudy_6799.json'
+fname = 'loadableStudy66c2.json'  # rotation at 2nd port; load more if non-zero ballast
 
 ## to be modified in main.py --------------------------------------------
 data = {}

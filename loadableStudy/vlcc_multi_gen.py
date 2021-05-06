@@ -168,7 +168,7 @@ class Multiple_plans(object):
         data['errors'] = []
         
         if len(self.plans['ship_status']) == 0:
-            data['loadablePlanDetails'] = None #self.plan['message']
+            data['loadablePlanDetails'] = [] #self.plan['message']
             data['message'] = {**self.input.error, **self.plans['message']}
             data['errors'] = self._format_errors(data['message'])
                         
