@@ -94,8 +94,9 @@ class Port:
                 else:
                     inputs.error['Max Draft Error'].append('Max Draft Error at '+ port_ +'!!')
                     
-        for p__, (k_, v_) in enumerate(ports_info_['portOrder'].items()):
-            if p__+1 != int(k_):
+        port_order_ = list(ports_info_['portOrder'].keys())
+        for p__ in range(1,ports_info_['numPort']+1):
+            if str(p__)  not in  port_order_:
                 # print(v_)
                 if 'Port Order Error' not in inputs.error.keys():
                     inputs.error['Port Order Error'] = [v_ + ' in port ordering error!!']
