@@ -264,6 +264,24 @@ class Process_input(object):
         tot_capacity_ = sum([v_['capacityCubm'] for k_,v_ in self.vessel.info['cargoTanks'].items()])
         # ave_density_  = np.mean([v_[''] for k_,v_ in self.loadable.info['parcel'].items()])
         # self.error.append('Infeasible')
+        for k_, v_ in self.loadable.info['manualOperation'].items():
+            density_ = self.loadable.info['parcel'][k_]['maxtempSG']
+            cargo_ =  self.loadable.info['parcel'][k_]['abbreviation']
+            for k1_, v1_ in v_.items():
+                for v2_ in v1_:
+                    tank_ = self.vessel.info['tankId'][v2_['tankId']]
+                    capacity_ = self.vessel.info['cargoTanks'][tank_]['capacityCubm']
+                    filling_ = v2_['qty']/density_/capacity_
+                    # print(k_, v2_, filling_)
+                    # filling_ = .99
+                    if filling_ > .9801:
+                        if 'Vol Error' not in self.error:
+                            self.error['Vol Error'] = [cargo_ + ' at ' + tank_ + ' fails 98% max volume check!!']
+                        else:
+                            self.error['Vol Error'].append(cargo_ + ' at ' + tank_ + ' fails 98% max volume check!!')
+                    
+                    
+     
         
     def write_dat_file(self, file = 'input.dat'):
         

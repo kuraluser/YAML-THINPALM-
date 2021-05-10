@@ -51,6 +51,9 @@ fname1 = 'loadableStudy_6540.json'
 fname1 = 'loadablePattern_request_3325.json'
 fname1 = 'loadableStudy_6606.json'
 
+
+fname1 = 'loadablePattern_request_3660.json'
+
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #
 url1 = 'http://127.0.0.1:8000/new_loadable'
