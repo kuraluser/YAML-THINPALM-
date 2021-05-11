@@ -757,7 +757,7 @@ class Generate_plan:
         data['validated'] = True if self.input.mode in ['Manual', 'FullManual'] else False
         
         if len(self.plan['ship_status']) == 0:
-            data['loadablePlanDetails'] = [] #self.plan['message']
+            data['loadablePlanDetails'] = None #self.plan['message']
             #data['message'] = self.input.error + self.plan['message']
             
             data['message'] = {**self.input.error, **self.plan['message']}
