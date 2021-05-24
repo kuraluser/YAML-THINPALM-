@@ -240,7 +240,11 @@ async def ullage_handler(data: dict):
         wt = density*vol 
         
         tank_ = vessel_details['tankId'][int(tankId)]
-        capacity_ = vessel_details['cargoTanks'][tank_]['capacityCubm']
+        if tank_ in vessel_details['cargoTanks'].keys():
+            capacity_ = vessel_details['cargoTanks'][tank_]['capacityCubm']
+        elif tank_ in vessel_details['ballastTanks'].keys():
+            capacity_ = vessel_details['ballastTanks'][tank_]['capacityCubm']
+        
         fr = vol/capacity_*100
         
         return {"id":data["id"], "correctionFactor": str(round(cf/100,3)), "correctedUllage": str(round(corr_ullage,6)),
