@@ -31,11 +31,10 @@ with open('config.json', "r") as f_:
 with open('KAZUSA_ullage.pickle', 'rb') as fp_:
     # vessel_info['ullage_func'] = pickle.load(fp_)
     _, ullageCorr, ullageInv, _ = pickle.load(fp_)
-
+   
 with open('KAZUSA.pickle', 'rb') as fp_:
     # vessel_info['ullage_func'] = pickle.load(fp_)
     vessel_details = pickle.load(fp_)
-
 
 ## Postgres Database --------------------------------------------------------
 #DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
@@ -122,6 +121,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
     ## send feedback
     # print('>>>> Update feedback to Thinkpalm')
     
+    # print(result.get('validated', None))
     
     if result.get('validated', None) in [None]:
         logger.info(uid + ": Update status")
@@ -144,6 +144,27 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
     # print(result)
     await post_response(result_url_, result, uid)
     
+def get_data(data, gID):
+    
+    data_ = {}
+    
+    if data.get('loadableStudy', []):
+        print('manual/fullManual mode!!!')
+        # manual mode
+        data_['loadable'] = data['loadableStudy']
+        data_['loadablePlanPortWiseDetails'] = data['loadablePlanPortWiseDetails']
+        data_['caseNumber'] = data.get('caseNumber', None)
+        data_['loadable']['loadablePatternId'] = data.get('loadablePatternId',111111)
+    else:
+        print('auto mode!!!')
+        data_['loadable'] = data
+        
+    
+    data_['vessel'] = None
+    data_['processId'] = gID
+    
+    return data_
+    
 
 @app.post("/new_loadable", status_code=HTTPStatus.ACCEPTED)
 async def task_handler(data: dict, background_tasks: BackgroundTasks):
@@ -159,21 +180,7 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
         )
     await database.execute(query)
     
-    data_ = {}
-    
-    if data.get('loadableStudy', []):
-        # manual/fullManual mode
-        # manual mode
-        data_['loadable'] = data['loadableStudy']
-        data_['loadablePlanPortWiseDetails'] = data['loadablePlanPortWiseDetails']
-        data_['caseNumber'] = data.get('caseNumber', None)
-        data_['loadable']['loadablePatternId'] = data.get('loadablePatternId',111111)
-        
-    else:
-        data_['loadable'] = data
-    
-    data_['vessel'] = None
-    data_['processId'] = gID
+    data_ =  get_data(data, gID)
     # data_['ballastEdited'] = True
     
     # print('>>>> get vessel API')
@@ -216,7 +223,10 @@ async def loadicator_handler(data: dict):
     limits = result['message']
     out = loadicator(data, limits)
     # # print('>>>Send loadicator results')
-    logger.info(data["processId"] + ": Upload loadicator result")
+    # logger.info(data["processId"] + ": Upload loadicator result")
+    
+    if out.get('feedbackLoop', True):
+        print('feedbackloop started!!')
     # loadicator_url_ = config['url']['loadicator-result'].format(vesselId=limits['limits']['vesselId'],
     #                                                             voyageId=limits['limits']['voyageId'],
     #                                                             loadableStudyId=limits['limits']['id'])
@@ -229,7 +239,7 @@ async def ullage_handler(data: dict):
            
     tankId = data['tankId']
     cf = get_correction(str(tankId), float(data["rdgUllage"]), float(data["trim"]), ullageCorr)
-    if cf not in [None]:
+    if type(cf) not in [dict]:
         corr_ullage =  float(data["rdgUllage"]) + cf/100 
         vol = ullageInv[str(tankId)](corr_ullage) 
         density = data.get('sg', None)
@@ -240,10 +250,11 @@ async def ullage_handler(data: dict):
         wt = density*vol 
         
         tank_ = vessel_details['tankId'][int(tankId)]
+        print(tank_)
         if tank_ in vessel_details['cargoTanks'].keys():
             capacity_ = vessel_details['cargoTanks'][tank_]['capacityCubm']
         elif tank_ in vessel_details['ballastTanks'].keys():
-            capacity_ = vessel_details['ballastTanks'][tank_]['capacityCubm']
+            capacity_ = vessel_details['ballastTanks'][tank_]['capacityCubm']        
         
         fr = vol/capacity_*100
         
@@ -251,9 +262,11 @@ async def ullage_handler(data: dict):
                 "obsM3": str(np.round(vol,2)), "quantityMt": str(round(wt,1)), "fillingRatio":str(round(fr,2)) }
         
     else:
-        return {"id":data["id"], "correctionFactor": None, "correctedUllage": None, "obsM3": None, 
-                "quantityMt": None, 'fillingRatio':None}
+        
+        return {**{"id":data["id"], "correctionFactor": None, "correctedUllage": None, "obsM3": None, 
+            "quantityMt": None, 'fillingRatio':None}, **cf}
     
+     
     
 
 @app.get("/users/{userId}", response_model=DbList)
