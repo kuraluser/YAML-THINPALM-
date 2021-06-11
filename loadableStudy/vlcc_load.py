@@ -84,10 +84,13 @@ class Loadable:
         for o__, o_ in enumerate(inputs.loadable_json['cargoOperation']):
             cargos_info_['cargoPort'][str(o_['portId'])].append('P'+str(o_['cargoNominationId']))
             if len(cargos_info_['cargoPort'][str(o_['portId'])]) > 1:
-                if inputs.cargo_rotation:
-                    cargos_info_['cargoRotation'][str(o_['portId'])] = inputs.cargo_rotation
-                else:
+                if not inputs.cargo_rotation:
+                #     cargos_info_['cargoRotation'][str(o_['portId'])] = inputs.cargo_rotation
+                # else:
                     cargos_info_['cargoRotation'][str(o_['portId'])] = cargos_info_['cargoPort'][str(o_['portId'])]
+                    
+        if inputs.cargo_rotation:
+            cargos_info_['cargoRotation'] = inputs.cargo_rotation
                 
         len_virtual_ports_ = len(inputs.port.info['portOrder'])*2 # without cargo rotation
         
@@ -96,46 +99,60 @@ class Loadable:
         arr_dep_virtual_port_ = {}
         max_virtual_port_ = 0
         virtual_arr_dep_ = {}
-        rotation_virtual_, rotation_cargo_ = [], []
+        rotation_virtual_, rotation_cargo_, rotation_portOrder_ = [], [], []
         
         print('cargo rotation:', cargos_info_['cargoRotation'])
         
-        if len(cargos_info_['cargoRotation']) == 1:
+        if len(cargos_info_['cargoRotation']) >= 1:
             print('cargo rotation required')
-            rotation_portId_ = [*cargos_info_['cargoRotation']][0]
-            rotation_portOrder_ = inputs.port.info['idPortOrder'][rotation_portId_]
-            rotation_cargo_ = cargos_info_['cargoRotation'][rotation_portId_]
-            rotation_len_ = len(rotation_cargo_)
-            
-            # store current rotation
-            cargos_info_['rotationCheck'].append(list(cargos_info_['cargoRotation'].values())[0])
-            len_virtual_ports_ += rotation_len_-1
-            
-            k__ = 0
+            rotation_portId_ = []
             for k_ in range(1,inputs.port.info['numPort']+1):
-                if str(k_) == rotation_portOrder_:
-                    arr_dep_virtual_port_[str(k_)+'A'] = str(2*int(k_)-1-1)
-                    virtual_arr_dep_[str(2*int(k_)-1-1)] = str(k_)+'A'
+                portId_ = inputs.port.info['portOrderId'][str(k_)]
+                if portId_ in cargos_info_['cargoRotation']:
+                    rotation_portId_.append(portId_)
+                    
+            for r__, r_ in enumerate(rotation_portId_):
+                rotation_portOrder_.append(inputs.port.info['idPortOrder'][r_])
+                rotation_cargo_.append(cargos_info_['cargoRotation'][r_])
+                rotation_len_ = len(rotation_cargo_)
+            
+                # store current rotation
+                cargos_info_['rotationCheck'].append(rotation_cargo_[r__])
+                len_virtual_ports_ += rotation_len_-1
+            
+            k__, i__, v_ = 0, 0, 0
+            for k_ in range(1,inputs.port.info['numPort']+1):
+                if str(k_) in  rotation_portOrder_:
+                    
+                    arr_dep_virtual_port_[str(k_)+'A'] = str(v_)
+                    virtual_arr_dep_[str(v_)] = str(k_)+'A'
                     virtual_port_[str(k_)] = {}
-                    for c__, c_ in enumerate(rotation_cargo_):
-                        v_ = 2*int(k_)-1 + c__
+                    rotation_virtual__ = []
+                    for c__, c_ in enumerate(rotation_cargo_[i__]):
+                        v_ += 1
                         virtual_port_[str(k_)][c_] = str(v_)
-                        rotation_virtual_.append(v_)
+                        rotation_virtual__.append(v_)
                     k__ = c__
+                    i__ += 1
                     
+                    rotation_virtual_.append(rotation_virtual__)
                     arr_dep_virtual_port_[str(k_)+'D'] = str(v_)
                     virtual_arr_dep_[str(v_)] = str(k_)+'D'
                     max_virtual_port_ = v_ if v_ > max_virtual_port_ else max_virtual_port_
+                    
                 else:
-                    v_ = 2*int(k_)-1 + k__
-                    virtual_port_[str(k_)] = str(v_)
-                    arr_dep_virtual_port_[str(k_)+'A'] = str(v_-1)
-                    arr_dep_virtual_port_[str(k_)+'D'] = str(v_)
+                    # v_ = 2*int(k_)-1 + k__
+                    virtual_port_[str(k_)] = str(v_+1)
+                    arr_dep_virtual_port_[str(k_)+'A'] = str(v_)
+                    arr_dep_virtual_port_[str(k_)+'D'] = str(v_+1)
                     
-                    virtual_arr_dep_[str(v_-1)] = str(k_)+'A'
-                    virtual_arr_dep_[str(v_)] = str(k_)+'D'
+                    virtual_arr_dep_[str(v_)] = str(k_)+'A'
+                    virtual_arr_dep_[str(v_+1)] = str(k_)+'D'
                     
+                    v_ += 1
                     max_virtual_port_ = v_ if v_ > max_virtual_port_ else max_virtual_port_
+                    
+                v_ += 1
                     
         else:
             print('cargo rotation not required or ignored')
@@ -247,9 +264,9 @@ class Loadable:
             qty_min_ = qty__ *(1 + 0.01*self.info['parcel'][parcel_]['minMaxTol'][0])
             
             
-            cargos_info_['toLoad']['P'+str(o_['cargoNominationId'])] += qty_
-            cargos_info_['toLoadIntend']['P'+str(o_['cargoNominationId'])] += qty__
-            cargos_info_['toLoadMin']['P'+str(o_['cargoNominationId'])] += qty_min_
+            cargos_info_['toLoad']['P'+str(o_['cargoNominationId'])] += qty_        # max
+            cargos_info_['toLoadIntend']['P'+str(o_['cargoNominationId'])] += qty__ # original
+            cargos_info_['toLoadMin']['P'+str(o_['cargoNominationId'])] += qty_min_ # min
             
             if type(virtual_port_[str(order_)]) == dict:
                 virtual_order_ = virtual_port_[str(order_)][parcel_]
@@ -609,10 +626,7 @@ class Loadable:
             if wt_ > 0. and vol1_ > 0.:
                 onBoard[tank_] = wt_
                 
-                
-        
-        
-    
+                 
         loading_plan_, ballast_plan_ = {},{}
         
         plan_ = []
@@ -623,10 +637,11 @@ class Loadable:
         tank_cargo_ = {}
         for p__, p_ in enumerate(plan_):
             port_ = str(p__+1)
+            print(port_)
             # arrival and departure 
             arr_port_ = port_ + 'A'
             dep_port_ = port_ + 'D'
-            
+            # print(arr_port_,dep_port_)
             loading_plan_[dep_port_] = []
             ballast_plan_[arr_port_] = []
             ballast_plan_[dep_port_] = []
@@ -634,9 +649,9 @@ class Loadable:
             # only ballast
             arr_ballast_ = p_['arrivalCondition']['loadablePlanBallastDetails']
             # both ballast and cargo
-            dep_ballast = p_['departureCondition']['loadablePlanBallastDetails']
-            dep_cargo_  = p_['departureCondition']['loadablePlanStowageDetails']
-            dep_commingle_ =  p_['departureCondition'].get('loadableQuantityCommingleCargoDetails',[])
+            dep_ballast = p_['departureCondition']['loadablePlanBallastDetails'] if p__+1 <= inputs.port.info['lastLoadingPort'] else []
+            dep_cargo_  = p_['departureCondition']['loadablePlanStowageDetails'] if p__+1 <= inputs.port.info['lastLoadingPort'] else []
+            dep_commingle_ =  p_['departureCondition'].get('loadablePlanCommingleDetails',[]) if p__+1 <= inputs.port.info['lastLoadingPort'] else []
             
             
             for l__, l_ in enumerate(arr_ballast_):
@@ -662,29 +677,41 @@ class Loadable:
                     tank_cargo_[tankId_] = []
                 
                 for c_ in range(2):
-                    parcel_ = 'P'+str(l_['cargoNomination'+ str(c_+1)+'Id'])
+                    # parcel_ = 'P'+str(l_['cargoNomination'+ str(c_+1)+'Id'])
+                    parcel_ = 'P'+str(l_['cargo'+ str(c_+1)+'NominationIdId'])
                     info_ = {}
                     info_['parcel'] = parcel_
-                    info_['wt'] = float(l_['cargo'+str(c_+1)+'MT'])
+                    info_['wt'] = float(l_['cargo'+str(c_+1)+'QuantityMT'])
                     info_['tankId'] = tankId_
                     info_['port'] = dep_port_
+                    onboard_ = onBoard.get(tankId_,0.)
                     
                     if len(tank_cargo_[tankId_]) == 0:
                         tank_cargo_[tankId_].append(info_)
                         loading_plan_[dep_port_].append(info_)
                         
+                    elif len([tc_ for tc_ in tank_cargo_[tankId_] if tc_['parcel'] == parcel_]) == 0:
+                        tank_cargo_[tankId_].append(info_)
+                        loading_plan_[dep_port_].append(info_)
+                        
                     else:
-                        # print('repeat cargo_tank')
-                        total_wt_ = sum([0.]+[i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == info_['parcel']])
-                        add_wt_ = info_['wt'] -  total_wt_
+                        total_wt_ = sum([0.]+[i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == parcel_])
+                        add_wt_ = info_['wt'] -  total_wt_ - onboard_
                         if add_wt_ > 0:
+                            print('add wt', tankId_)
                             info_['wt'] = round(add_wt_,3)
                             tank_cargo_[tankId_].append(info_)
                             loading_plan_[dep_port_].append(info_)
-                        
+                            
                         elif add_wt_ < 0:
-                            last_port_ = max(cargos_info['cargoLastLoad'][parcel_])
-                            pre_wt_ = [ i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == parcel_ and i_['port'] == last_port_ +'D']
+                            print('reduce wt', tankId_)
+                            if int(p__+1) > int(max(cargos_info['cargoLastLoad'][parcel_])) :
+                                last_port_ = max(cargos_info['cargoLastLoad'][parcel_])
+                            else:
+                                cargos_info['cargoLastLoad'][parcel_].sort()
+                                last_port_ = cargos_info['cargoLastLoad'][parcel_][-2]
+                                
+                            pre_wt_ = [i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == parcel_ and i_['port'] == last_port_ +'D']
                             new_load_ = pre_wt_[0] + add_wt_
                             if new_load_ > 0:
                                 info1_ = {'parcel':parcel_, 'wt':pre_wt_[0], 'tankId':tankId_, 'port':last_port_ +'D'}
@@ -696,6 +723,7 @@ class Loadable:
                                 tank_cargo_[tankId_].append(info1_)
                             else:
                                 inputs.error.append('Error in adjusting manual allocation!!')
+                            
                     
                             
             
@@ -726,16 +754,24 @@ class Loadable:
                         
                     else:
                         # print('repeat cargo_tank')
+                        # without onboard
                         total_wt_ = sum([0.]+[i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == parcel_])
                         add_wt_ = info_['wt'] -  total_wt_ - onboard_
                         if add_wt_ > 0:
+                            # print('add wt', tankId_)
                             info_['wt'] = round(add_wt_,3)
                             tank_cargo_[tankId_].append(info_)
                             loading_plan_[dep_port_].append(info_)
                             
                         elif add_wt_ < 0:
-                            last_port_ = max(cargos_info['cargoLastLoad'][parcel_])
-                            pre_wt_ = [ i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == parcel_ and i_['port'] == last_port_ +'D']
+                            # print('reduce wt', tankId_)
+                            if int(p__+1) > int(max(cargos_info['cargoLastLoad'][parcel_])) :
+                                last_port_ = max(cargos_info['cargoLastLoad'][parcel_])
+                            else:
+                                cargos_info['cargoLastLoad'][parcel_].sort()
+                                last_port_ = cargos_info['cargoLastLoad'][parcel_][-2]
+                                
+                            pre_wt_ = [i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == parcel_ and i_['port'] == last_port_ +'D']
                             new_load_ = pre_wt_[0] + add_wt_
                             if new_load_ > 0:
                                 info1_ = {'parcel':parcel_, 'wt':pre_wt_[0], 'tankId':tankId_, 'port':last_port_ +'D'}
@@ -749,17 +785,8 @@ class Loadable:
                                 inputs.error.append('Error in adjusting manual allocation!!')
                             
                     
-                        
-                
-                
-                    
                 # if l_ not in tank_cargo_[]
              
-            
-            
-            
-            
-            
         inputs.loadable_json['loadingPlan'] = loading_plan_
         inputs.loadable_json['ballastPlan'] = ballast_plan_
     

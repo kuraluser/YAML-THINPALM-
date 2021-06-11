@@ -8,7 +8,7 @@ Created on Fri Nov 27 12:05:21 2020
 class Port:
     def __init__(self, inputs):
         
-        last_loading_port_ = max([p_['portOrder'] for p_ in inputs.port_json['portRotation'] if p_["operationId"] == 1])
+        last_loading_port_ = max([p_['portOrder'] for p_ in inputs.port_json['portRotation'] if p_["operationId"] in [1,3]])
         
         
         ports_info_ = {}

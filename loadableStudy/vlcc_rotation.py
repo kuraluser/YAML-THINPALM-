@@ -19,9 +19,10 @@ class Check_rotations:
         self.input = inputs # original input
         self.json = data # original loadable
         self.rotation_input = deepcopy(inputs)
+        # self.permute_list = permute_list
         
         
-    def _check_plans(self, plans):
+    def _check_plans(self, plans, permute_list, permute_list1):
         
         self.constraints = {str(p__):[] for p__,p_ in enumerate(plans['ship_status'])}
         # time.sleep(10) 
@@ -29,15 +30,19 @@ class Check_rotations:
         for s__, s_ in enumerate(plans.get('operation',[])):
             print('main plan:', s__, plans['rotation'][s__])
             ballast_plan_ = {k1_:v1_['ballast']  for k1_,v1_ in plans['ship_status'][s__].items()}
-            if self.input.loadable.info['rotationCheck']:
+            if self.input.loadable.info['rotationCheck'] and permute_list:
                 
-                for r__, r_ in enumerate(permutations(plans['rotation'][s__])):
-                    if plans['rotation'][s__] != list(r_):
-                        print('check rotation ...',list(r_)) 
-                        self._check_rotations(list(r_), s_, ballast_plan_, s__, r__, plans['rotation'][s__])
+                cur_list_ = [permute_list1[r__] for r__, r_ in enumerate(permute_list) if plans['rotation'][s__] == r_][0]
+                
+                for r__, r_ in enumerate(permute_list):
+                    
+                    if plans['rotation'][s__] != r_:
+                        print('check rotation ...', r_) 
+                        new_list_ = permute_list1[r__]
+                        self._check_rotations(new_list_, s_, ballast_plan_, s__, r__, cur_list_, r_)
                     else:
                         str1 = ''
-                        for l__,l_ in enumerate(plans['rotation'][s__]):
+                        for l__,l_ in enumerate(permute_list1[r__]):
                             str1 += self.input.loadable.info['parcel'][l_]['abbreviation'] + ' -> '
                         
                         self.constraints[str(s__)].append(str1[:-3] + 'is fine!!')
@@ -49,19 +54,33 @@ class Check_rotations:
                     
             
         
-    def _check_rotations(self, new_rotation, loading_plan, ballast_plan, plan_id, rotation_id, cur_rotation):
+    def _check_rotations(self, new_rotation, loading_plan, ballast_plan, plan_id, rotation_id, cur_rotation, new_rotation1):
         
         dat_file = 'input_rotate'+str(plan_id+rotation_id)+'.dat'
         loading_plan_ = dict(loading_plan)
-        start_ = self.input.loadable.info['rotationVirtual'][0]
-        for a_, (b_,c_) in enumerate(zip(self.input.loadable.info['rotationVirtual'], new_rotation)):
-            print(a_,b_,c_)
-            virtual_ = cur_rotation.index(c_) + start_
-            # loading_plan_[str(new_virtual_)] = loading_plan[str(b_)]
-            loading_plan_[str(b_)] = loading_plan[str(virtual_)]
+        
+        if len(self.input.loadable.info['rotationVirtual']) == 1:
+            port_ = self.input.loadable.info['rotationVirtual'][0]
             
             
-        empty_ballast_port_ = self.input.loadable.info['rotationVirtual'][:-1]
+        elif len(self.input.loadable.info['rotationVirtual']) == 2:
+            port_ = self.input.loadable.info['rotationVirtual'][0] + self.input.loadable.info['rotationVirtual'][1]
+        
+        new_port_ = {}
+        for p__, p_ in enumerate(port_):
+            new_port_[str(p_)] =  str(port_[cur_rotation.index(new_rotation[p__])])
+            
+        for k_, v_ in new_port_.items():
+            loading_plan_[k_] = loading_plan[v_]
+        
+        print(cur_rotation)
+        print(new_rotation)
+        print(new_port_)
+            
+        empty_ballast_port_ = []
+        for  p_ in self.input.loadable.info['rotationVirtual']:
+            empty_ballast_port_ += p_[:-1]
+            
         ballast_plan_ = {k_:v_ for k_, v_ in ballast_plan.items() if int(k_) not in  empty_ballast_port_}
         
         # loadable_json = deepcopy(self.json['loadable'])
@@ -79,7 +98,7 @@ class Check_rotations:
         new_input = self.rotation_input
         # new_input.port = Port(new_input)
         # new_input.loadable = Loadable(self) # basic info
-        new_input.cargo_rotation = new_rotation
+        new_input.cargo_rotation = new_rotation1
         
         new_input.loadable_json['loadingPlan'] = loading_plan_
         new_input.loadable_json['ballastPlan'] = ballast_plan_
@@ -88,32 +107,74 @@ class Check_rotations:
         # new_input.vessel._get_onhand(self) # ROB
         # new_input.vessel._get_onboard(self) # Arrival condition
         new_input.get_stability_param()
-        new_input.write_dat_file(file = dat_file)
+        new_input.write_dat_file(file = dat_file, IIS = False)
         
         new_output = Generate_plan(new_input)
+        new_output.IIS = False
         new_output.run(dat_file=dat_file,num_plans=1)
         
+        
+        rotationCargo = []
+        for r_ in new_input.loadable.info['rotationCargo']:
+            rotationCargo += list(r_)
+            
+        
         str1 = ''
-        for l__,l_ in enumerate(new_input.loadable.info['rotationCargo']):
+        for l__,l_ in enumerate(rotationCargo):
             str1 += self.input.loadable.info['parcel'][l_]['abbreviation'] + ' -> '
         
         # new_output.plan['ship_status'] = []
-        if new_output.plan['ship_status']:
-            self.constraints[str(plan_id)].append(str1[:-3] + 'is fine!!')
+        if new_output.plans['ship_status']:
+            plan_check = Check_plans(new_input)
+            plan_check._check_plans(new_output.plans.get('ship_status',[]), new_output.plans.get('cargo_tank',[]))
+            
+            error_ = []
+            for k_, v_ in plan_check.stability_values[0].items():
+                if float(v_['shearForce']) > 100:
+                    error_.append('Port ' + k_ + ' fails shear force check!!')
+                
+                if float(v_['bendinMoment']) > 100:
+                    error_.append('Port ' + k_ + ' fails bending moment check!!')
+                
+            if not error_:
+                self.constraints[str(plan_id)].append(str1[:-3] + 'is fine!!')
+            else:
+                self.constraints[str(plan_id)].append(str1[:-3] + 'is not possible!!')
+                self.constraints[str(plan_id)] += error_
         else:
+            # input("Press Enter to continue...")
             ## set positive trim < 2
             print('set 0 < trim <= 2')
             # new_input.trim_upper = {str(p_):str(2) for p_ in range(1,new_input.loadable.info['lastVirtualPort']) if str(p_) not in new_input.loadable.info['fixedBallastPort']}
             new_input._set_trim(2, 0)
-            new_input.write_dat_file(file = dat_file)
+            new_input.write_dat_file(file = dat_file, IIS = False)
         
             new_output = Generate_plan(new_input)
+            new_output.IIS = False
             new_output.run(dat_file=dat_file,num_plans=1)
             
             
                         
-            if new_output.plan['ship_status']:
-                self.constraints[str(plan_id)].append(str1[:-3] + 'is fine with 0 < trim <= 2!!')
+            if new_output.plans['ship_status']:
+                plan_check = Check_plans(new_input)
+                plan_check._check_plans(new_output.plans.get('ship_status',[]), new_output.plans.get('cargo_tank',[]))
+                
+                
+                error_ = []
+                for k_, v_ in plan_check.stability_values[0].items():
+                    if float(v_['shearForce']) > 100:
+                        error_.append('Port ' + k_ + ' fail shear force check!!')
+                    
+                    if float(v_['bendinMoment']) > 100:
+                        error_.append('Port ' + k_ + ' fail bending moment check!!')
+                    
+                if not error_:
+                    self.constraints[str(plan_id)].append(str1[:-3] + 'is fine with 0 < trim <= 2!!')
+                else:
+                    self.constraints[str(plan_id)].append(str1[:-3] + 'is not possible!!')
+                    self.constraints[str(plan_id)] += error_
+           
+                # self.constraints[str(plan_id)].append(str1[:-3] + 'is fine with 0 < trim <= 2!!')
             else:
                 self.constraints[str(plan_id)].append(str1[:-3] + 'is not possible!!')
             
@@ -121,10 +182,8 @@ class Check_rotations:
             
         
         ## check and modify plans    
-        print('main plan:', plan_id, new_rotation)
-        plan_check = Check_plans(new_input)
-        plan_check._check_plans(new_output.plan.get('ship_status',[]), new_output.plan.get('cargo_tank',[]))
-       
+        # print('main plan:', plan_id, new_rotation)
+        
         
         # time.sleep(10) 
         # input("Press Enter to continue...")

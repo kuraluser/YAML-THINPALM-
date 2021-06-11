@@ -19,51 +19,94 @@ class Multiple_plans(object):
         self.input = inputs # original input
         self.json = data # original loadable
         self.multiple_input = deepcopy(inputs)
+        self.permute_list, self.permute_list1 = [], []
         # self.out = []
         
         
     def run(self):
         
         self.plans = {'ship_status':[], 'cargo_status':[], 'slop_qty':[], 'cargo_order':[],
-                              'constraint':[], 'obj':[], 'cargo_tank':[],
+                              'constraint':[], 'obj':[], 'cargo_tank':[], 'base_draft':[],
+                              'loading_hrs':[], 'topping':[], 'loading_rate':[],
                               'operation':[], 'rotation':[], 'message':{}}
         
         if not self.input.error:
             
-            if self.input.gen_distinct_plan and len(self.input.loadable.info['rotationCheck']) > 0:
+            if self.input.gen_distinct_plan and len(self.input.loadable.info['cargoRotation']) > 0:
                 
-                list_ = self.input.loadable.info['rotationCheck'][0]
-                permute_list_ = permutations(list_)
+                len_ = len(self.input.loadable.info['cargoRotation'])
+                if len_ == 1:
+                    port_ = list(self.input.loadable.info['cargoRotation'].keys())[0]
+                    list_ = list(self.input.loadable.info['cargoRotation'].values())[0]
+                    
+                    permute_list_, permute_list1_= [], []
+                    for r__, r_ in enumerate(permutations(list_)):
+                        permute_list_.append({port_:r_})
+                        permute_list1_.append(r_)
+                        
+                elif len_ == 2:
+                    port1_ = list(self.input.loadable.info['cargoRotation'].keys())[0]
+                    port2_ = list(self.input.loadable.info['cargoRotation'].keys())[1]
+                    
+                    order1_ = int(self.input.port.info['idPortOrder'][port1_])
+                    order2_ = int(self.input.port.info['idPortOrder'][port2_])
+                    
+                    list1_ = list(self.input.loadable.info['cargoRotation'].values())[0]
+                    list2_ = list(self.input.loadable.info['cargoRotation'].values())[1]
+                    
+                    permute_list_, permute_list1_= [], []
+                    for r1__, r1_ in enumerate(permutations(list1_)):
+                        for r2__, r2_ in enumerate(permutations(list2_)):
+                            permute_list_.append({port1_:r1_, port2_:r2_})
+                            if order1_ < order2_:
+                                permute_list1_.append(r1_+r2_)
+                            else:
+                                permute_list1_.append(r2_+r1_)
+                                
+                        
+                else:
+                    print('Not support for multiple cargos at more than 2 ports!!')
+                    return
+                
+                self.permute_list, self.permute_list1 = permute_list_, permute_list1_
+                
                 for r__, r_ in enumerate(permute_list_):
                     print('possible permutation: ',r__, r_)
                     if r__ <= 5:
-                        if list_ != list(r_):
-                             new_input = self.multiple_input
-                             new_input.cargo_rotation = list(r_)
-                             new_input.loadable._create_operations(new_input) # operation and commingle
-                             new_input.get_stability_param()
-                             new_input.write_dat_file()
-                             gen_output = Generate_plan(new_input)
-                        else:
+                        if r__ == 0:
+                            # first permutation; input already generated
                             gen_output = Generate_plan(self.input)
+                            base_draft_ = self.input.base_draft
+                        else:
+                            new_input = self.multiple_input
+                            new_input.cargo_rotation = r_
+                            new_input.loadable._create_operations(new_input) # operation and commingle
+                            new_input.get_stability_param()
+                            new_input.write_dat_file()
+                            gen_output = Generate_plan(new_input)
+                            base_draft_ = new_input.base_draft
                         
                         gen_output.run()
                         # gen_output.plan = {}
                         
-                        if gen_output.plan.get('obj',[]):
-                            ind_ = gen_output.plan['obj'].index(max(gen_output.plan['obj']))
-                            self.plans['ship_status'].append(gen_output.plan['ship_status'][ind_])
-                            self.plans['cargo_status'].append(gen_output.plan['cargo_status'][ind_])
-                            self.plans['obj'].append(gen_output.plan['obj'][ind_])
-                            self.plans['operation'].append(gen_output.plan['operation'][ind_])
-                            self.plans['rotation'].append(list(r_))
-                            self.plans['cargo_tank'].append(dict(gen_output.plan['cargo_tank'][ind_]))
-                            self.plans['slop_qty'].append(gen_output.plan['slop_qty'][ind_])
-                            self.plans['cargo_order'].append(gen_output.plan['cargo_order'][ind_])
+                        if gen_output.plans.get('obj',[]):
+                            ind_ = gen_output.plans['obj'].index(max(gen_output.plans['obj']))
+                            self.plans['ship_status'].append(gen_output.plans['ship_status'][ind_])
+                            self.plans['cargo_status'].append(gen_output.plans['cargo_status'][ind_])
+                            self.plans['obj'].append(gen_output.plans['obj'][ind_])
+                            self.plans['operation'].append(gen_output.plans['operation'][ind_])
+                            self.plans['rotation'].append(dict(r_))
+                            self.plans['cargo_tank'].append(dict(gen_output.plans['cargo_tank'][ind_]))
+                            self.plans['slop_qty'].append(gen_output.plans['slop_qty'][ind_])
+                            self.plans['cargo_order'].append(gen_output.plans['cargo_order'][ind_])
+                            self.plans['base_draft'].append(base_draft_)
+                            self.plans['topping'].append(gen_output.plans['topping'][ind_])
+                            self.plans['loading_rate'].append(gen_output.plans['loading_rate'][ind_])
+                            self.plans['loading_hrs'].append(gen_output.plans['loading_hrs'][ind_])
                             
                             
                         else:
-                            self.plans['message'] = {**self.plans['message'],**gen_output.plan.get('message',{})}
+                            self.plans['message'] = {**self.plans['message'],**gen_output.plans.get('message',{})}
                 
             elif self.input.gen_distinct_plan and len(self.input.loadable.info['parcel']) > 1:
                 # single cargo at each port
@@ -72,16 +115,19 @@ class Multiple_plans(object):
                 
                 
                 # input("Press Enter to continue...")
-                if gen_output.plan.get('obj',[]):
-                    ind_ = gen_output.plan['obj'].index(max(gen_output.plan['obj']))
-                    self.plans['ship_status'].append(gen_output.plan['ship_status'][ind_])
-                    self.plans['cargo_status'].append(gen_output.plan['cargo_status'][ind_])
-                    self.plans['obj'].append(gen_output.plan['obj'][ind_])
-                    self.plans['operation'].append(gen_output.plan['operation'][ind_])
+                if gen_output.plans.get('obj',[]):
+                    ind_ = gen_output.plans['obj'].index(max(gen_output.plans['obj']))
+                    self.plans['ship_status'].append(gen_output.plans['ship_status'][ind_])
+                    self.plans['cargo_status'].append(gen_output.plans['cargo_status'][ind_])
+                    self.plans['obj'].append(gen_output.plans['obj'][ind_])
+                    self.plans['operation'].append(gen_output.plans['operation'][ind_])
                     self.plans['rotation'].append([])
-                    self.plans['cargo_tank'].append(dict(gen_output.plan['cargo_tank'][ind_]))
-                    self.plans['slop_qty'].append(gen_output.plan['slop_qty'][ind_])
-                    self.plans['cargo_order'].append(gen_output.plan['cargo_order'][ind_])
+                    self.plans['cargo_tank'].append(dict(gen_output.plans['cargo_tank'][ind_]))
+                    self.plans['slop_qty'].append(gen_output.plans['slop_qty'][ind_])
+                    self.plans['cargo_order'].append(gen_output.plans['cargo_order'][ind_])
+                    self.plans['topping'].append(gen_output.plans['topping'][ind_])
+                    self.plans['loading_rate'].append(gen_output.plans['loading_rate'][ind_])
+                    self.plans['loading_hrs'].append(gen_output.plans['loading_hrs'][ind_])
                             
                     
                     max_cargo_ = gen_output.max_tank_parcel
@@ -112,32 +158,35 @@ class Multiple_plans(object):
                             
                             # input("Press Enter to continue...")
                             
-                            if gen_output.plan.get('obj',[]):
-                                ind_ = gen_output.plan['obj'].index(max(gen_output.plan['obj']))
-                                self.plans['ship_status'].append(gen_output.plan['ship_status'][ind_])
-                                self.plans['cargo_status'].append(gen_output.plan['cargo_status'][ind_])
-                                self.plans['obj'].append(gen_output.plan['obj'][ind_])
-                                self.plans['operation'].append(gen_output.plan['operation'][ind_])
+                            if gen_output.plans.get('obj',[]):
+                                ind_ = gen_output.plans['obj'].index(max(gen_output.plans['obj']))
+                                self.plans['ship_status'].append(gen_output.plans['ship_status'][ind_])
+                                self.plans['cargo_status'].append(gen_output.plans['cargo_status'][ind_])
+                                self.plans['obj'].append(gen_output.plans['obj'][ind_])
+                                self.plans['operation'].append(gen_output.plans['operation'][ind_])
                                 self.plans['rotation'].append([])
-                                self.plans['cargo_tank'].append(dict(gen_output.plan['cargo_tank'][ind_]))
-                                self.plans['slop_qty'].append(gen_output.plan['slop_qty'][ind_])
-                                self.plans['cargo_order'].append(gen_output.plan['cargo_order'][ind_])
+                                self.plans['cargo_tank'].append(dict(gen_output.plans['cargo_tank'][ind_]))
+                                self.plans['slop_qty'].append(gen_output.plans['slop_qty'][ind_])
+                                self.plans['cargo_order'].append(gen_output.plans['cargo_order'][ind_])
+                                self.plans['topping'].append(gen_output.plans['topping'][ind_])
+                                self.plans['loading_rate'].append(gen_output.plans['loading_rate'][ind_])
+                                self.plans['loading_hrs'].append(gen_output.plans['loading_hrs'][ind_])
                             
                     
                 else:
-                    self.plans['message'] = {**self.plans['message'], **gen_output.plan['message']}
+                    self.plans['message'] = {**self.plans['message'], **gen_output.plans['message']}
                     
             else:
                 
                 gen_output = Generate_plan(self.input)
                 gen_output.run()
                 
-                if gen_output.plan.get('obj',[]):
-                    self.plans = gen_output.plan
-                    self.plans['rotation'] = [[] for p_ in range(len(gen_output.plan['ship_status']))]
+                if gen_output.plans.get('obj',[]):
+                    self.plans = gen_output.plans
+                    self.plans['rotation'] = [[] for p_ in range(len(gen_output.plans['ship_status']))]
                 
                 else:
-                    self.plans['message'] = {**self.plans['message'], **gen_output.plan['message']}
+                    self.plans['message'] = {**self.plans['message'], **gen_output.plans['message']}
                         
                 
                 
@@ -154,286 +203,16 @@ class Multiple_plans(object):
                 self.plans['cargo_tank'] = [self.plans['cargo_tank'][i_] for i_ in sort_]
                 self.plans['slop_qty'] = [self.plans['slop_qty'][i_] for i_ in sort_]
                 self.plans['cargo_order'] = [self.plans['cargo_order'][i_] for i_ in sort_]
+                self.plans['topping'] = [self.plans['topping'][i_] for i_ in sort_]
+                self.plans['loading_rate'] = [self.plans['loading_rate'][i_] for i_ in sort_]
+                self.plans['loading_hrs'] = [self.plans['loading_hrs'][i_] for i_ in sort_]
                 
                 
             
     def gen_json(self, constraints, stability_values):
-        data = {}
-        data['message'] = None
-        data['processId'] = self.input.process_id
-        data['user'] = self.input.user
-        data['role'] = self.input.role
-        data['hasLoadicator'] = self.input.has_loadicator
+        gen_output = Generate_plan(self.input)
+        gen_output.plans = self.plans
         
-        data['errors'] = []
+        out =  gen_output.gen_json(constraints, stability_values)
         
-        if len(self.plans['ship_status']) == 0:
-            data['loadablePlanDetails'] = [] #self.plan['message']
-            data['message'] = {**self.input.error, **self.plans['message']}
-            data['errors'] = self._format_errors(data['message'])
-                        
-            return data
-        
-        
-        
-        # data['loadableStudyId'] = str(self.input.loadable_id)
-        # data['vesselId'] = str(self.input.vessel_id)
-        # data['voyageId'] = str(self.input.voyage_id)
-        
-        # all loading port
-        path_ = [self.input.port.info['portOrder'][str(i_+1)]  for i_ in range(self.input.port.info['numPort'])]
-        
-        data['loadablePlanDetails'] = []
-        for s_ in range(len(self.plans['ship_status'])):
-            plan = {}
-            plan['caseNumber'] = int(s_+1)
-            plan['loadablePlanPortWiseDetails'] = []
-            plan['constraints'] = constraints[str(s_)]
-            # plan['stabilityParameters'] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(self.input.port.info['lastLoadingPort'])+'D']]
-            plan['slopQuantity'] = str(self.plans['slop_qty'][s_])
-            
-            for p__,p_ in enumerate(path_):
-                plan_ = {}
-                plan_['portId'] = int(self.input.port.info['portRotation'][p_]['portId'])
-                plan_['portCode'] = p_
-                plan_['portRotationId'] = int(self.input.port.info['portRotation'][p_]['portRotationId'])
-                plan_['seaWaterTemperature'] = str(self.input.port.info['portRotation'][p_]['seaWaterTemperature'])
-                plan_['ambientTemperature'] = str(self.input.port.info['portRotation'][p_]['ambientTemperature'])
-               
-                
-                # arrival
-                plan_['arrivalCondition'] = {"loadableQuantityCargoDetails":[],
-                                              "loadableQuantityCommingleCargoDetails":[],
-                                              "loadablePlanStowageDetails":[],
-                                              "loadablePlanBallastDetails":[],
-                                              "loadablePlanRoBDetails":[]}
-                
-                if p_ not in [path_[0]]:
-                    # print(s_,p_, 'Get arrival info')
-                    plan_['arrivalCondition']["loadableQuantityCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'total')
-                    # get loadablePlanStowageDetails
-                    plan_['arrivalCondition']["loadablePlanStowageDetails"] = self._get_status(s_, str(p__+1)+'A', 'cargoStatus')
-                    # get loadablePlanBallastDetails
-                    plan_['arrivalCondition']["loadablePlanBallastDetails"] = self._get_status(s_, str(p__+1)+'A', 'ballastStatus')
-                    # get loadablePlanRoBDetails
-                    plan_['arrivalCondition']["loadablePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'A', 'robStatus')
-                    # get loadableQuantityCommingleCargoDetails
-                    plan_['arrivalCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'commingleStatus')
-                    plan_['arrivalCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'A']]
-                
-                # departure
-                plan_['departureCondition'] = {"loadableQuantityCargoDetails":[],
-                                              "loadableQuantityCommingleCargoDetails":[],
-                                              "loadablePlanStowageDetails":[],
-                                              "loadablePlanBallastDetails":[],
-                                              "loadablePlanRoBDetails":[]}
-                
-                if p_ not in [path_[-1]]:
-                    # print(s_,p_,'Get departure info')
-                    # get loadableQuantityCargoDetails
-                    plan_['departureCondition']["loadableQuantityCargoDetails"] = self._get_status(s_, str(p__+1)+'D', 'total')
-                    # get loadablePlanStowageDetails
-                    plan_['departureCondition']["loadablePlanStowageDetails"] = self._get_status(s_, str(p__+1)+'D', 'cargoStatus')
-                    # get loadablePlanBallastDetails
-                    plan_['departureCondition']["loadablePlanBallastDetails"] = self._get_status(s_, str(p__+1)+'D', 'ballastStatus')
-                    # get loadablePlanRoBDetails
-                    plan_['departureCondition']["loadablePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'D', 'robStatus')
-                    # get loadableQuantityCommingleCargoDetails
-                    plan_['departureCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'D', 'commingleStatus')
-                    plan_['departureCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'D']]
-
-                
-                plan['loadablePlanPortWiseDetails'].append(plan_)
-                
-            data['loadablePlanDetails'].append(plan)
-        data['message'] = {'limits':self.input.limits}
-                
-      
-        return data
-    
-    
-    def _get_status(self,sol,port,category):
-        plan = []
-        virtual_ = self.input.loadable.info['arrDepVirtualPort'][port]
-        
-        if category == 'total':
-            
-            for k_, v_ in self.plans['cargo_status'][sol][virtual_].items():
-                if v_ > 0.:
-                    info_ = {}
-                    info_["cargoId"] = int(self.input.loadable.info['parcel'][k_]['cargoId'])
-                    info_["cargoNominationId"] = int(k_[1:])
-                    info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
-                    info_['estimatedAPI'] = str(self.input.loadable.info['parcel'][k_]['api'])
-                    info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])
-                    info_['loadableMT'] = str(v_)
-                    info_['priority'] = int(self.input.loadable.info['parcel'][k_]['priority'])
-                    info_['colorCode'] = self.input.loadable.info['parcel'][k_]['color']
-                    intend_ = self.input.loadable.info['toLoadIntend'][k_]
-                    info_['orderedQuantity'] = str(round(intend_,DEC_PLACE))
-                    info_['differencePercentage'] = str(round((v_-intend_)/intend_*100,2))
-                    info_['loadingOrder'] = int(self.plans['cargo_order'][sol][k_])
-                    info_["maxTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][1])
-                    info_["minTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][0])
-                    info_['slopQuantity'] = str(self.plans['slop_qty'][sol].get(k_,0.))
-          
-          
-                    plan.append(info_)
-            
-        elif category == 'cargoStatus':
-                        
-            for k_,v_ in self.plans['ship_status'][sol][virtual_]['cargo'].items():
-                # print(k_,v_)
-                if type(v_[0]['parcel']) == str and v_[0]['parcel'] in self.input.loadable.info['parcel'].keys():
-                    info_ = {}
-                    info_['tank'] = k_
-                    info_['quantityMT'] = str(abs(v_[0]['wt']))
-                    
-                    info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['abbreviation']
-                    info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
-                    info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
-                    info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
-                    
-                    
-                    info_['temperature'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['temperature'])
-                    info_['colorCode'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['color']
-                    info_['api'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['api'])
-                    
-                    info_['cargoNominationId'] = int(v_[0]['parcel'][1:])
-                    info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
-                    
-                    # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
-                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
-                    info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
-                    info_['rdgUllage'] = str(v_[0]['rdgUllage'])
-                    info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
-                    
-                   
-                    plan.append(info_)
-                    
-                elif type(v_[0]['parcel']) == str:
-                	# only onboard 
-                    info_ = {}
-                    info_['tank'] = k_
-                    info_['quantityMT'] = str(abs(v_[0]['wt']))
-                    info_['cargoAbbreviation'] = None
-                    info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
-                    
-                    
-                    info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
-                    info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
-                    info_['temperature'] = None
-                    info_['colorCode'] = self.input.vessel.info['cargoTanks'][k_]['colorCode']
-                    info_['api'] = self.input.vessel.info['cargoTanks'][k_]['api']
-                    
-                    # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
-                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
-                    info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
-                    info_['rdgUllage'] = str(v_[0]['rdgUllage'])
-                    
-                    info_['cargoNominationId'] = ''
-                    info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
-                    info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
-                    
-                    
-                    plan.append(info_)
-                    
-                    
-                    
-        elif category == 'commingleStatus':
-            
-            for k_,v_ in self.plans['ship_status'][sol][virtual_]['cargo'].items():
-                if type(v_[0]['parcel']) == list:
-                    info_ = {}
-                    
-                    info_['tank'] = k_
-                    info_['quantity'] = str(abs(v_[0]['wt']))
-                    info_['cargo1Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][0]]['abbreviation']
-                    info_['cargo2Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][1]]['abbreviation']
-                    info_['priority'] = int(self.input.loadable.info['commingleCargo']['priority'])
-                    
-                    info_['cargoNomination1Id'] = int(v_[0]['parcel'][0][1:])
-                    info_['cargoNomination2Id'] = int(v_[0]['parcel'][1][1:])
-                     
-                    
-                    
-                    # info_['priority'] = str(self.input.loadable.info['commingleCargo']['priority'])
-                    info_['cargo1Percentage'] = str(round(v_[0]['wt1percent']*100,2))
-                    info_['cargo2Percentage'] = str(round(v_[0]['wt2percent']*100,2))
-                    info_['cargo1MT'] = str(v_[0]['wt1'])
-                    info_['cargo2MT'] = str(v_[0]['wt2'])
-                    
-                    info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
-                    info_['temp'] = str(v_[0]['temperature'])
-                    
-                    info_['api'] =  str(round(v_[0]['api'],2))
-                    info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
-                    info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
-                    # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
-                   
-                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
-                    info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
-                    info_['rdgUllage'] = str(v_[0]['rdgUllage'])
-                   
-                    info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
-                    info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else str(0.00)
-                    
-                    info_['colorCode'] = self.input.loadable.info['commingleCargo']['colorCode']
-                    info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
-                    
-                    plan.append(info_)
-                
-        elif category == 'ballastStatus':
-            
-            for k_,v_ in self.plans['ship_status'][sol][virtual_]['ballast'].items():
-                info_ = {}
-                info_['tank'] = k_
-                info_['quantityMT'] = str(round(abs(v_[0]['wt']),2))
-                info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
-                info_['sg'] = str(v_[0]['SG'])
-                
-                info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
-                info_['tankName'] = self.input.vessel.info['ballastTanks'][k_]['name']
-                # vol_ = np.floor(abs(v_[0]['wt'])/v_[0]['SG']) # + self.input.vessel.info['onboard'].get(k_,{}).get('vol',0.)
-                
-                # try:
-                #     ul_= self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist()
-                # except:
-                #     print(k_, vol_)
-                #     ul_ = 0.
-                info_['correctedUllage'] = str(round(v_[0]['corrLevel'],6))
-                info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
-                info_['rdgLevel'] = str(v_[0]['rdgLevel'])
-                
-                info_['volume'] = str(round(v_[0]['volume'],2))
-                info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
-                
-                plan.append(info_)
-                
-                
-        elif category == 'robStatus':
-            
-            for k_,v_ in self.plans['ship_status'][sol][virtual_]['other'].items():
-                info_ = {}
-                info_['tank'] = k_
-                info_['quantity'] = str(abs(v_[0]['wt']))
-                info_['sg'] = str(v_[0]['SG'])
-                info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
-             
-                plan.append(info_)
-        
-        return plan
-
-    def _format_errors(self, message):
-        errors = []
-        for k_, v_ in message.items():
-            errors.append({"errorHeading":k_, "errorDetails":v_})
-        
-        return errors
-        
-    
-
-    
-
-                
-        
+        return out

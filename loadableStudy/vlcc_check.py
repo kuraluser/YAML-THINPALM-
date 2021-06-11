@@ -40,13 +40,13 @@ class Check_plans:
                     print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
                     
                     stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
-                                     'meanDraft': "{:.2f}".format(result['dm']),
-                                     'afterDraft': "{:.2f}".format(result['da']),
-                                     'trim': "{:.2f}".format(0.00 if round(result['trim'],2) == 0 else result['trim']),
-                                     'heel': None,
-                                     'airDraft': "{:.2f}".format(result['airDraft']),
-                                     'bendinMoment': "{:.2f}".format(result['maxBM'][1]),
-                                     'shearForce':  "{:.2f}".format(result['maxSF'][1])}
+                                      'meanDraft': "{:.2f}".format(result['dm']),
+                                      'afterDraft': "{:.2f}".format(result['da']),
+                                      'trim': "{:.2f}".format(0.00 if round(result['trim'],2) == 0 else result['trim']),
+                                      'heel': None,
+                                      'airDraft': "{:.2f}".format(result['airDraft']),
+                                      'bendinMoment': "{:.2f}".format(result['maxBM'][1]),
+                                      'shearForce':  "{:.2f}".format(result['maxSF'][1])}
                     
                     # update correction ullage
                     trim_ = round(result['trim'],2)
@@ -245,7 +245,7 @@ class Check_plans:
         df_ = draft_ -  (0.5*lpp_ + lcf_)/lpp_*trim_
         da_ = df_ + trim_
         
-        # print(da_)
+        # print(df_,da_,dm_,trim_)
 
 
         
@@ -271,7 +271,7 @@ class Check_plans:
             dist_AP_ = [47.5, 62.2, 62.2, 106.3, 106.3, 155.3, 155.3, 204.3, 204.3, 253.3, 253.3, 308.9]
             C4_ = self.input.vessel.info['C4']
             BSFLimits_ = self.input.vessel.info['BSFlimits']
-            # dist_station_  = self.input.vessel.info['distStation']
+            dist_station_  = self.input.vessel.info['distStation']
             
             W_, W0_ = np.zeros(len(frames_)), 0.
             M_, M0_ = np.zeros(len(frames_)), 0.
@@ -344,22 +344,38 @@ class Check_plans:
             
 #        #
 #        ##
-#        zero_crossing = np.where(np.diff(np.sign(SF_)))[0][0] 
-#        frm_ = str(frames_[zero_crossing]) + '-' + str(frames_[zero_crossing+1])
-#        dist_ = dist_station_[frm_]
-#        SFA, SFF = SF_[frames_.index(frames_[zero_crossing+1])], SF_[frames_.index(frames_[zero_crossing])]
-#        L1 = abs(SFA)/(abs(SFA) + abs(SFF)) * dist_
-#        L2 = dist_ - L1
-#        
-#        if 0 < L1 < dist_/3:
-#            max_BM = BM_[zero_crossing+1] + 0.5*SFA*L1
-#        elif 0 < L2 < dist_/3:
-#            max_BM = BM_[zero_crossing] + 0.5*SFA*L2
-#        else:
-#            max_BM = 0.5*(BM_[zero_crossing+1] + BM_[zero_crossing])
-#        
-#        print('max_BM:', max_BM)
-        
+            zero_crossing = np.where(np.diff(np.sign(SF_)))[0]
+            # print(SF_)
+            # print(zero_crossing)
+            max_BM_ = 0
+            for z_ in zero_crossing:
+                
+                frm_ = str(frames_[z_]) + '-' + str(frames_[z_+1])
+                dist_ = float(dist_station_[frm_])
+                SFA, SFF = SF_[frames_.index(frames_[z_+1])], SF_[frames_.index(frames_[z_])]
+                L1 = abs(SFA)/(abs(SFA) + abs(SFF)) * dist_
+                L2 = dist_ - L1
+                
+                if 0 < L1 < dist_/3:
+                    max_BM = BM_[z_+1] + 0.5*SFA*L1
+                elif 0 < L2 < dist_/3:
+                    max_BM = BM_[z_] + 0.5*SFA*L2
+                else:
+                    max_BM = 0.5*(BM_[z_+1] + BM_[z_])
+            
+                
+                if max_BM > 0:
+                    max_BM = max_BM/830000.*100
+                else:
+                    max_BM = max_BM/-770800.*100
+                    
+                # print(z_,'max_BM:', max_BM)
+                if max_BM_ < max_BM:
+                    max_BM_ = max_BM
+                    
+            if max_BM_ >= 90:
+                print(max_bm_,max_BM_)
+                    
             ##
             BSF_limits_ = np.zeros(len(locations_))
             BSF_ = np.zeros(len(locations_))

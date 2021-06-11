@@ -42,9 +42,8 @@ class Process_input(object):
                               'ballastPlan': data['loadable'].get('ballastPlan',{}), # 
                               'planDetails': data.get('loadablePlanPortWiseDetails',[]) # for full and manual modes
                               }
-                              
         self.user = data['loadable'].get('user', None)
-        self.role = data['loadable'].get('role', None)         
+        self.role = data['loadable'].get('role', None)                              
         self.loadable_id = data['loadable']['id']
         self.vessel_id   = data['loadable']['vesselId']
         self.voyage_id   = data['loadable']['voyageId']
@@ -52,8 +51,16 @@ class Process_input(object):
         self.loadline_id = data['loadable']['loadlineId']
         self.draft_mark = data['loadable']['draftMark']
         
-        self.loadOnTop = data['loadable'].get('loadOnTop', True)
+        self.loadOnTop = data['loadable'].get('loadOnTop', False)
+        self.cargoweight = data['loadable'].get("loadableQuantity", {})
+        if type(self.cargoweight) == dict:
+            self.cargoweight = self.cargoweight.get("deadWeight", '1000000')
+        else:
+            self.cargoweight = '1000000'
+            
         
+        self.firstDisCargo = str(data['loadable'].get("cargoToBeDischargeFirstId", ''))
+                
         self.solver = _SOLVER_
         
         
@@ -85,6 +92,7 @@ class Process_input(object):
         
         self.has_loadicator = self.vessel_json['vessel']['vessel'].get('hasLoadicator',False)
         
+        
     def prepare_dat_file(self, ballast_weight=1000):
         
         if not self.error:
@@ -104,14 +112,15 @@ class Process_input(object):
             self.infeasible_analysis()
         
         
-    def get_stability_param(self,ballast_weight_ = 94000, sf_bm_frac = 0.95, trim_upper = 1, trim_lower = 1):
+    def get_stability_param(self,ballast_weight_ = 91800, sf_bm_frac = 0.95, trim_upper = 1, trim_lower = 1):
         
         # ARR_DEP_ = {0:'A', 1:'D'}
 #        self.trim_range = [-0.1,0.1]
         
         self.displacement_lower, self.displacement_upper = {}, {}
-        self.base_draft, self.sf_base_value, self.sf_draft_corr = {}, {}, {}
-        self.bm_base_value, self.bm_draft_corr = {}, {}
+        self.base_draft = {}
+        self.sf_base_value, self.sf_draft_corr, self.sf_trim_corr = {}, {}, {}
+        self.bm_base_value, self.bm_draft_corr, self.bm_trim_corr = {}, {}, {}
         self.sf_bm_frac = sf_bm_frac
         self.limits = {'draft':{}}
         
@@ -124,6 +133,8 @@ class Process_input(object):
         self.limits['vesselId'] = self.vessel_id
         self.limits['voyageId'] = self.voyage_id
         self.limits['airDraft'] = self.port.info['maxAirDraft']
+        
+        # print(self.limits)
         
         
 #        lpp_ = self.vessel.info['LPP']
@@ -148,9 +159,7 @@ class Process_input(object):
             #     self.trim_lower[str(p_)] = trim_lower - 1e-4
             
             cargo_to_load_ = self.loadable.info['toLoadPort'][p_]  - self.loadable.info['toLoadPort'][p_-1] 
-            ballast_ = max(0.,ballast_-0.4*cargo_to_load_)
-            
-
+            ballast_ = max(0.,ballast_- self.deballast_percent*cargo_to_load_)
             
             # ballast_ = ballast_weight_ if port_ < self.port.info['lastLoadingPort'] else 1000
             # arr_dep_ = ARR_DEP_[p_%2]
@@ -193,7 +202,7 @@ class Process_input(object):
                 #print('Draft error')
                 if 'Draft Error' not in self.error.keys():
                     self.error['Draft Error'] = [message_]
-                else:
+                elif message_ not in self.error['Draft Error']:
                     self.error['Draft Error'].append(message_)
                 
             upper_displacement_limit_ = np.interp(upper_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
@@ -214,46 +223,58 @@ class Process_input(object):
             self.displacement_upper[str(p_)] = upper_displacement_limit_
             
             est_draft_ = np.interp(est_displacement_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
-            base_draft_ = int(np.floor(est_draft_))
-            self.base_draft[str(p_)] = base_draft_
             
-            # self.base_draft = {'1': 13, '2': 13, '3': 19, '4': 19, '5': 9}
+            # base draft for BM and SF
+            trim_ = 0.5*(self.trim_lower.get(str(p_),0.) + self.trim_upper.get(str(p_),0.))
+            base_draft_ = int(np.floor(est_draft_+trim_/2))
+            self.base_draft[str(p_)] = base_draft_
+            # print(p_,trim_,base_draft_)
+            
+            
+            # self.base_draft ={'1': 11, '2': 13, '3': 13, '4': 17, '5': 19, '6': 19, '7': 9}
             
             frames_ = self.vessel.info['frames']
             
             df_sf_ = self.vessel.info['SSTable']
             df_bm_ = self.vessel.info['SBTable']
             
-            base_value_, draft_corr_ = [],[]
-            base_value__, draft_corr__ = [],[]
+            base_value_, draft_corr_, trim_corr_ = [],[],[]
+            base_value__, draft_corr__, trim_corr__ = [],[],[]
             for f__,f_ in enumerate(frames_):
                 # SF
                 df_ = df_sf_[df_sf_["frameNumber"].isin([float(f_)])]  
                 df_ = df_[df_['baseDraft'].isin([base_draft_])]
                 base_value_.append(float(df_['baseValue']))
                 draft_corr_.append(float(df_['draftCorrection']))
+                trim_corr_.append(float(df_['trimCorrection']))
                 
                 # BM
                 df_ = df_bm_[df_bm_["frameNumber"].isin([float(f_)])]  
                 df_ = df_[df_['baseDraft'].isin([base_draft_])]
                 base_value__.append(float(df_['baseValue']))
                 draft_corr__.append(float(df_['draftCorrection']))
+                trim_corr__.append(float(df_['trimCorrection']))
                 
             self.sf_base_value[str(p_)] = base_value_
             self.sf_draft_corr[str(p_)] = draft_corr_
-            
+            self.sf_trim_corr[str(p_)] = trim_corr_
+                        
             self.bm_base_value[str(p_)] = base_value__
             self.bm_draft_corr[str(p_)] = draft_corr__
+            self.bm_trim_corr[str(p_)] = trim_corr__
+            
+        print('base draft:', self.base_draft)
+            
             
     def _set_trim(self, trim_upper, trim_lower):
         self.trim_lower, self.trim_upper = {}, {}
-        for p_ in range(1, self.loadable.info['lastVirtualPort']+1):  # exact to virtual
-            if p_ in self.loadable.info.get('rotationVirtual',[])[:-1]:
-                # cargo rotation
-                self.trim_upper[str(p_)] = trim_upper + 1e-4
-                self.trim_lower[str(p_)] = trim_lower - 1e-4
-                
         
+        for p_ in self.loadable.info.get('rotationVirtual',[]):
+            for p__ in p_[:-1]:
+                self.trim_upper[str(p__)] = trim_upper + 1e-4
+                self.trim_lower[str(p__)] = trim_lower - 1e-4
+                
+               
                 
     def infeasible_analysis(self):
         
@@ -264,6 +285,10 @@ class Process_input(object):
         tot_capacity_ = sum([v_['capacityCubm'] for k_,v_ in self.vessel.info['cargoTanks'].items()])
         # ave_density_  = np.mean([v_[''] for k_,v_ in self.loadable.info['parcel'].items()])
         # self.error.append('Infeasible')
+        
+         
+        
+        
         for k_, v_ in self.loadable.info['manualOperation'].items():
             density_ = self.loadable.info['parcel'][k_]['maxtempSG']
             cargo_ =  self.loadable.info['parcel'][k_]['abbreviation']
@@ -274,18 +299,19 @@ class Process_input(object):
                     filling_ = v2_['qty']/density_/capacity_
                     # print(k_, v2_, filling_)
                     # filling_ = .99
-                    if filling_ > .9801:
+                    if filling_ > .98005:
                         if 'Vol Error' not in self.error:
                             self.error['Vol Error'] = [cargo_ + ' at ' + tank_ + ' fails 98% max volume check!!']
                         else:
                             self.error['Vol Error'].append(cargo_ + ' at ' + tank_ + ' fails 98% max volume check!!')
                     
                     
-     
+                
         
-    def write_dat_file(self, file = 'input.dat'):
         
-        if not self.error and self.solver in ['AMPL'] and self.mode not in ['FullManual']:
+    def write_dat_file(self, file = 'input.dat', IIS = True):
+        
+        if not self.error and self.solver in ['AMPL']: #and self.mode not in ['FullManual']:
         
             with open(file, "w") as text_file:
                 
@@ -453,7 +479,7 @@ class Process_input(object):
                     str1 = '[' + str(i_) + ', *] := '
                     for k_,v_ in j_.items():
                         if int(k_) > 0:
-                            str1 += str(k_) + ' ' + "{:.3f}".format(v_) + ' '
+                            str1 += str(k_) + ' ' + "{:.1f}".format(int(v_*10)/10) + ' '
                     print(str1, file=text_file)
                 print(';', file=text_file)
                 
@@ -467,6 +493,32 @@ class Process_input(object):
                 for i_, j_ in self.loadable.info['toLoadPort1'].items():
                     str1 += str(i_)  + ' ' +  "{:.3f}".format(j_)  + ' '
                 print(str1+';', file=text_file)
+                
+                
+                print('# intended cargo to load',file=text_file)#  
+                str1 = 'param toLoad  := ' 
+                for i_, j_ in self.loadable.info['toLoad'].items():
+                    str1 += i_ + ' ' +  "{:.3f}".format(j_)  + ' '
+                print(str1+';', file=text_file)
+                
+                print('# intended cargo to load',file=text_file)#  
+                str1 = 'set cargoPriority := ' 
+                
+                if self.mode in ['Auto']:
+                    for i_ in range(self.loadable.info['maxPriority'],1,-1):
+                        # print(i_)
+                        for l1_ in self.loadable.info['priority'][i_]:
+                            # print(l1_)
+                            for j_ in range(i_-1,0,-1):
+                                # print(j_)
+                                for l2_ in self.loadable.info['priority'][j_]:
+                                    # print(l2_) # higher priority
+                                    str1 += '(' + l2_ + ',' + l1_ + ')' + ' '
+                                    
+                    
+                    
+                print(str1+';', file=text_file)
+                
                     
                 print('# min cargo to must be loaded',file=text_file)#  
                 str1 = 'param minCargoLoad  := ' 
@@ -528,8 +580,8 @@ class Process_input(object):
                 for i_, j_ in self.vessel.info['cargoTanks'].items():
                     o_ = self.vessel.info['onboard'].get(i_,{}).get('vol',0.)
                     if o_ > 0:
-                        print(i_,j_['capacityCubm'],o_)
-                    str1 += i_ + ' ' +  "{:.3f}".format(j_['capacityCubm']-o_)  + ' '
+                        print(i_,j_['capacityCubm'],o_, 'in input.dat')
+                    str1 += i_ + ' ' +  "{:.3f}".format(j_['capacityCubm']-o_/0.98)  + ' '
                 print(str1+';', file=text_file)
                 
                 print('# onboard cargo tank (in mt)',file=text_file)#  
@@ -627,13 +679,14 @@ class Process_input(object):
                 
                 str1 = 'param B_locked := '
                 print(str1, file=text_file) 
-                for k_, v_ in self.loadable.info['ballastOperation'].items():
-                    tank_ = k_
-                    str1 = '[' + tank_ + ', *] := '
-                    for v__ in v_:
-                        if v__['order'] != '0':
-                            str1 += v__['order'] + ' ' + "{:.3f}".format(v__['qty']) + ' '
-                    print(str1, file=text_file)
+                if self.mode in ['Auto']:
+                    for k_, v_ in self.loadable.info['ballastOperation'].items():
+                        tank_ = k_
+                        str1 = '[' + tank_ + ', *] := '
+                        for v__ in v_:
+                            if v__['order'] != '0':
+                                str1 += v__['order'] + ' ' + "{:.3f}".format(v__['qty']) + ' '
+                        print(str1, file=text_file)
                 print(';', file=text_file)  
                         
                 
@@ -718,6 +771,9 @@ class Process_input(object):
                     str1 += k_ + ' '
                 print(str1+';', file=text_file)
                 
+                print('# deballast percent ',file=text_file)#
+                str1 = 'param deballastPercent := ' + "{:.4f}".format(self.deballast_percent) 
+                print(str1+';', file=text_file)
                 
                 print('# initial ballast ',file=text_file)#
                 str1 = 'param initBallast := '
@@ -752,27 +808,40 @@ class Process_input(object):
                         str1 += '('+ str(k_)  + ',' + str(self.vessel.info['loading'][k__+1]) + ') '
                 print(str1+';', file=text_file)
                 
-                print('# departure arrival ports ',file=text_file)#
+                print('# departure arrival ports non-empty and empty ROB',file=text_file)#
                 str1 = 'set depArrPort1 := '
                 if self.vessel.info['onhand'] : # non-empty ROB
                     for k__, k_  in enumerate(self.vessel.info['loading']):
-                        if k__ < len(self.vessel.info['loading'])-1:
+                        # if k__ < len(self.vessel.info['loading'])-1:
                             str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
                 print(str1+';', file=text_file)
                 str1 = 'set depArrPort2 := '
                 if not self.vessel.info['onhand'] : # empty ROB
                     for k__, k_  in enumerate(self.vessel.info['loading']):
-                        if k__ < len(self.vessel.info['loading'])-1:
+                        # if k__ < len(self.vessel.info['loading'])-1:
+                        if self.loadable.info['seawaterDensity'][str(k_)] == self.loadable.info['seawaterDensity'][str(int(k_)+1)]:
                             str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
                 print(str1+';', file=text_file)
                 
                 
                 print('# rotating ports ',file=text_file)#
-                str1 = 'set rotatingPort := '
-                for k__, k_  in enumerate(self.vessel.info['rotationVirtual']):
-                    if k__ < len(self.vessel.info['rotationVirtual'])-1:
-                        str1 += '('+ str(k_)  + ',' + str(self.vessel.info['rotationVirtual'][k__+1])+ ') '
+                str1 = 'set rotatingPort1 := '
+                if len(self.vessel.info['rotationVirtual']) >= 1:
+                    for k__, k_  in enumerate(self.vessel.info['rotationVirtual'][0]):
+                        if k__ < len(self.vessel.info['rotationVirtual'][0])-1:
+                            str1 += '('+ str(k_)  + ',' + str(self.vessel.info['rotationVirtual'][0][k__+1])+ ') '
                 print(str1+';', file=text_file)
+                
+                str1 = 'set rotatingPort2 := '
+                if len(self.vessel.info['rotationVirtual']) >= 2:
+                    for k__, k_  in enumerate(self.vessel.info['rotationVirtual'][1]):
+                        if k__ < len(self.vessel.info['rotationVirtual'][1])-1:
+                            str1 += '('+ str(k_)  + ',' + str(self.vessel.info['rotationVirtual'][1][k__+1])+ ') '
+                print(str1+';', file=text_file)
+                
+                
+                if len(self.vessel.info['rotationVirtual']) >= 3:
+                    self.error['Multiple Cargo Port Error'] = ['Num of ports with multiple cargos > 2!!']
                 
                 print('# lastLoadingPortBallastBan ',file=text_file)#
                 str1 = 'set lastLoadingPortBallastBan := WB1P WB1S WB2P WB2S WB3P WB3S WB4P WB4S WB5P WB5S'
@@ -781,9 +850,6 @@ class Process_input(object):
                 print('# first loading Port',file=text_file)#
                 str1 = 'param firstloadingPort := ' + self.loadable.info['arrDepVirtualPort']['1D']
                 print(str1+';', file=text_file)
-                
-                
-                
                 
                 
                 print('# capacity of ballast tanks', file=text_file)
@@ -817,6 +883,23 @@ class Process_input(object):
                 if self.maxTankUsed:
                     str1 = 'param maxTankUsed := ' + str(self.maxTankUsed) 
                     print(str1+';', file=text_file) 
+                
+                
+                print('# first discharge cargo', file=text_file)
+                str1 = 'set firstDisCargo := ' 
+                if self.firstDisCargo not in ['None'] and  'P'+self.firstDisCargo not in ['P']:
+                    str1 += 'P'+self.firstDisCargo
+                print(str1+';', file=text_file)
+                
+                
+                print('# cargoweight', file=text_file)
+                str1 = 'param cargoweight := ' + str(self.cargoweight) 
+                print(str1+';', file=text_file) 
+                
+                if self.mode in ['Manual', 'FullManual']:
+                    str1 = 'param diffVol := 0.101' 
+                    print(str1+';', file=text_file) 
+                    
                 
                 
                 print('# random seed for Gurobi', file=text_file)
@@ -1051,6 +1134,15 @@ class Process_input(object):
                     print(str1, file=text_file)
                 print(';', file=text_file)
                 
+                str1 = 'param CT_SF := '
+                print(str1, file=text_file)
+                for i_, j_ in self.vessel.info['tankGroup'].items():
+                    str1 = '['+ str(i_) + ',*] = '
+                    for k_, v_ in self.sf_trim_corr.items():
+                        str1 += str(k_) + ' ' + str(round(v_[int(i_)-1],5)) + ' '
+                    print(str1, file=text_file)
+                print(';', file=text_file)
+                
                 
                 
                 print('# lower limit BM ',file=text_file)#
@@ -1083,6 +1175,20 @@ class Process_input(object):
                         str1 += str(k_) + ' ' + str(round(v_[int(i_)-1],5)) + ' '
                     print(str1, file=text_file)
                 print(';', file=text_file)
+                
+                str1 = 'param CT_BM := '
+                print(str1, file=text_file)
+                for i_, j_ in self.vessel.info['tankGroup'].items():
+                    str1 = '['+ str(i_) + ',*] = '
+                    for k_, v_ in self.bm_trim_corr.items():
+                        str1 += str(k_) + ' ' + str(round(v_[int(i_)-1],5)) + ' '
+                    print(str1, file=text_file)
+                print(';', file=text_file)
+                
+                str1 = 'param IIS := ' 
+                str1 += '1' if IIS else '0'
+                print(str1, file=text_file)
+                
                 
         
                 

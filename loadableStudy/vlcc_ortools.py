@@ -123,7 +123,19 @@ def vlcc_ortools(inputs):
     priority = {}
     for i in range(len(C)):
         priority[C[i]] = 100
-    
+        
+    cargoPriority = [] # input
+    if inputs.mode in ['Auto']:
+        for i_ in range(inputs.loadable.info['maxPriority'],1,-1):
+            # print(i_)
+            for l1_ in inputs.loadable.info['priority'][i_]:
+                # print(l1_)
+                for j_ in range(i_-1,0,-1):
+                    # print(j_)
+                    for l2_ in inputs.loadable.info['priority'][j_]:
+                        # print(l2_) # higher priority
+                        cargoPriority.append((l2_ , l1_))
+                       
     #weight (in metric tone) of cargo to be moved at port p
     Wcp = {str(i_):{}  for i_, j_ in inputs.loadable.info['operation'].items()}
     for i_, j_ in inputs.loadable.info['operation'].items(): 
@@ -146,6 +158,8 @@ def vlcc_ortools(inputs):
     
     # min cargo to must be loaded
     minCargoLoad = {i_:round(j_,3) for i_, j_ in inputs.loadable.info['toLoadMin'].items()}  
+    
+    toLoad = inputs.loadable.info['toLoad'] # input
     
     diffSlop = 10 if inputs.loadable.info['numParcel'] == 1 else 1
       
@@ -333,7 +347,7 @@ def vlcc_ortools(inputs):
     cargoTankNonSym  = inputs.vessel.info['notSym']
     
     # symmetricVolTank 
-    symmetricVolTank = [('SLS','SLP'), ('3P','3S'), ('4P','4S'), ('5P','5S'),  ('1P','1S'), ('2P','2S')]
+    symmetricVolTank = [('1P','1S'), ('2P','2S'),('SLS','SLP'), ('3P','3S'), ('4P','4S'), ('5P','5S')]
     
     
     # cargo with highest load
@@ -1090,25 +1104,22 @@ def vlcc_ortools(inputs):
     #     solver.Add((solver.Sum([Wcp[c][pp] for c in C for pp in P if Wcp[c][pp]>0])-
     #                 solver.Sum([qw2f[c][t][i]/10 for c in C for t in T])) <= intended)       
     
+    # Constr122
+    for u, v in cargoPriority:
+        solver.Add(solver.Sum([qw2f[v][t][p]/10/toLoad[v] for t in Tc[v] for p in P_last_loading]) <= solver.Sum([qw2f[u][t][p]/10/toLoad[u] for t in Tc[u] for p in P_last_loading]))
     # symmetric loading
-    # Condition112c1, 112c2, 112c3, 112d1 112d2
+    # Condition112a, 112b, 112c1, 112c2, 112c3
     for i in C:
         solver.Add(x[i]['1P'] == x[i]['1S']) 
         solver.Add(x[i]['2P'] == x[i]['2S'])
         solver.Add(x[i]['3P'] == x[i]['3S']) 
         solver.Add(x[i]['4P'] == x[i]['4S'])
         solver.Add(x[i]['5P'] == x[i]['5S'])
-        #
-        ##?? please add
-        # missing 112a1 112a2 
-        # subject to Condition112a1 {(u,v) in symmetricVolTank, p in P_last_loading}: sum{c in C}qw[c,u,p]/densityCargo_Low[c]/capacityCargoTank[u] - sum{c in C}qw[c,v,p]/densityCargo_Low[c]/capacityCargoTank[v] <= 0.1 ;
-        # subject to Condition112a2 {(u,v) in symmetricVolTank, p in P_last_loading}:     -0.1 <= sum{c in C}qw[c,u,p]/densityCargo_Low[c]/capacityCargoTank[u] - sum{c in C}qw[c,v,p]/densityCargo_Low[c]/capacityCargoTank[v];
-        #
-        
-#        for j in P_last_loading:
-#            solver.Add(qw2f[i]['1P'][j]/10 == qw2f[i]['1S'][j]/10)
-#            solver.Add(qw2f[i]['2P'][j]/10 == qw2f[i]['2S'][j]/10)            
-            
+
+        # for j in P_last_loading:
+        #     solver.Add(qw2f[i]['1P'][j]/10 == qw2f[i]['1S'][j]/10)
+        #     solver.Add(qw2f[i]['2P'][j]/10 == qw2f[i]['2S'][j]/10)            
+           
     # Condition112a1, 112a2 
     for u, v in symmetricVolTank:
         for p in P_last_loading:

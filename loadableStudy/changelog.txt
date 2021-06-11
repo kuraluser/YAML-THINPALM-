@@ -1,3 +1,17 @@
+20210531
+Python
+- Allow multiple cargo loading for up to two ports
+- Add loading rates
+- Add topping sequence
+- Add cargo priority
+
+AMPL
+- Allow multiple cargo loading for up to two ports 
+- Add cargo priority
+- Add non-zero trim
+ORTOOLS
+- Add cargo priority
+
 20210430
 Python
 - Add fully manual allocation

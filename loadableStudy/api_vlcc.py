@@ -14,7 +14,7 @@ from vlcc_rotation import Check_rotations
 from vlcc_gen import Generate_plan 
 from vlcc_multi_gen import Multiple_plans 
 
-import pickle
+# import pickle
 
 def gen_allocation(data):
     out = []
@@ -54,7 +54,7 @@ def manual_mode(data):
     
     ## check and modify plans    
     plan_check = Check_plans(input_param)
-    plan_check._check_plans(gen_output.plan.get('ship_status',[]), gen_output.plan.get('cargo_tank',[]))
+    plan_check._check_plans(gen_output.plans.get('ship_status',[]), gen_output.plans.get('cargo_tank',[]))
     
     # gen json  
     out = gen_output.gen_json({}, plan_check.stability_values)
@@ -82,13 +82,16 @@ def auto_mode(data):
     plan_check = Check_plans(input_param)
     plan_check._check_plans(outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[]))
     
-    with open('result.pickle', 'wb') as handle:
-        pickle.dump((data, input_param, outputs.plans), handle, protocol=pickle.HIGHEST_PROTOCOL)
+    # with open('result.pickle', 'wb') as handle:
+    #     pickle.dump((data, input_param, outputs.plans), handle, protocol=pickle.HIGHEST_PROTOCOL)
     
+    # with open('result.json', 'w') as f_:  
+    #     json.dump(outputs.plans, f_)
+
     
     # ## check cargo rotation
     cargo_rotate = Check_rotations(data, input_param)
-    cargo_rotate._check_plans(outputs.plans)
+    cargo_rotate._check_plans(outputs.plans, outputs.permute_list, outputs.permute_list1)
     
     # # # ## gen json  
     out = outputs.gen_json(cargo_rotate.constraints, plan_check.stability_values)
@@ -209,6 +212,15 @@ def loadicator(data, limits):
     else:
         print('Unknown type!!')
             
+    rerun_ = False
+    if not rerun_:    
+        ## feedback loop
+        out['feedbackLoop'] = False
+        out['feedbackLoopCount'] = 0
+    else:
+        pass
+    ## 
+    
     
     return out
 #    print(out)

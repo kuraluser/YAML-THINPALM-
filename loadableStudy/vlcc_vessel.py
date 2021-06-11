@@ -319,7 +319,8 @@ class Vessel:
         self.info['loading'] = loading_port_
         # self.info['depArr'] = loading_port_
         if len(inputs.loadable.info.get('rotationVirtual',[]))> 0:
-            self.info['rotationVirtual'] = [inputs.loadable.info['rotationVirtual'][0]-1] + inputs.loadable.info['rotationVirtual']
+            #self.info['rotationVirtual'] = [inputs.loadable.info['rotationVirtual'][0]-1] + inputs.loadable.info['rotationVirtual']
+            self.info['rotationVirtual'] = [[l_[0]-1]+l_ for l_ in inputs.loadable.info['rotationVirtual']] 
         else:
             self.info['rotationVirtual'] = []  
         ## cargo tank requirements

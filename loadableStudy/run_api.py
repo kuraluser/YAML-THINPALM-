@@ -51,8 +51,10 @@ fname1 = 'loadableStudy_6540.json'
 fname1 = 'loadablePattern_request_3325.json'
 fname1 = 'loadableStudy_6606.json'
 
+fname1 = 'loadablestudy_6676.json'
 
-fname1 = 'loadablePattern_request_3660.json'
+fname1 = 'loadablestudy_6849.json' # max draft error
+# fname1 = 'loadablestudy_6854.json' # port ordering error
 
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #
