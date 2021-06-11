@@ -155,6 +155,7 @@ def get_data(data, gID):
         data_['loadablePlanPortWiseDetails'] = data['loadablePlanPortWiseDetails']
         data_['caseNumber'] = data.get('caseNumber', None)
         data_['loadable']['loadablePatternId'] = data.get('loadablePatternId',111111)
+        data_['ballastEdited'] = data.get('ballastEdited',False)
     else:
         print('auto mode!!!')
         data_['loadable'] = data
