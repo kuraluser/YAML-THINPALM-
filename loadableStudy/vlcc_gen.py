@@ -1154,13 +1154,13 @@ class Generate_plan:
                     
                     info_['loadingHrs'] = str(round(l1_+l2_, 2))
                     
-                    loading_order1_ = int(self.plans['cargo_order'][sol]['P'+str(info_['cargoNomination1Id'])])
-                    loading_order2_ = int(self.plans['cargo_order'][sol]['P'+str(info_['cargoNomination2Id'])])
+                    loading_order1_ = int(self.plans['cargo_order'][sol]['P'+str(info_['cargo1NominationId'])])
+                    loading_order2_ = int(self.plans['cargo_order'][sol]['P'+str(info_['cargo2NominationId'])])
                     
                     if loading_order1_ < loading_order2_:
-                        info_['toppingOffCargoId'] = info_['cargoNomination2Id']
+                        info_['toppingOffCargoId'] = info_['cargo2NominationId']
                     else:
-                        info_['toppingOffCargoId'] = info_['cargoNomination1Id']
+                        info_['toppingOffCargoId'] = info_['cargo1NominationId']
                         
                             
                     plan_.append(info_)
