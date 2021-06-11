@@ -1120,8 +1120,8 @@ class Generate_plan:
                     info_['cargo2Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][1]]['abbreviation']
                     info_['priority'] = int(self.input.loadable.info['commingleCargo']['priority'])
                     
-                    info_['cargoNomination1Id'] = int(v_[0]['parcel'][0][1:])
-                    info_['cargoNomination2Id'] = int(v_[0]['parcel'][1][1:])
+                    info_['cargo1NominationId'] = int(v_[0]['parcel'][0][1:])
+                    info_['cargo2NominationId'] = int(v_[0]['parcel'][1][1:])
                      
                     
                     

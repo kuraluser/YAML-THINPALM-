@@ -281,6 +281,7 @@ param deadweightConst default 0; # deadweight constant
 param deadweight > 0 default 1e6; # deadweight
 param cargoweight > 0 default 1e6;
 set firstDisCargo;
+set Cequal;
 
 param diffVol default 0.1;
 

@@ -179,7 +179,8 @@ class Multiple_plans(object):
             else:
                 
                 gen_output = Generate_plan(self.input)
-                gen_output.run()
+                num_plans = 1 if len(self.input.loadable.info['parcel']) == 1 else 100
+                gen_output.run(num_plans=num_plans)
                 
                 if gen_output.plans.get('obj',[]):
                     self.plans = gen_output.plans

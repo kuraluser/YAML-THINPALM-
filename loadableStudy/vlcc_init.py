@@ -53,8 +53,9 @@ class Process_input(object):
         
         self.loadOnTop = data['loadable'].get('loadOnTop', False)
         self.cargoweight = data['loadable'].get("loadableQuantity", {})
+        
         if type(self.cargoweight) == dict:
-            self.cargoweight = self.cargoweight.get("deadWeight", '1000000')
+            self.cargoweight = self.cargoweight.get("totalQuantity", '1000000')
         else:
             self.cargoweight = '1000000'
             
@@ -899,6 +900,12 @@ class Process_input(object):
                 if self.mode in ['Manual', 'FullManual']:
                     str1 = 'param diffVol := 0.101' 
                     print(str1+';', file=text_file) 
+                    
+                
+                str1 = 'set Cequal := '  
+                if len(self.loadable.info['parcel']) == 1:
+                    str1 += list(self.loadable.info['parcel'].keys())[0]
+                print(str1+';', file=text_file) 
                     
                 
                 

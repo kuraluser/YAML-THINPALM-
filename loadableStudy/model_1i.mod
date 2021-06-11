@@ -281,6 +281,7 @@ param deadweightConst default 0; # deadweight constant
 param deadweight > 0 default 1e6; # deadweight
 param cargoweight > 0 default 1e6;
 set firstDisCargo;
+set Cequal;
 
 param diffVol default 0.1;
 
@@ -591,9 +592,11 @@ subject to Condition112a1 {(u,v) in symmetricVolTank, p in P_last_loading}: sum{
 subject to Condition112a2 {(u,v) in symmetricVolTank, p in P_last_loading}:     -diffVol <= sum{c in C}qw[c,u,p]/densityCargo_Low[c]/capacityCargoTank[u] - sum{c in C}qw[c,v,p]/densityCargo_Low[c]/capacityCargoTank[v];
 
 
+subject to Condition112d1 {c in Cequal, p in P_last_loading}: qw[c,'1P',p] = qw[c,'1S',p];
+subject to Condition112d2 {c in Cequal, p in P_last_loading}: qw[c,'2P',p] = qw[c,'1S',p];
+subject to Condition112d3 {c in Cequal, p in P_last_loading}: qw[c,'4P',p] = qw[c,'4S',p];
+subject to Condition112d4 {c in Cequal, p in P_last_loading}: qw[c,'5P',p] = qw[c,'5S',p];
 
-#subject to Condition112d1 {c in C, p in P_last_loading}: qw[c,'1P',p] = qw[c,'1S',p];
-#subject to Condition112d2 {c in C, p in P_last_loading}: qw[c,'2P',p] = qw[c,'2S',p];
 
 
 # diff cargos in slop tanks, except when only one cargo
