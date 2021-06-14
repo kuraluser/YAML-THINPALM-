@@ -146,10 +146,10 @@ def loadicator(data, limits):
                 info_['judgement'].append('Failed airdraft check!')
             
             # SF
-            if float(v_["shearingForcePersentValue"]) > 100:
+            if abs(float(v_["shearingForcePersentValue"])) > 100:
                 info_['judgement'].append('Failed SF check!')
             # BM
-            if float(v_["bendingMomentPersentValue"]) > 100:
+            if abs(float(v_["bendingMomentPersentValue"])) > 100:
                 info_['judgement'].append('Failed BM check!')
                     
             
@@ -198,10 +198,10 @@ def loadicator(data, limits):
                     info_['judgement'].append('Failed airdraft check!')
                 
                 # SF
-                if float(v_["shearingForcePersentValue"]) > 100:
+                if abs(float(v_["shearingForcePersentValue"])) > 100:
                     info_['judgement'].append('Failed SF check!')
                 # BM
-                if float(v_["bendingMomentPersentValue"]) > 100:
+                if abs(float(v_["bendingMomentPersentValue"])) > 100:
                     info_['judgement'].append('Failed BM check!')
             
                 out_["loadicatorResultDetails"].append(info_)

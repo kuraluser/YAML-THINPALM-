@@ -300,7 +300,7 @@ class Process_input(object):
                     filling_ = v2_['qty']/density_/capacity_
                     # print(k_, v2_, filling_)
                     # filling_ = .99
-                    if filling_ > .98005:
+                    if filling_ > .9801:
                         if 'Vol Error' not in self.error:
                             self.error['Vol Error'] = [cargo_ + ' at ' + tank_ + ' fails 98% max volume check!!']
                         else:
@@ -811,17 +811,17 @@ class Process_input(object):
                 
                 print('# departure arrival ports non-empty and empty ROB',file=text_file)#
                 str1 = 'set depArrPort1 := '
-                if self.vessel.info['onhand'] : # non-empty ROB
-                    for k__, k_  in enumerate(self.vessel.info['loading']):
-                        # if k__ < len(self.vessel.info['loading'])-1:
-                            str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
+                #if self.vessel.info['onhand'] : # non-empty ROB
+                #    for k__, k_  in enumerate(self.vessel.info['loading']):
+                #        # if k__ < len(self.vessel.info['loading'])-1:
+                #            str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
                 print(str1+';', file=text_file)
                 str1 = 'set depArrPort2 := '
-                if not self.vessel.info['onhand'] : # empty ROB
-                    for k__, k_  in enumerate(self.vessel.info['loading']):
-                        # if k__ < len(self.vessel.info['loading'])-1:
-                        if self.loadable.info['seawaterDensity'][str(k_)] == self.loadable.info['seawaterDensity'][str(int(k_)+1)]:
-                            str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
+                #if not self.vessel.info['onhand'] : # empty ROB
+                #    for k__, k_  in enumerate(self.vessel.info['loading']):
+                #        # if k__ < len(self.vessel.info['loading'])-1:
+                #        if self.loadable.info['seawaterDensity'][str(k_)] == self.loadable.info['seawaterDensity'][str(int(k_)+1)]:
+                #            str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
                 print(str1+';', file=text_file)
                 
                 

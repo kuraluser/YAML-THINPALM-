@@ -637,7 +637,7 @@ class Loadable:
         tank_cargo_ = {}
         for p__, p_ in enumerate(plan_):
             port_ = str(p__+1)
-            print(port_)
+            # print(port_)
             # arrival and departure 
             arr_port_ = port_ + 'A'
             dep_port_ = port_ + 'D'

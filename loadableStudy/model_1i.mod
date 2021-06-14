@@ -593,7 +593,7 @@ subject to Condition112a2 {(u,v) in symmetricVolTank, p in P_last_loading}:     
 
 
 subject to Condition112d1 {c in Cequal, p in P_last_loading}: qw[c,'1P',p] = qw[c,'1S',p];
-subject to Condition112d2 {c in Cequal, p in P_last_loading}: qw[c,'2P',p] = qw[c,'1S',p];
+subject to Condition112d2 {c in Cequal, p in P_last_loading}: qw[c,'2P',p] = qw[c,'2S',p];
 subject to Condition112d3 {c in Cequal, p in P_last_loading}: qw[c,'4P',p] = qw[c,'4S',p];
 subject to Condition112d4 {c in Cequal, p in P_last_loading}: qw[c,'5P',p] = qw[c,'5S',p];
 
