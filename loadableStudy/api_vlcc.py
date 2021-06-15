@@ -28,7 +28,6 @@ def gen_allocation(data):
         print ('Auto Mode --------------------------------------------')
         out = auto_mode(data)
     
-    
     return out
 
 # def full_manual_mode(data):

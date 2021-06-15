@@ -492,14 +492,14 @@ class Process_input(object):
                 
                 str1 = 'param loadingPortAmt  := ' 
                 for i_, j_ in self.loadable.info['toLoadPort1'].items():
-                    str1 += str(i_)  + ' ' +  "{:.3f}".format(j_)  + ' '
+                    str1 += str(i_)  + ' ' +  "{:.3f}".format(int(j_*10)/10)  + ' '
                 print(str1+';', file=text_file)
                 
                 
                 print('# intended cargo to load',file=text_file)#  
                 str1 = 'param toLoad  := ' 
                 for i_, j_ in self.loadable.info['toLoad'].items():
-                    str1 += i_ + ' ' +  "{:.3f}".format(j_)  + ' '
+                    str1 += i_ + ' ' +  "{:.3f}".format(int(j_*10)/10)  + ' '
                 print(str1+';', file=text_file)
                 
                 print('# intended cargo to load',file=text_file)#  
@@ -524,7 +524,7 @@ class Process_input(object):
                 print('# min cargo to must be loaded',file=text_file)#  
                 str1 = 'param minCargoLoad  := ' 
                 for i_, j_ in self.loadable.info['toLoadMin'].items():
-                    str1 += i_ + ' ' +  "{:.3f}".format(j_)  + ' '
+                    str1 += i_ + ' ' +  "{:.3f}".format(int(j_*10)/10)  + ' '
                 print(str1+';', file=text_file)
                 
                 if self.loadable.info['numParcel'] == 1:

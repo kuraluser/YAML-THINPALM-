@@ -316,6 +316,9 @@ class Generate_plan:
                     
                     fillingRatio_ =  round(vol_/capacity_,DEC_PLACE)
                     
+                    if fillingRatio_ > .98:
+                        print('**',i_[2], fillingRatio_)
+                    
                     tankId_ = self.input.vessel.info['tankName'][i_[2]]
                     corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
 
@@ -1052,7 +1055,7 @@ class Generate_plan:
                 # print(k_,v_)
                 if type(v_[0]['parcel']) == str and v_[0]['parcel'] in self.input.loadable.info['parcel'].keys():
                     info_ = {}
-                    info_['tank'] = k_
+                    info_['tankShortName'] = k_
                     info_['quantityMT'] = str(abs(v_[0]['wt']))
                     
                     info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['abbreviation']
@@ -1081,7 +1084,7 @@ class Generate_plan:
                 elif type(v_[0]['parcel']) == str:
                  	# only onboard 
                     info_ = {}
-                    info_['tank'] = k_
+                    info_['tankShortName'] = k_
                     info_['quantityMT'] = str(abs(v_[0]['wt']))
                     info_['cargoAbbreviation'] = None
                     info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
@@ -1114,7 +1117,7 @@ class Generate_plan:
                 if type(v_[0]['parcel']) == list:
                     info_ = {}
                     
-                    info_['tank'] = k_
+                    info_['tankShortName'] = k_
                     info_['quantity'] = str(abs(v_[0]['wt']))
                     info_['cargo1Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][0]]['abbreviation']
                     info_['cargo2Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][1]]['abbreviation']
@@ -1169,7 +1172,7 @@ class Generate_plan:
             
             for k_,v_ in self.plans['ship_status'][sol][virtual_]['ballast'].items():
                 info_ = {}
-                info_['tank'] = k_
+                info_['tankShortName'] = k_
                 info_['quantityMT'] = str(round(abs(v_[0]['wt']),2))
                 info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
                 info_['sg'] = str(v_[0]['SG'])
@@ -1198,7 +1201,7 @@ class Generate_plan:
             
             for k_,v_ in self.plans['ship_status'][sol][virtual_]['other'].items():
                 info_ = {}
-                info_['tank'] = k_
+                info_['tankShortName'] = k_
                 info_['quantity'] = str(abs(v_[0]['wt']))
                 info_['sg'] = str(v_[0]['SG'])
                 info_['tankId'] = int(self.input.vessel.info['tankName'][k_])

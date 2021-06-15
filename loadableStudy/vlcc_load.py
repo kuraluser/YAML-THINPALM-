@@ -256,7 +256,7 @@ class Loadable:
         cargos_info_['cargoOrder'] = {str(p_):[] for p_ in range(1,max_virtual_port_+1)}
         for o__, o_ in enumerate(inputs.loadable_json['cargoOperation']):
             parcel_ = 'P'+str(o_['cargoNominationId'])
-            qty__ = float(o_['quantity']) #if o_['operationId'] == 1 else -o_['quantity'] 
+            qty__ = round(float(o_['quantity']),1) #if o_['operationId'] == 1 else -o_['quantity'] 
             order_ = inputs.port.info['idPortOrder'][str(o_['portId'])]
             # max qty
             qty_ = qty__ * (1+ 0.01*self.info['parcel'][parcel_]['minMaxTol'][1])
