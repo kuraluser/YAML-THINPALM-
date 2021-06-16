@@ -13,6 +13,8 @@ from vlcc_ortools import vlcc_ortools
 
 DEC_PLACE = 3
 
+CONS = {'Condition01z': 'Min tolerance constraints violated!!',
+            'Constr122': 'Priority constraints violated!!'}
 
 class Generate_plan:
     def __init__(self, data):
@@ -157,7 +159,14 @@ class Generate_plan:
                     # print({'volatedConstraints':violated_cons_})
                     
                     for l_ in violated_cons_:
-                         message.append(l_ + ' volated!!')
+                        
+                         con_ = CONS.get(l_,None)
+                         if con_ not in [None]:
+                             message.append(con_)
+                         else:
+                             message.append(l_ + ' violated!!')
+                         
+                         
                     
            
         except Exception as err:

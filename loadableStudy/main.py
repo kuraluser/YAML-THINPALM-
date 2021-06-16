@@ -264,8 +264,8 @@ async def ullage_handler(data: dict):
         
     else:
         
-        return {**{"id":data["id"], "correctionFactor": None, "correctedUllage": None, "obsM3": None, 
-            "quantityMt": None, 'fillingRatio':None}, **cf}
+        return {**{"id":data["id"], "correctionFactor": "", "correctedUllage": "", "obsM3": "", 
+            "quantityMt": "", 'fillingRatio':""}, **cf}
     
      
     
