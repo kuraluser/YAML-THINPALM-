@@ -55,15 +55,14 @@ class Check_plans:
                         tankId_ = self.input.vessel.info['tankName'][a_]
                         if str(tankId_) in self.input.vessel.info['ullageCorr'].keys():
                             cf_ = self._get_correction(str(tankId_), b_[0]['corrUllage'], trim_)
-                            rdgUllage_ = b_[0]['corrUllage'] - cf_/100 if cf_ not in [None] else b_[0]['corrUllage']
-                            
-                            plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else None
-                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(rdgUllage_,6)
+                            rdgUllage_ = b_[0]['corrUllage'] - cf_/100 if cf_ not in [None] else ""
+                            plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else ""
+                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(rdgUllage_,6) if cf_ not in [None] else ""
                             
                         else:
                             # print(str(tankId_), a_, 'Missing correction data!!')
-                            plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = None
-                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(b_[0]['corrUllage'],6)
+                            plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = ""
+                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = ""
                             
                         
                     for a_, b_ in plans[p__][k_]['ballast'].items():
@@ -71,18 +70,17 @@ class Check_plans:
                         if str(tankId_) in self.input.vessel.info['ullageCorr'].keys():
                             # print(b_[0].keys())
                             cf_ = self._get_correction(str(tankId_), b_[0]['corrLevel'], trim_)
-                            rdgLevel_ = b_[0]['corrLevel'] - cf_/100 if cf_ not in [None] else b_[0]['corrLevel']
+                            rdgLevel_ = b_[0]['corrLevel'] - cf_/100 if cf_ not in [None] else ""
                             
-                            plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else None
-                            plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = round(rdgLevel_,6) 
+                            plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else ""
+                            plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = round(rdgLevel_,6) if cf_ not in [None] else ""
                             
                             
                         else:
                             # print(str(tankId_), a_, 'Missing correction data!!')
-                            plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = None
-                            plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = b_[0]['corrLevel']
-                            
-                    
+                            plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = ""
+                            plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = ""
+                                                
                                      
                 self.stability_values.append(stability_)
                 
@@ -102,13 +100,13 @@ class Check_plans:
             return None
         
         a_ = np.where(data['ullageDepth'] <= ullage)[0][-1]     
-         # b_ = np.where(data['ullageDepth'] >= ullage)[0][0]
+          # b_ = np.where(data['ullageDepth'] >= ullage)[0][0]
         
         trim_range = np.array([-1,0,1,2,3,4,5,6])
         a__ = np.where(trim_range <= trim)[0][-1]     
-         # b__ = np.where(trim_range >= trim)[0][0]
+          # b__ = np.where(trim_range >= trim)[0][0]
         
-         # ullage x trim
+          # ullage x trim
         data_ = data.iloc[a_:a_+2,a__+3:a__+5].to_numpy()
         x_ = ullage_range[a_:a_+2]
         y_ = trim_range[a__:a__+2]
@@ -119,7 +117,7 @@ class Check_plans:
         
         out = (trim-y_[0])*(z1_[1]-z1_[0])/(y_[1]-y_[0]) + z1_[0]
         
-       #  print(x_,y_,data_)
+        #  print(x_,y_,data_)
         
         
         
