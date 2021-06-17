@@ -14,9 +14,9 @@ import json
 from scipy.interpolate import interp1d, interp2d
 plt.style.use('seaborn-whitegrid')
 
-tank_info_ = {'DSWTP':-1, 'DRWT':-1, 'FRWT':1, 'DSWTS':1, 
-              'FO2P':-1, 'FO2S':1, 'FO1P':-1, 'FO1S':1, 'BFOSRV':1, 'HFOSET':1, 'HFOSRV':1,
-              'DO1S':1,  'DO2S':1, 'DOSRV1':1, 'DOSRV2':1,
+tank_info_ = {'DSWP':-1, 'DWP':-1, 'FRS':1, 'DSWS':1, 
+              'FO2P':-1, 'FO2S':1, 'FO1P':-1, 'FO1S':1, 'BFOSV':1, 'FOSET':1, 'FOSV':1,
+              'DO1S':1,  'DO2S':1, 'DOSV1':1, 'DOSV2':1,
               'SLS':1, '2C':1, '1P':-1, '1S':1, '2P':-1, '2S':1,  '5C':1, '1C':1, '3C':1, '4C':1, '3P':-1, '3S':1, '4P':-1, '4S':1, '5P':-1, '5S':1, 'SLP':-1,
               'FPTL':1, 'WB1P':-1,'WB1S':1, 'WB2P':-1, 'WB2S':1, 'WB3P':-1, 'WB3S':1, 'WB4P':-1, 'WB4S':1, 'WB5P':-1, 'WB5S':1, 'AWBP':-1, 'AWBS':1, 'APT':-1, 'FPTU':1, 
                }
@@ -30,7 +30,7 @@ class Vessel:
         vessel_info_ = {}
         
         vessel_info_['hasLoadicator'] = vessel_json['vessel'].get('hasLoadicator', False)
-        vessel_info_['banBallast'] = ['FPTU']   # 'AWBP','AWBS'
+        vessel_info_['banBallast'] = ['UFPT']   # 'AWBP','AWBS'
         vessel_info_['banCargo'] = {k_:[] for k_,v_ in inputs.loadable.info['parcel'].items()}
         vessel_info_['slopTank'] = []
         
@@ -302,13 +302,13 @@ class Vessel:
                     
    
         ## balllast -------------------------------------------------
-        self.info['initBallast'] = {'wt': {'FPTL':4800,
+        self.info['initBallast'] = {'wt': {'LFPT':4800,
                                   'WB1P':9000, 'WB1S':9000,
                                   'WB2P':9000, 'WB2S':9000,
                                   'WB3P':9000, 'WB3S':9000,
                                   'WB4P':8900, 'WB4S':8900,
                                   'WB5P':7600, 'WB5S':7600},
-                                    'dec':['APT','FPTL','WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S','AWBP','AWBS'],
+                                    'dec':['APT','LFPT','WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S','AWBP','AWBS'],
                                     'inc':[]}
         
         
