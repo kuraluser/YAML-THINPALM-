@@ -14,11 +14,11 @@ import json
 from scipy.interpolate import interp1d, interp2d
 plt.style.use('seaborn-whitegrid')
 
-tank_info_ = {'DSWP':-1, 'DWP':-1, 'FRS':1, 'DSWS':1, 
-              'FO2P':-1, 'FO2S':1, 'FO1P':-1, 'FO1S':1, 'BFOSV':1, 'FOSET':1, 'FOSV':1,
+tank_info_ = {'DSWP':-1, 'DWP':-1, 'FWS':1, 'DSWS':1, 
+              'FO2P':-1, 'FO2S':1, 'FO1P':-1, 'FO1S':1, 'BFOSV':1, 'FOST':1, 'FOSV':1,
               'DO1S':1,  'DO2S':1, 'DOSV1':1, 'DOSV2':1,
               'SLS':1, '2C':1, '1P':-1, '1S':1, '2P':-1, '2S':1,  '5C':1, '1C':1, '3C':1, '4C':1, '3P':-1, '3S':1, '4P':-1, '4S':1, '5P':-1, '5S':1, 'SLP':-1,
-              'FPTL':1, 'WB1P':-1,'WB1S':1, 'WB2P':-1, 'WB2S':1, 'WB3P':-1, 'WB3S':1, 'WB4P':-1, 'WB4S':1, 'WB5P':-1, 'WB5S':1, 'AWBP':-1, 'AWBS':1, 'APT':-1, 'FPTU':1, 
+              'UFPT':1, 'LFPT':1, 'WB1P':-1,'WB1S':1, 'WB2P':-1, 'WB2S':1, 'WB3P':-1, 'WB3S':1, 'WB4P':-1, 'WB4S':1, 'WB5P':-1, 'WB5S':1, 'AWBP':-1, 'AWBS':1, 'APT':-1, 'FPTU':1, 
                }
 
 
@@ -142,7 +142,7 @@ class Vessel:
                         type_ = 'other'
                     
                     tcg_details_[tank_name_] = {'tcg':[], 'vol':[],'type':type_}
-                tcg_details_[tank_name_]['tcg'].append(float(d_['tcg']) * tank_info_.get(tank_name_,1))
+                tcg_details_[tank_name_]['tcg'].append(float(d_['tcg']) * tank_info_[tank_name_])
                 tcg_details_[tank_name_]['vol'].append(float(d_['capacity']))
             else:
                 # print(tank_name_,d_['tankId'])
