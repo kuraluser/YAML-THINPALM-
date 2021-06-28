@@ -182,6 +182,7 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
     await database.execute(query)
     
     data_ =  get_data(data, gID)
+ 
     # data_['ballastEdited'] = True
     
     # print('>>>> get vessel API')

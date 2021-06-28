@@ -15,6 +15,7 @@ class Port:
         ports_info_['portRotation'] = {}
         ports_info_['portOrder'], ports_info_['idPortOrder'] = {}, {}
         ports_info_['portOrderId'] = {}
+        ports_info_['firstPortBunker'] = False
         
         ports_info_['lastLoadingPort'] = last_loading_port_
         
@@ -46,6 +47,15 @@ class Port:
                 
                 ports_info_['portRotation'][detail_['code']]['ambientTemperature'] = detail_['ambientTemperature']
                 ports_info_['portRotation'][detail_['code']]['seaWaterTemperature'] = detail_['seaWaterTemperature']
+                
+                if p_['portOrder'] == 1 and p_['operationId'] not in [1]:
+                    ports_info_['firstPortBunker'] = True
+                    
+                if p_['portOrder'] == 2 and p_['operationId'] not in [1] and ports_info_['firstPortBunker']:
+                    ports_info_['firstPortBunker'] = True
+                    inputs.error['Port Operation Error'] = ['One of the first two ports must be a loading port!!']
+                    
+                    
                 
             ## berth info
         

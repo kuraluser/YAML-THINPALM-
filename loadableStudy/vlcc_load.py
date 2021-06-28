@@ -352,7 +352,27 @@ class Loadable:
                         cargos_info_['ballastOperation'][tank_] = [{'qty':qty_, 'order':order_}]
                     else:
                         cargos_info_['ballastOperation'][tank_].append({'qty':qty_, 'order':order_})
+                        
             
+            if inputs.port.info['firstPortBunker']:
+                initial_ballast_ = {'LFPT':4800, 'WB1P':9000, 'WB1S':9000, 'WB2P':9000, 'WB2S':9000,
+                 'WB3P':9000, 'WB3S':9000, 'WB4P':8900, 'WB4S':8900, 'WB5P':7600, 'WB5S':7600}
+                for k_ in ['1', '2']:
+                    if k_ not in cargos_info_['fixedBallastPort']:
+                        order_ = k_
+                        cargos_info_['fixedBallastPort'].append(order_)
+                        for k__, v__ in initial_ballast_.items():
+                            tank_ = k__
+                            qty_ = v__ 
+                            
+                            if tank_ not in cargos_info_['ballastOperation'].keys():
+                                cargos_info_['ballastOperation'][tank_] = [{'qty':qty_, 'order':order_}]
+                            else:
+                                cargos_info_['ballastOperation'][tank_].append({'qty':qty_, 'order':order_})
+                        
+                    
+                    
+                
                 
             
         if len(cargos_info_['fixedBallastPort']) > 0:

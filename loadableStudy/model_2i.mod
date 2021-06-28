@@ -426,7 +426,7 @@ param CD_BM {f in 1..Fr, p in P} default 0;
 param CT_BM {f in 1..Fr, p in P} default 0;
 
 param numSolutions integer default 3;
-param runtimeLimit integer default 90;
+param runtimeLimit integer default 60;
 param seed integer default 0;
 
 param tolerance := 0; # tolerance for rounding

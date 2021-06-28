@@ -856,6 +856,7 @@ class Process_input(object):
                 print(str1+';', file=text_file)
                 
                 
+                
                 print('# capacity of ballast tanks', file=text_file)
                 str1 = 'param capacityBallastTank := ' 
                 for i_, j_ in self.vessel.info['ballastTanks'].items():

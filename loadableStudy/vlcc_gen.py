@@ -611,7 +611,9 @@ class Generate_plan:
             initial_ballast_weight_[i_] = [{'wt': round(wt_,DEC_PLACE),
                                                   'SG':density_,
                                                   'fillRatio': round(j_/density_/capacity_,DEC_PLACE),
-                                                  'tcg':tcg_, 'corrLevel':round(corrLevel_,3)}]
+                                                  'tcg':tcg_, 'corrLevel':round(corrLevel_,3),
+                                                  'maxTankVolume':capacity_,
+                                                  'volume':vol_}]
         self.initial_ballast_weight = initial_ballast_weight_
             
  
@@ -977,18 +979,18 @@ class Generate_plan:
                                               "loadablePlanBallastDetails":[],
                                               "loadablePlanRoBDetails":[]}
                 
-                if p_ not in [path_[0]]:
+                # if p_ not in [path_[0]]:
                     # print(s_,p_, 'Get arrival info')
-                    plan_['arrivalCondition']["loadableQuantityCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'total')
-                    # get loadablePlanStowageDetails
-                    plan_['arrivalCondition']["loadablePlanStowageDetails"] = self._get_status(s_, str(p__+1)+'A', 'cargoStatus')
-                    # get loadablePlanBallastDetails
-                    plan_['arrivalCondition']["loadablePlanBallastDetails"] = self._get_status(s_, str(p__+1)+'A', 'ballastStatus')
-                    # get loadablePlanRoBDetails
-                    plan_['arrivalCondition']["loadablePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'A', 'robStatus')
-                    # get loadableQuantityCommingleCargoDetails
-                    plan_['arrivalCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'commingleStatus')
-                    plan_['arrivalCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'A']]
+                plan_['arrivalCondition']["loadableQuantityCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'total')
+                # get loadablePlanStowageDetails
+                plan_['arrivalCondition']["loadablePlanStowageDetails"] = self._get_status(s_, str(p__+1)+'A', 'cargoStatus')
+                # get loadablePlanBallastDetails
+                plan_['arrivalCondition']["loadablePlanBallastDetails"] = self._get_status(s_, str(p__+1)+'A', 'ballastStatus')
+                # get loadablePlanRoBDetails
+                plan_['arrivalCondition']["loadablePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'A', 'robStatus')
+                # get loadableQuantityCommingleCargoDetails
+                plan_['arrivalCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'commingleStatus')
+                plan_['arrivalCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'A']]
                 
                 
                 # departure
@@ -1056,8 +1058,7 @@ class Generate_plan:
                         info_['toppingSequence'] = self.plans['topping'][sol][k_]
                         info_['loadingHrs'] = str(round(self.plans['loading_hrs'][sol][k_][0]+self.plans['loading_hrs'][sol][k_][1], 2))
                         info_['cargoNominationTemperature'] = str(self.input.loadable.info['parcel'][k_]['loadingTemperature'])
-                                  
-                
+                        
                         plan_.append(info_)
             
         elif category == 'cargoStatus':

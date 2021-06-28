@@ -565,10 +565,10 @@ subject to Constr8 {c in C, t in Tc[c], p in P_last_loading}: qw2f[c,t,p]/1000 -
 #subject to Constr6a {c in C diff C_loaded diff C_locked, t in Tc[c], p in P_last_loading:highDensityOn*densityCargoTank[t]/densityCargo_High[c]<=1}: (q[c,t,p] + tolerance*x[c,t])*densityCargo_Low[c]/densityCargo_High[c] <= upperHighDensity[c,t]*capacityCargoTank[t]*x[c,t];
 
 ## ballast capacity constraint
-subject to Constr11 {t in TB, p in P }: yB[t,p] <= upperBoundB1[t]*capacityBallastTank[t]*xB[t,p];
+subject to Constr11 {t in TB, p in P_stable}: yB[t,p] <= upperBoundB1[t]*capacityBallastTank[t]*xB[t,p];
 
 ## ballast capacity constraint
-subject to Constr12 {t in TB, p in P }: lowerBoundB1[t]*capacityBallastTank[t]*xB[t,p] <= yB[t,p];
+subject to Constr12 {t in TB, p in P_stable}: lowerBoundB1[t]*capacityBallastTank[t]*xB[t,p] <= yB[t,p];
 
 ## max num of tanks available
 #subject to Constr12a: sum {t in T, c in C} x[c,t] <= maxTankUsed;
