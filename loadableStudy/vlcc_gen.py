@@ -1055,7 +1055,9 @@ class Generate_plan:
                         info_['slopQuantity'] = str(self.plans['slop_qty'][sol].get(k_,0.))
                         info_['toppingSequence'] = self.plans['topping'][sol][k_]
                         info_['loadingHrs'] = str(round(self.plans['loading_hrs'][sol][k_][0]+self.plans['loading_hrs'][sol][k_][1], 2))
-              
+                        info_['cargoNominationTemperature'] = str(self.input.loadable.info['parcel'][k_]['loadingTemperature'])
+                                  
+                
                         plan_.append(info_)
             
         elif category == 'cargoStatus':
@@ -1074,6 +1076,7 @@ class Generate_plan:
                     
                     
                     info_['temperature'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['temperature'])
+                    
                     info_['colorCode'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['color']
                     info_['api'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['api'])
                     

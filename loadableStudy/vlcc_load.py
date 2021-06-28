@@ -34,6 +34,8 @@ class Loadable:
             cargos_info_['parcel'][cargo_id_]['color']  = c_['color']
             cargos_info_['parcel'][cargo_id_]['api']  = c_['api']
             cargos_info_['parcel'][cargo_id_]['abbreviation']  = c_['abbreviation']
+            cargos_info_['parcel'][cargo_id_]['loadingTemperature']  = c_['temperature']
+            
                         
             if c_['api'] > 90:
                 message_ = 'API > 90 for cargoNomination ' + cargo_id_[1:] + '!!'
