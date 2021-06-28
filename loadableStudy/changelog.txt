@@ -1,3 +1,14 @@
+20210630
+Python
+- Allow first port for bunkering 
+- Return arrival ballast and ROB of first port
+
+AMPL
+-
+
+ORTOOLS
+-
+
 20210531
 Python
 - Allow multiple cargo loading for up to two ports
@@ -9,6 +20,7 @@ AMPL
 - Allow multiple cargo loading for up to two ports 
 - Add cargo priority
 - Add non-zero trim
+
 ORTOOLS
 - Add cargo priority
 
