@@ -109,9 +109,9 @@ class Port:
             if str(p__)  not in  port_order_:
                 # print(v_)
                 if 'Port Order Error' not in inputs.error.keys():
-                    inputs.error['Port Order Error'] = [v_ + ' in port ordering error!!']
+                    inputs.error['Port Order Error'] = ['Port order ' + str(p__) + ' is missing!!']
                 else:
-                    inputs.error['Port Order Error'].append(v_ + ' in port ordering error!!')
+                    inputs.error['Port Order Error'].append('Port order ' + str(p__) + ' is missing!!')
                     
             
             
