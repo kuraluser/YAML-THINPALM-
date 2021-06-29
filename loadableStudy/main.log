@@ -1,21 +1,7 @@
-2021-05-10 16:09:08.725 | INFO     | main:task_handler:180 - c0e0c8a7-4df8-43da-81b0-a812f000fc16: Get vessel API
-2021-05-10 16:09:14.835 | INFO     | main:get_vessel_details:83 - c0e0c8a7-4df8-43da-81b0-a812f000fc16: HTTP Exception - 
-2021-05-10 16:09:14.835 | INFO     | main:get_vessel_details:84 - c0e0c8a7-4df8-43da-81b0-a812f000fc16: Get vessel FILE
-2021-05-10 16:09:15.007 | INFO     | main:task_handler:186 - c0e0c8a7-4df8-43da-81b0-a812f000fc16: Add new loadable
-2021-05-10 16:09:23.285 | INFO     | main:start_cpu_bound_task:121 - c0e0c8a7-4df8-43da-81b0-a812f000fc16: Allocation completed
-2021-05-10 16:09:23.285 | INFO     | main:start_cpu_bound_task:143 - c0e0c8a7-4df8-43da-81b0-a812f000fc16: Upload result
-2021-05-10 16:09:28.295 | INFO     | main:post_response:100 - c0e0c8a7-4df8-43da-81b0-a812f000fc16: HTTP Exception - 
-2021-05-10 16:16:52.778 | INFO     | main:task_handler:180 - 8ff9137b-c7b5-479b-b8fe-b72fd76b4c9a: Get vessel API
-2021-05-10 16:16:58.909 | INFO     | main:get_vessel_details:83 - 8ff9137b-c7b5-479b-b8fe-b72fd76b4c9a: HTTP Exception - 
-2021-05-10 16:16:58.909 | INFO     | main:get_vessel_details:84 - 8ff9137b-c7b5-479b-b8fe-b72fd76b4c9a: Get vessel FILE
-2021-05-10 16:16:59.081 | INFO     | main:task_handler:186 - 8ff9137b-c7b5-479b-b8fe-b72fd76b4c9a: Add new loadable
-2021-05-10 16:17:06.947 | INFO     | main:start_cpu_bound_task:121 - 8ff9137b-c7b5-479b-b8fe-b72fd76b4c9a: Allocation completed
-2021-05-10 16:17:06.963 | INFO     | main:start_cpu_bound_task:143 - 8ff9137b-c7b5-479b-b8fe-b72fd76b4c9a: Upload result
-2021-05-10 16:17:11.945 | INFO     | main:post_response:100 - 8ff9137b-c7b5-479b-b8fe-b72fd76b4c9a: HTTP Exception - 
-2021-05-10 16:24:44.361 | INFO     | main:task_handler:180 - d3a1ddd4-33ba-4c37-a65d-9457120d3640: Get vessel API
-2021-05-10 16:24:49.371 | INFO     | main:get_vessel_details:83 - d3a1ddd4-33ba-4c37-a65d-9457120d3640: HTTP Exception - 
-2021-05-10 16:24:49.371 | INFO     | main:get_vessel_details:84 - d3a1ddd4-33ba-4c37-a65d-9457120d3640: Get vessel FILE
-2021-05-10 16:24:49.496 | INFO     | main:task_handler:186 - d3a1ddd4-33ba-4c37-a65d-9457120d3640: Add new loadable
-2021-05-10 16:24:57.175 | INFO     | main:start_cpu_bound_task:121 - d3a1ddd4-33ba-4c37-a65d-9457120d3640: Allocation completed
-2021-05-10 16:24:57.177 | INFO     | main:start_cpu_bound_task:143 - d3a1ddd4-33ba-4c37-a65d-9457120d3640: Upload result
-2021-05-10 16:25:02.172 | INFO     | main:post_response:100 - d3a1ddd4-33ba-4c37-a65d-9457120d3640: HTTP Exception - 
+2021-06-29 10:02:33.427 | INFO     | main:task_handler:189 - 4b9d4271-f1c2-47d1-be85-12072c57dc8f: Get vessel API
+2021-06-29 10:02:38.895 | INFO     | main:task_handler:195 - 4b9d4271-f1c2-47d1-be85-12072c57dc8f: Add new loadable
+2021-06-29 10:02:50.250 | INFO     | main:start_cpu_bound_task:120 - 4b9d4271-f1c2-47d1-be85-12072c57dc8f: Allocation completed
+2021-06-29 10:02:50.250 | INFO     | main:start_cpu_bound_task:127 - 4b9d4271-f1c2-47d1-be85-12072c57dc8f: Update status
+2021-06-29 10:02:55.282 | INFO     | main:post_response:99 - 4b9d4271-f1c2-47d1-be85-12072c57dc8f: HTTP Exception - 
+2021-06-29 10:02:55.282 | INFO     | main:start_cpu_bound_task:143 - 4b9d4271-f1c2-47d1-be85-12072c57dc8f: Upload result
+2021-06-29 10:03:00.306 | INFO     | main:post_response:99 - 4b9d4271-f1c2-47d1-be85-12072c57dc8f: HTTP Exception - 

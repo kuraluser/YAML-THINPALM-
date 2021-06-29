@@ -56,6 +56,8 @@ fname1 = 'loadablestudy_6676.json'
 fname1 = 'loadablestudy_6849.json' # max draft error
 # fname1 = 'loadablestudy_6854.json' # port ordering error
 
+fname1 = 'ls.json'
+
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #
 url1 = 'http://127.0.0.1:8000/new_loadable'

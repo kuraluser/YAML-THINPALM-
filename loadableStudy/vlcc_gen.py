@@ -1077,6 +1077,7 @@ class Generate_plan:
                     
                     
                     info_['temperature'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['temperature'])
+                    info_['cargoNominationTemperature'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['loadingTemperature'])
                     
                     info_['colorCode'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['color']
                     info_['api'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['api'])
