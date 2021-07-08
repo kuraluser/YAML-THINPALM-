@@ -34,6 +34,14 @@ class Vessel:
         vessel_info_['banCargo'] = {k_:[] for k_,v_ in inputs.loadable.info['parcel'].items()}
         vessel_info_['slopTank'] = []
         
+        
+        ## 
+        loadingRate_ = vessel_json.get('selectableParameter', [])
+        if len(loadingRate_) == 0:
+            loadingRate_ = [{'name': 'Manifolds', 'values': [{'type': 1, 'value': '1140.0000'}, {'type': 6, 'value': '6841.0000'}, {'type': 7, 'value': '7981.0000'}, {'type': 12, 'value': '13681.0000'}]}, {'name': 'DropLines', 'values': [{'type': 1, 'value': '1140.0000'}, {'type': 6, 'value': '6841.0000'}, {'type': 7, 'value': '7981.0000'}, {'type': 12, 'value': '13681.0000'}]}, {'name': 'BottomLines', 'values': [{'type': 1, 'value': '1534.0000'}, {'type': 6, 'value': '9205.0000'}, {'type': 7, 'value': '10739.0000'}, {'type': 12, 'value': '18409.0000'}]}, {'name': 'WingTankBranchLine', 'values': [{'type': 1, 'value': '659.0000'}, {'type': 6, 'value': '3950.0000'}, {'type': 7, 'value': '3950.0000'}, {'type': 12, 'value': '3950.0000'}]}, {'name': 'CentreTankBranchLine', 'values': [{'type': 1, 'value': '965.0000'}, {'type': 6, 'value': '5790.0000'}, {'type': 7, 'value': '5790.0000'}, {'type': 12, 'value': '5790.0000'}]}, {'name': 'PVValveWingTank', 'values': [{'type': 1, 'value': '7050.0000'}, {'type': 6, 'value': '7050.0000'}, {'type': 7, 'value': '7050.0000'}, {'type': 12, 'value': '7050.0000'}]}, {'name': 'PVValveCentreTank', 'values': [{'type': 1, 'value': '12000.0000'}, {'type': 6, 'value': '12000.0000'}, {'type': 7, 'value': '12000.0000'}, {'type': 12, 'value': '12000.0000'}]}, {'name': 'SlopTankBranchLine', 'values': [{'type': 1, 'value': '573.0000'}, {'type': 6, 'value': '3435.0000'}, {'type': 7, 'value': '3950.0000'}, {'type': 12, 'value': '3950.0000'}]}]
+               
+        vessel_info_['loadingRate'] = {l_['name']: [float(l__['value']) for l__ in l_['values'] if l__['type'] == 6][0]   for l_ in loadingRate_}
+        
         ## 
         vessel_info_['name'] = vessel_json['vessel']['name']
         
@@ -128,7 +136,7 @@ class Vessel:
         self._get_lcb_parameters(vessel_info_)    
             
         ##
-        tcg_details_ = {}
+        tcg_details_, lcg_details_ = {}, {}
         for d_ in vessel_json['vesselTankTCGs']:
             tank_name_ = vessel_info_['tankId'].get(d_['tankId'],None)
             if tank_name_:
@@ -142,8 +150,16 @@ class Vessel:
                         type_ = 'other'
                     
                     tcg_details_[tank_name_] = {'tcg':[], 'vol':[],'type':type_}
-                tcg_details_[tank_name_]['tcg'].append(float(d_['tcg']) * tank_info_[tank_name_])
+                    lcg_details_[tank_name_] = {'lcg':[], 'vol':[],'type':type_}
+                
+                # tcg_details_[tank_name_]['tcg'].append(float(d_['tcg']) * tank_info_[tank_name_])
+                tcg_details_[tank_name_]['tcg'].append(float(d_['tcg']))
                 tcg_details_[tank_name_]['vol'].append(float(d_['capacity']))
+                
+                lcg_details_[tank_name_]['lcg'].append(float(d_['lcg']))
+                lcg_details_[tank_name_]['vol'].append(float(d_['capacity']))
+                
+                
             else:
                 # print(tank_name_,d_['tankId'])
                 pass
@@ -152,7 +168,12 @@ class Vessel:
         vessel_info_['tankTCG'] = {}
         vessel_info_['tankTCG']['tcg'] = tcg_details_
         self._get_tcg_parameters(vessel_info_, tcg_details_)   
-         
+        
+        ##
+        vessel_info_['tankLCG'] = {}
+        vessel_info_['tankLCG']['lcg'] = lcg_details_
+        
+        
         ##
         vessel_info_['KTM'] = vessel_json['vessel']['keelToMastHeight']
         vessel_info_['LPP'] = float(vessel_json['vessel']['lengthBetweenPerpendiculars'])
@@ -352,6 +373,7 @@ class Vessel:
             if tank_ and str(o_['portId']) in inputs.port.info['idPortOrder'].keys():
                 port_order_  = inputs.port.info['idPortOrder'][str(o_['portId'])]
                 tcg_data_ = self.info['tankTCG']['tcg'][tank_] # tcg_data
+                lcg_data_ = self.info['tankLCG']['lcg'][tank_] # lcg_data
                 
                 if tank_ not in self.info['onhand'].keys():
                     self.info['onhand'][tank_] = {}
@@ -361,13 +383,16 @@ class Vessel:
                 # print(vol_)
                 if vol_ > 0:
                     tcg_ = np.interp(vol_, tcg_data_['vol'], tcg_data_['tcg'])
-                    self.info['onhand'][tank_][port_order_+'A'] = {'wt': float(o_['arrivalQuantity']), 'vol': vol_, 'tcg':tcg_}
+                    lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
+                    self.info['onhand'][tank_][port_order_+'A'] = {'wt': float(o_['arrivalQuantity']), 'vol': vol_, 'tcg':tcg_, 'lcg':lcg_}
                     
                 vol_ = float(o_['departureVolume']) if o_['arrivalVolume'] not in [None] else 0.
                 # print(vol_)
                 if vol_ > 0:
                     tcg_ = np.interp(vol_, tcg_data_['vol'], tcg_data_['tcg'])
-                    self.info['onhand'][tank_][port_order_+'D'] = {'wt': float(o_['departureQuantity']), 'vol': vol_,'tcg':tcg_}
+                    lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
+                    
+                    self.info['onhand'][tank_][port_order_+'D'] = {'wt': float(o_['departureQuantity']), 'vol': vol_,'tcg':tcg_, 'lcg':lcg_}
                 
     def _get_tcg_parameters(self, vessel_info_, tcg_details_):
         
@@ -662,14 +687,13 @@ class Vessel:
  
             
             
-#{'BFOSRV': 25619, 'WB5P': 25606, 'WB5S': 25607, 'AWBP': 25608, 'AWBS': 25609, 'APT': 25610, 
-#'FPTU': 25611, 'FO2P': 25614, 'FO2S': 25615, 'DOSRV1': 25624, 'DOSRV2': 25625, 'DRWT': 25636, 
-#'SLS': 25596, 'WB1S': 25599, 'WB2P': 25600, 'WB2S': 25601, 'FRWT': 25637, 'DSWTP': 25638, 
-#'WB3P': 25602, 'WB3S': 25603, 'WB4P': 25604, 'WB4S': 25605, 'DSWTS': 25639, '2C': 25581, 
-#'1P': 25585, '1S': 25586, '2P': 25587, '2S': 25588, 'DO1S': 25622, '4P': 25591, '4S': 25592, 
-#'5P': 25593, '1C': 25580, '3C': 25582, '4C': 25583, '5C': 25584, '3P': 25589, '3S': 25590, 
-#'5S': 25594, 'SLP': 25595, 'FPTL': 25597, 'WB1P': 25598, 'FO1P': 25612, 'FO1S': 25613, 
-#'HFOSRV': 25616, 'HFOSET': 25617, 'DO2S': 25623}        
+# {'WB5P': 25606, 'WB5S': 25607, 'AWBP': 25608, 'AWBS': 25609, 'APT': 25610, 'FO2P': 25614, 
+#'FO2S': 25615, 'SLS': 25596, 'WB1S': 25599, 'WB2P': 25600, 'WB2S': 25601, 'WB3P': 25602, 'WB3S': 25603, 
+#'WB4P': 25604, 'WB4S': 25605, '2C': 25581, '1P': 25585, '1S': 25586, '2P': 25587, '2S': 25588, 'DO1S': 25622, 
+#'4P': 25591, '4S': 25592, '5P': 25593, '1C': 25580, '3C': 25582, '4C': 25583, '5C': 25584, '3P': 25589, '3S': 25590, 
+#'5S': 25594, 'SLP': 25595, 'WB1P': 25598, 'FO1P': 25612, 'FO1S': 25613, 'DO2S': 25623, 'FOST': 25617, 
+#'BFOSV': 25619, 'DOSV1': 25624, 'LFPT': 25597, 'UFPT': 25611, 'FOSV': 25616, 'DOSV2': 25625, 'DWP': 25636, 
+#'FWS': 25637, 'DSWP': 25638, 'DSWS': 25639}
     
         
         

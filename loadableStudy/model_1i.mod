@@ -591,11 +591,11 @@ subject to Condition112c3 {c in C}: x[c,'5P'] = x[c,'5S'];
 subject to Condition112a1 {(u,v) in symmetricVolTank, p in P_last_loading}: sum{c in C}qw[c,u,p]/densityCargo_Low[c]/capacityCargoTank[u] - sum{c in C}qw[c,v,p]/densityCargo_Low[c]/capacityCargoTank[v] <= diffVol ;
 subject to Condition112a2 {(u,v) in symmetricVolTank, p in P_last_loading}:     -diffVol <= sum{c in C}qw[c,u,p]/densityCargo_Low[c]/capacityCargoTank[u] - sum{c in C}qw[c,v,p]/densityCargo_Low[c]/capacityCargoTank[v];
 
-
-subject to Condition112d1 {c in Cequal, p in P_last_loading}: qw[c,'1P',p] = qw[c,'1S',p];
-subject to Condition112d2 {c in Cequal, p in P_last_loading}: qw[c,'2P',p] = qw[c,'2S',p];
-subject to Condition112d3 {c in Cequal, p in P_last_loading}: qw[c,'4P',p] = qw[c,'4S',p];
-subject to Condition112d4 {c in Cequal, p in P_last_loading}: qw[c,'5P',p] = qw[c,'5S',p];
+# equal weight in 1W, 2W, 4W, 5W
+subject to Condition112d1 {c in C, p in P_last_loading}: qw[c,'1P',p] = qw[c,'1S',p];
+subject to Condition112d2 {c in C, p in P_last_loading}: qw[c,'2P',p] = qw[c,'2S',p];
+subject to Condition112d3 {c in C, p in P_last_loading}: qw[c,'4P',p] = qw[c,'4S',p];
+subject to Condition112d4 {c in C, p in P_last_loading}: qw[c,'5P',p] = qw[c,'5S',p];
 
 
 
@@ -725,16 +725,6 @@ subject to Constr19b {f in 1..Fr, p in P_stable}: mn[f,p] = mn[f-1,p] + sum {t i
 # mean_draft=pwl(displacement)
 #subject to Constr18d {p in P}: mean_draft[p] = (<<bDraft1,bDraft2,bDraft3,bDraft4,bDraft5,bDraft6,bDraft7,bDraft8,bDraft9; mDraft1, mDraft2, mDraft3, mDraft4, mDraft5, mDraft6, mDraft7, mDraft8, mDraft9, mDraft10 >> displacement1[p])*densitySeaWater[p]/1.025 + adjMeanDraft;
 subject to Constr18d {p in P}: mean_draft[p] = <<bDraft1,bDraft2,bDraft3,bDraft4,bDraft5,bDraft6,bDraft7,bDraft8,bDraft9; mDraft1, mDraft2, mDraft3, mDraft4, mDraft5, mDraft6, mDraft7, mDraft8, mDraft9, mDraft10 >> displacement[p] + adjMeanDraft;
-
-## SF -> zero trim
-## sf_lower <= BVsf + CD*(Mean_draft – base_draft)  – W[f] <= sf_upper
-#subject to Condition20a {f in 1..Fr, p in P_stable}: lowerSFlimit[f] <= BV_SF[f,p] + CD_SF[f,p]*(mean_draft[p]-base_draft[p]) - wn[f,p];
-#subject to Condition20b {f in 1..Fr, p in P_stable}: BV_SF[f,p] + CD_SF[f,p]*(mean_draft[p]-base_draft[p]) - wn[f,p] <= upperSFlimit[f];
-
-## BM -> -> zero trim
-## bm_lower <= W[f]*LCGf[f]  + MI[f] - (BVbm + CDbm*(draft – base_draft)) <= bm_upper
-#subject to Condition21a {f in 1..Fr, p in P_stable}: lowerBMlimit[f] <= wn[f,p]*LCG_fr[f] +mn[f,p] - (BV_BM[f,p]+CD_BM[f,p]*(mean_draft[p]-base_draft[p]));
-#subject to Condition21b {f in 1..Fr, p in P_stable}: wn[f,p]*LCG_fr[f] + mn[f,p] - (BV_BM[f,p]+ CD_BM[f,p]*(mean_draft[p]- base_draft[p])) <= upperBMlimit[f];
 
 
 subject to Condition200a {p in P_stable}: est_trim[p] = (trim_upper[p]+trim_lower[p])/2;

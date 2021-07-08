@@ -42,6 +42,7 @@ class Process_input(object):
                               'ballastPlan': data['loadable'].get('ballastPlan',{}), # 
                               'planDetails': data.get('loadablePlanPortWiseDetails',[]) # for full and manual modes
                               }
+        
         self.user = data['loadable'].get('user', None)
         self.role = data['loadable'].get('role', None)                              
         self.loadable_id = data['loadable']['id']
@@ -52,19 +53,15 @@ class Process_input(object):
         self.draft_mark = data['loadable']['draftMark']
         
         self.loadOnTop = data['loadable'].get('loadOnTop', False)
-        self.cargoweight = data['loadable'].get("loadableQuantity", {})
+        # self.cargoweight = data['loadable'].get("loadableQuantity", {})
         
-        if type(self.cargoweight) == dict:
-            self.cargoweight = self.cargoweight.get("totalQuantity", '1000000')
-        else:
-            self.cargoweight = '1000000'
-            
+        self.cargoweight = data['loadable']['loadableQuantity'].get("totalQuantity", '1000000')
+        self.draftsag    = data['loadable']['loadableQuantity'].get("estSagging", '0')
         
         self.firstDisCargo = str(data['loadable'].get("cargoToBeDischargeFirstId", ''))
                 
         self.solver = _SOLVER_
-        
-        
+                
         self.preloaded_cargo = []
         
         self.error = {}
@@ -94,6 +91,10 @@ class Process_input(object):
         
         self.has_loadicator = self.vessel_json['vessel']['vessel'].get('hasLoadicator',False)
         
+        ## for auto only
+        self.feedbackLoop      = data['loadable'].get('feedbackLoop', False)
+        self.feedbackLoopCount = data['loadable'].get('feedbackLoopCount', 0)
+        
         
     def prepare_dat_file(self, ballast_weight=1000):
         
@@ -114,7 +115,7 @@ class Process_input(object):
             self.infeasible_analysis()
         
         
-    def get_stability_param(self,ballast_weight_ = 91800, sf_bm_frac = 0.95, trim_upper = 1, trim_lower = 1):
+    def get_stability_param(self, ballast_weight_ = 91800, sf_bm_frac = 0.9, trim_upper = 1, trim_lower = 1):
         
         # ARR_DEP_ = {0:'A', 1:'D'}
 #        self.trim_range = [-0.1,0.1]
@@ -126,7 +127,7 @@ class Process_input(object):
         self.sf_bm_frac = sf_bm_frac
         self.limits = {'draft':{}}
         
-        min_draft_limit_  = 9.8
+        min_draft_limit_  = 10.425
         loadline_ = self.vessel.info['draftCondition']['draftExtreme']
         self.limits['draft']['loadline'] = loadline_
         self.limits['draft'] = {**self.limits['draft'], **self.port.info['maxDraft']}
@@ -135,6 +136,7 @@ class Process_input(object):
         self.limits['vesselId'] = self.vessel_id
         self.limits['voyageId'] = self.voyage_id
         self.limits['airDraft'] = self.port.info['maxAirDraft']
+        self.limits['sfbm'] = self.sf_bm_frac
         
         # print(self.limits)
         
@@ -907,8 +909,8 @@ class Process_input(object):
                     
                 
                 str1 = 'set Cequal := '  
-                if len(self.loadable.info['parcel']) == 1:
-                    str1 += list(self.loadable.info['parcel'].keys())[0]
+                # if len(self.loadable.info['parcel']) == 1:
+                #     str1 += list(self.loadable.info['parcel'].keys())[0]
                 print(str1+';', file=text_file) 
                     
                 

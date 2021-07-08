@@ -322,6 +322,12 @@ class Generate_plan:
                     if i_[2] in self.input.vessel.info['tankTCG']['tcg']:
                         tcg_ = np.interp(vol_, self.input.vessel.info['tankTCG']['tcg'][i_[2]]['vol'],
                                          self.input.vessel.info['tankTCG']['tcg'][i_[2]]['tcg'])
+                        
+                    lcg_ = 0.
+                    if i_[2] in self.input.vessel.info['tankLCG']['lcg']:
+                        lcg_ = np.interp(vol_, self.input.vessel.info['tankLCG']['lcg'][i_[2]]['vol'],
+                                         self.input.vessel.info['tankLCG']['lcg'][i_[2]]['lcg'])
+                    
                     
                     fillingRatio_ =  round(vol_/capacity_,DEC_PLACE)
                     
@@ -332,7 +338,7 @@ class Generate_plan:
                     corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
 
                     info_ = {'parcel':i_[1], 'wt': round(wt_,DEC_PLACE), 'SG': density_,
-                             'fillRatio': fillingRatio_, 'tcg':tcg_, 
+                             'fillRatio': fillingRatio_, 'tcg':tcg_, 'lcg':lcg_, 
                              'temperature':self.input.loadable.info['parcel'][i_[1]]['temperature'],
                              'api':self.input.loadable.info['parcel'][i_[1]]['api'],
                              'corrUllage': corrUllage_,
@@ -382,13 +388,19 @@ class Generate_plan:
                             if k1_ in self.input.vessel.info['tankTCG']['tcg']:
                                 tcg_ = np.interp(vol_, self.input.vessel.info['tankTCG']['tcg'][k1_]['vol'],
                                                  self.input.vessel.info['tankTCG']['tcg'][k1_]['tcg'])
+                                
+                            lcg_ = 0.
+                            if k1_ in self.input.vessel.info['tankLCG']['lcg']:
+                                lcg_ = np.interp(vol_, self.input.vessel.info['tankLCG']['lcg'][k1_]['vol'],
+                                                 self.input.vessel.info['tankLCG']['lcg'][k1_]['lcg'])
+                                
                             
                             tankId_ = self.input.vessel.info['tankName'][k1_]
                             corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
 
                                   
                             info_ = {'parcel':parcel_, 'wt': round(weight_,3), 'SG': round(density_,4),
-                                     'fillRatio': fillingRatio_, 'tcg':tcg_, 
+                                     'fillRatio': fillingRatio_, 'tcg':tcg_,  'lcg':lcg_,
                                      'temperature':round(temp_,2),
                                      'api':api_,
                                      'wt1':wt1_, 'wt2':wt2_,
@@ -416,17 +428,25 @@ class Generate_plan:
                     density_ = round(v_['wt']/v_['vol1'], 4)
                     capacity_ = self.input.vessel.info['cargoTanks'][k_]['capacityCubm']
                     vol_ = v_['vol1']
+                    
                     tcg_ = 0.
                     if k_ in self.input.vessel.info['tankTCG']['tcg']:
                         tcg_ = np.interp(wt_/density_, self.input.vessel.info['tankTCG']['tcg'][k_]['vol'],
                                          self.input.vessel.info['tankTCG']['tcg'][k_]['tcg'])
+                    
+                    lcg_ = 0.
+                    if k_ in self.input.vessel.info['tankLCG']['lcg']:
+                        lcg_ = np.interp(wt_/density_, self.input.vessel.info['tankLCG']['lcg'][k_]['vol'],
+                                         self.input.vessel.info['tankLCG']['lcg'][k_]['lcg'])
+                    
+                    
                     
                     tankId_ = self.input.vessel.info['tankName'][k_]
                     corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
 
                         
                     info_ = {'parcel':'onboard', 'wt': wt_, 'SG': density_,
-                             'fillRatio': round(v_['vol']/capacity_,DEC_PLACE), 'tcg':tcg_, 
+                             'fillRatio': round(v_['vol']/capacity_,DEC_PLACE), 'tcg':tcg_, 'lcg':lcg_, 
                              'temperature':None,
                              'corrUllage': corrUllage_,
                              'maxTankVolume': capacity_}
@@ -456,6 +476,11 @@ class Generate_plan:
                         if tank_ in self.input.vessel.info['tankTCG']['tcg']:
                             tcg_ = np.interp(vol_, self.input.vessel.info['tankTCG']['tcg'][tank_]['vol'],
                                               self.input.vessel.info['tankTCG']['tcg'][tank_]['tcg'])
+                            
+                        lcg_ = 0.
+                        if tank_ in self.input.vessel.info['tankLCG']['lcg']:
+                            lcg_ = np.interp(vol_, self.input.vessel.info['tankLCG']['lcg'][tank_]['vol'],
+                                              self.input.vessel.info['tankLCG']['lcg'][tank_]['lcg'])
                         
                         tankId_ = v__['tankId']    
                         try:
@@ -466,7 +491,7 @@ class Generate_plan:
                         
                         ballast_weight_[k_][tank_] = [{'wt': round(wt_,DEC_PLACE), 'SG':density_,
                                                           'fillRatio': round(v__['wt']/density_/capacity_,DEC_PLACE),
-                                                          'tcg':tcg_, 
+                                                          'tcg':tcg_, 'lcg':lcg_, 
                                                           'corrLevel':round(corrLevel_,3),
                                                           'maxTankVolume':capacity_,
                                                           'volume':vol_}]
@@ -491,6 +516,12 @@ class Generate_plan:
                             tcg_ = np.interp(vol_, self.input.vessel.info['tankTCG']['tcg'][i_[1]]['vol'],
                                              self.input.vessel.info['tankTCG']['tcg'][i_[1]]['tcg'])
                             
+                        lcg_ = 0.
+                        if i_[1] in self.input.vessel.info['tankLCG']['lcg']:
+                            lcg_ = np.interp(vol_, self.input.vessel.info['tankLCG']['lcg'][i_[1]]['vol'],
+                                             self.input.vessel.info['tankLCG']['lcg'][i_[1]]['lcg'])
+                            
+                            
                         tankId_ = self.input.vessel.info['tankName'][i_[1]]     
                         try:
                             corrLevel_ = self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist()
@@ -502,7 +533,7 @@ class Generate_plan:
                         ballast_weight_[str(int(i_[2]))][i_[1]] = [{'wt': round(wt_,DEC_PLACE), 
                                                           'SG':density_,
                                                           'fillRatio': round(i_[3]/density_/capacity_,DEC_PLACE),
-                                                          'tcg':tcg_,
+                                                          'tcg':tcg_, 'lcg':lcg_,
                                                           'corrLevel':round(corrLevel_,3),
                                                           'maxTankVolume':capacity_,
                                                           'volume':vol_}]
@@ -533,28 +564,25 @@ class Generate_plan:
                     
             self.cargo_in_tank.append(cargo_in_tank_)
             
-            flow_rate = {'PVvalveWingTank': 3950,
-                         'PVvalveCentreTank': 5790,
-                         'maxLoadingRate': 20500,
-                         'maxRiser': 20500,
-                         'manifolds': 8056,
-                         'dropLines': 8056,
-                         'bottomLines': 10780,
-                         'wingTankBranch': 4713,
-                         'centreTankBranch': 6843}
-            load_param = {'manifolds':[1,2,3],
+            
+            
+            load_param = {'Manifolds':[1,2,3],
                      'centreTank':[],
                      'wingTank': [],
-                     'bottomLines': [1,2,3]
+                     'slopTank': [],
+                     'BottomLines': [1,2,3]
                     }
             
             loading_rate_, topping_ = {}, {}
             for k_, v_ in cargo_in_tank_.items():
-                load_param['centreTank'], load_param['wingTank'] = [], []
+                load_param['centreTank'], load_param['wingTank'], load_param['slopTank'] = [], [], []
                 tank_num_ = 0
                 for t_ in v_:
                     if t_[-1] in ['C']:
                         load_param['centreTank'].append(t_)
+                        tank_num_ += 1
+                    elif t_ in ['SLS','SLP']:
+                        load_param['slopTank'].append(t_)
                         tank_num_ += 1
                     else:
                         load_param['wingTank'].append(t_)
@@ -566,7 +594,7 @@ class Generate_plan:
                     add_ = 1.0
                 else:
                     add_ = 1.5
-                loading_rate_[k_] = (self._cal_max_rate(load_param, flow_rate),add_)
+                loading_rate_[k_] = (self._cal_max_rate(load_param), add_)
                 topping_[k_] = self._topping_seq(v_)
                 
             self.loading_rate.append(loading_rate_)
@@ -580,7 +608,7 @@ class Generate_plan:
             for k_, v_ in j_.items():
                 info_ =  [{'wt': round(v_['wt'],DEC_PLACE), 
                                                   'SG':round(v_['wt']/max(1.0,v_['vol']),DEC_PLACE),
-                                                  'tcg':v_['tcg']}]
+                                                  'tcg':v_['tcg'], 'lcg':v_['lcg']}]
         
                 for k1_, v1_ in self.input.loadable.info['virtualArrDepPort'].items():
                     if v1_ == k_:
@@ -600,6 +628,11 @@ class Generate_plan:
             if i_ in self.input.vessel.info['tankTCG']['tcg']:
                 tcg_ = np.interp(vol_, self.input.vessel.info['tankTCG']['tcg'][i_]['vol'],
                                       self.input.vessel.info['tankTCG']['tcg'][i_]['tcg'])
+            
+            lcg_ = 0.
+            if i_ in self.input.vessel.info['tankLCG']['lcg']:
+                lcg_ = np.interp(vol_, self.input.vessel.info['tankLCG']['lcg'][i_]['vol'],
+                                      self.input.vessel.info['tankLCG']['lcg'][i_]['lcg'])
                 
             tankId_ = self.input.vessel.info['tankName'][i_]     
             try:
@@ -611,7 +644,8 @@ class Generate_plan:
             initial_ballast_weight_[i_] = [{'wt': round(wt_,DEC_PLACE),
                                                   'SG':density_,
                                                   'fillRatio': round(j_/density_/capacity_,DEC_PLACE),
-                                                  'tcg':tcg_, 'corrLevel':round(corrLevel_,3),
+                                                  'tcg':tcg_, 'lcg':lcg_,
+                                                  'corrLevel':round(corrLevel_,3),
                                                   'maxTankVolume':capacity_,
                                                   'volume':vol_}]
         self.initial_ballast_weight = initial_ballast_weight_
@@ -1232,39 +1266,98 @@ class Generate_plan:
     
         return errors
     
-    def _cal_max_rate(self, param, flow_rate):
+    # def _cal_max_rate(self, param, flow_rate):
+    #     max_rate = 1000000
+        
+    #     components = {'manifolds':[['manifolds'], ['manifolds']],   # param, flow_rate
+    #                   'drop':[['manifolds'], ['dropLines']], 
+    #                   'bottom':[['bottomLines'],['bottomLines']],
+    #                   'tanks':[['centreTank', 'wingTank'], ['centreTankBranch','wingTankBranch']], 
+    #                   'PVvalves':[['centreTank', 'wingTank'], ['PVvalveCentreTank','PVvalveWingTank']], 
+    #                   'maxVessel':[[''],['maxLoadingRate']],
+    #                   'maxRiser':[[''],['maxRiser']]}
+    #     rate = {}
+    #     for k_, v_ in components.items():
+    #         rate_ = 0
+    #         for i_, j_ in zip(v_[0], v_[1]):
+    #             # print(i_,j_, param.get(i_,1), flow_rate[j_])
+    #             rate_ += len(param.get(i_,[1])) * flow_rate[j_]
+            
+    #         rate[k_] = rate_
+    #         if max_rate > rate_:
+    #             max_rate = rate_
+            
+    #     # print(rate)
+        
+        
+    #     return max_rate
+    
+    
+    def _cal_max_rate(self, param, required_rate = 1):
+        
+        # flow_rate = {'maxLoadingRate': 20500,
+        # 'maxRiser': 25625,
+        # 'manifolds':         {1: 1140, 6: 6841, 7: 7891, 12:13681},
+        # 'dropLines':         {1: 1140, 6: 6841, 7: 7891, 12:13681},
+        # 'bottomLines':       {1: 1534, 6: 9205, 7:10739, 12:18409},
+        # 'wingTankBranch':    {1:  659, 6: 3950, 7: 3950, 12: 3950},
+        # 'centreTankBranch':  {1:  965, 6: 5790, 7: 5790, 12: 5790},
+        # 'PVvalveWingTank':   {1: 7050, 6: 7050, 7: 7050, 12: 7050},
+        # 'PVvalveCentreTank': {1:12000, 6:12000, 7:12000, 12:12000},
+        # 'slopTankBranch':    {1:  573, 6: 3435, 7: 3950, 12: 3950},
+        # }
+        
+        flow_rate = self.input.vessel.info['loadingRate']
+        
         max_rate = 1000000
         
-        components = {'manifolds':[['manifolds'], ['manifolds']],   # param, flow_rate
-                      'drop':[['manifolds'], ['dropLines']], 
-                      'bottom':[['bottomLines'],['bottomLines']],
-                      'tanks':[['centreTank', 'wingTank'], ['centreTankBranch','wingTankBranch']], 
-                      'PVvalves':[['centreTank', 'wingTank'], ['PVvalveCentreTank','PVvalveWingTank']], 
+        components = {'manifolds':[['Manifolds'], ['Manifolds']],   # param, flow_rate
+                      'drop':[['Manifolds'], ['DropLines']], 
+                      'bottom':[['BottomLines'],['BottomLines']],
+                      'tanks':[['centreTank', 'wingTank','slopTank'], ['CentreTankBranchLine','WingTankBranchLine','SlopTankBranchLine']], 
+                      'PVvalves':[['centreTank', 'wingTank','slopTank'], ['PVValveCentreTank','PVValveWingTank','PVValveWingTank']], 
                       'maxVessel':[[''],['maxLoadingRate']],
                       'maxRiser':[[''],['maxRiser']]}
         rate = {}
+        # print(param['centreTank'])
+        # print(param['wingTank'])
+        # print(param['slopTank'])
+
         for k_, v_ in components.items():
             rate_ = 0
             for i_, j_ in zip(v_[0], v_[1]):
                 # print(i_,j_, param.get(i_,1), flow_rate[j_])
-                rate_ += len(param.get(i_,[1])) * flow_rate[j_]
+                if j_ in ['maxLoadingRate', 'maxRiser']:
+                    # print(i_, j_, flow_rate[j_])
+                    rate_ += flow_rate.get(j_, 20500)
+                else:
+                    # print(i_, j_, param[i_], flow_rate[j_])
+                    if i_ == 'wingTank' and j_ == 'PVValveWingTank':
+                        rate_ += len(param[i_])/2 * flow_rate[j_]
+                    else:
+                        rate_ += len(param[i_]) * flow_rate[j_]
+    
             
             rate[k_] = rate_
             if max_rate > rate_:
                 max_rate = rate_
             
-        # print(rate)
+            # print('>>>', k_, rate_)
+            
+        # print(max_rate)
         
         
         return max_rate
+
+
             
 
     def _topping_seq(self, tanks):
-        fixed_order = ['SLP','5P','5C', '4P', '4C', '2P','2C', '1P','1C','3P', '3C']
+        fixed_order = ['SLS','SLP','5P','5C', '4P', '4C', '2P','2C', '1P','1C','3P', '3C']
         order_ = ['' for o_ in fixed_order]
         
         for t_ in tanks:
-            t__ = t_ if t_ not in ['SLS'] else 'SLP'
+            t__ = t_ #if t_ not in ['SLS'] else 'SLP'
             if t__ in fixed_order:
                 i_ = fixed_order.index(t__)
                 order_[i_] = t__
@@ -1275,7 +1368,10 @@ class Generate_plan:
         
         seq = []
         for t_ in tanks:
-            t__ = t_ if t_[-1] not in ['S'] else t_[:-1]+'P'
+            if t_ not in ['SLS', 'SLP']:
+                t__ = t_ if t_[-1] not in ['S'] else t_[:-1]+'P'
+            else:
+                t__ = t_ 
             # print(t_,t__)
             seq_ = {}
             seq_['shortName'] = t_

@@ -7,6 +7,7 @@ Created on Mon Nov 16 14:50:33 2020
 import numpy as np
 import json
 import pandas as pd
+# from vlcc_ullage import get_correction
 
 DEC_PLACE = 3
 
@@ -36,7 +37,7 @@ class Check_plans:
                     plan_ = {**v_['cargo'], **v_['ballast'], **v_['other']}
                     result = self._check_plan(plan_, k_, seawater_density=self.input.loadable.info['seawaterDensity'][k_])
                     
-                    print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],DEC_PLACE))
+                    print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],4))
                     print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
                     
                     stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
@@ -75,6 +76,7 @@ class Check_plans:
                             plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else ""
                             plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = round(rdgLevel_,6) if cf_ not in [None] else ""
                             
+                            # print(tankId_, cf_, rdgLevel_)
                             
                         else:
                             # print(str(tankId_), a_, 'Missing correction data!!')
@@ -97,6 +99,7 @@ class Check_plans:
         # print(tank, ullage , trim)
         ullage_range = data['ullageDepth'].to_numpy()
         if trim < -1 or trim > 6 or ullage < ullage_range[0] or ullage > ullage_range[-1]:
+            print(self.input.vessel.info['tankId'][int(tank)], ullage, trim, ullage_range[0], ullage_range[-1])
             return None
         
         a_ = np.where(data['ullageDepth'] <= ullage)[0][-1]     
@@ -119,7 +122,7 @@ class Check_plans:
         
         #  print(x_,y_,data_)
         
-        
+        # print(tank, out)
         
         return out
     
@@ -153,9 +156,12 @@ class Check_plans:
             # print(k_,v_)
             type_ = self.input.vessel.info['category'][k_]
             
-            l_mom_ += v_[0]['wt']*self.input.vessel.info[type_][k_]['lcg']
+            # l_mom_ += v_[0]['wt']*self.input.vessel.info[type_][k_]['lcg']
+            l_mom_ += v_[0]['wt']*v_[0]['lcg']
             v_mom_ += v_[0]['wt']*self.input.vessel.info[type_][k_]['vcg']
             t_mom_ += v_[0]['wt']*v_[0]['tcg']
+            
+            # print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'])
             # print(k_, v_[0]['wt'], v_[0]['tcg'], v_[0]['wt']*v_[0]['tcg'])
             # print(k_, v_[0]['wt'], self.input.vessel.info[type_][k_]['lcg'], v_[0]['wt']*self.input.vessel.info[type_][k_]['lcg'])
             
