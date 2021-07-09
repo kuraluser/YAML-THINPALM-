@@ -131,12 +131,13 @@ def loadicator(data, limits):
             info_['BM'] = v_["bendingMomentPersentValue"]
             info_['errorDetails'] = [u_["errorDetails"], v_["errorDetails"]]
             
-            sag_ = u_.get('hog', 0.)/4
+            sag_ = float(u_.get('hog', 0.))/400
             mid_ship_draft_ = float(u_["meanDraftValue"]) + sag_
             info_['judgement'] = []
             # max permissible draft
             max_draft_ = max([float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_]) 
             if limits['limits']['draft'][str(info_['portId'])] < max_draft_:
+                print(max_draft_, limits['limits']['draft'][str(info_['portId'])])
                 info_['judgement'].append('Failed max permissible draft check!')
             # loadline 
             if limits['limits']['draft']['loadline'] < max_draft_:
@@ -184,18 +185,23 @@ def loadicator(data, limits):
                 info_['errorDetails'] = [u_["errorDetails"], v_["errorDetails"]]
                 
                 
-                sag_ = u_.get('hog', 0.)/4
+                sag_ = float(u_.get('hog', 0.))/400
                 mid_ship_draft_ = float(u_["meanDraftValue"]) + sag_
                 info_['judgement'] = []
                 # max permissible draft
                 max_draft_ = max([float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_]) 
+#                print(float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_)
+                
                 if limits['limits']['draft'][str(info_['portId'])] < max_draft_:
+                    print('Failed max permissible draft check!', limits['limits']['draft'][str(info_['portId'])], max_draft_)
                     info_['judgement'].append('Failed max permissible draft check!')
                 # loadline 
                 if limits['limits']['draft']['loadline'] < max_draft_:
+                    print('Failed loadline check!', limits['limits']['draft']['loadline'], max_draft_)
                     info_['judgement'].append('Failed loadline check!')
                 # airDraft
                 if limits['limits']['airDraft'][str(info_['portId'])] < float(info_['airDraft']):
+                    print('Failed airdraft check!', limits['limits']['airDraft'][str(info_['portId'])], float(info_['airDraft']))
                     info_['judgement'].append('Failed airdraft check!')
                 
                 # SF
