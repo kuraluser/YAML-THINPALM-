@@ -125,13 +125,13 @@ def loadicator(data, limits):
             info_["list"] = str(u_["heelValue"])
             info_["deflection"] = None
             info_['airDraft'] = u_['airDraftValue']
-            info_['hog'] = u_.get("hog", None) 
+            info_['deflection'] = u_.get("deflection", None) 
             
             info_["SF"] = v_["shearingForcePersentValue"]
             info_['BM'] = v_["bendingMomentPersentValue"]
             info_['errorDetails'] = [u_["errorDetails"], v_["errorDetails"]]
             
-            sag_ = float(u_.get('hog', 0.))/400
+            sag_ = float(u_.get('deflection', 0.))/400
             mid_ship_draft_ = float(u_["meanDraftValue"]) + sag_
             info_['judgement'] = []
             # max permissible draft
@@ -178,14 +178,14 @@ def loadicator(data, limits):
                 info_["list"] = str(u_["heelValue"])
                 info_["deflection"] = None
                 info_['airDraft'] = u_['airDraftValue']
-                info_['hog'] = u_.get('hog', None)
+                info_['deflection'] = u_.get('deflection', None)
                 
                 info_["SF"] = v_["shearingForcePersentValue"]
                 info_['BM'] = v_["bendingMomentPersentValue"]
                 info_['errorDetails'] = [u_["errorDetails"], v_["errorDetails"]]
                 
                 
-                sag_ = float(u_.get('hog', 0.))/400
+                sag_ = float(u_.get('deflection', 0.))/400
                 mid_ship_draft_ = float(u_["meanDraftValue"]) + sag_
                 info_['judgement'] = []
                 # max permissible draft
