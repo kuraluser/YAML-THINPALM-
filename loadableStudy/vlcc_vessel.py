@@ -14,12 +14,12 @@ import json
 from scipy.interpolate import interp1d, interp2d
 plt.style.use('seaborn-whitegrid')
 
-tank_info_ = {'DSWP':-1, 'DWP':-1, 'FWS':1, 'DSWS':1, 
-              'FO2P':-1, 'FO2S':1, 'FO1P':-1, 'FO1S':1, 'BFOSV':1, 'FOST':1, 'FOSV':1,
-              'DO1S':1,  'DO2S':1, 'DOSV1':1, 'DOSV2':1,
-              'SLS':1, '2C':1, '1P':-1, '1S':1, '2P':-1, '2S':1,  '5C':1, '1C':1, '3C':1, '4C':1, '3P':-1, '3S':1, '4P':-1, '4S':1, '5P':-1, '5S':1, 'SLP':-1,
-              'UFPT':1, 'LFPT':1, 'WB1P':-1,'WB1S':1, 'WB2P':-1, 'WB2S':1, 'WB3P':-1, 'WB3S':1, 'WB4P':-1, 'WB4S':1, 'WB5P':-1, 'WB5S':1, 'AWBP':-1, 'AWBS':1, 'APT':-1, 'FPTU':1, 
-               }
+# tank_info_ = {'DSWP':-1, 'DWP':-1, 'FWS':1, 'DSWS':1, 
+#               'FO2P':-1, 'FO2S':1, 'FO1P':-1, 'FO1S':1, 'BFOSV':1, 'FOST':1, 'FOSV':1,
+#               'DO1S':1,  'DO2S':1, 'DOSV1':1, 'DOSV2':1,
+#               'SLS':1, '2C':1, '1P':-1, '1S':1, '2P':-1, '2S':1,  '5C':1, '1C':1, '3C':1, '4C':1, '3P':-1, '3S':1, '4P':-1, '4S':1, '5P':-1, '5S':1, 'SLP':-1,
+#               'UFPT':1, 'LFPT':1, 'WB1P':-1,'WB1S':1, 'WB2P':-1, 'WB2S':1, 'WB3P':-1, 'WB3S':1, 'WB4P':-1, 'WB4S':1, 'WB5P':-1, 'WB5S':1, 'AWBP':-1, 'AWBS':1, 'APT':-1, 'FPTU':1, 
+#                }
 
 
 class Vessel:
@@ -90,6 +90,10 @@ class Vessel:
                     
                 if t_['slopTank']:
                     vessel_info_['slopTank'].append(t_['shortName'])
+                    
+                    
+        
+        
                 
 #                print(t_['shortName'],t_['name'])
                 
@@ -172,8 +176,17 @@ class Vessel:
         ##
         vessel_info_['tankLCG'] = {}
         vessel_info_['tankLCG']['lcg'] = lcg_details_
+        self._get_lcg_parameters(vessel_info_, lcg_details_)  
         
         
+        for k_, v_ in vessel_info_['cargoTanks'].items():
+            vol_ = 0.98*v_['capacityCubm']
+            lcg_data_ = lcg_details_[k_]
+            lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
+            # print(k_, lcg_, v_['lcg'])
+            vessel_info_['cargoTanks'][k_]['lcg'] = lcg_
+            
+        # vessel_info_['cargoTanks']['SLP']['lcg'] = 106.6
         ##
         vessel_info_['KTM'] = vessel_json['vessel']['keelToMastHeight']
         vessel_info_['LPP'] = float(vessel_json['vessel']['lengthBetweenPerpendiculars'])
@@ -365,8 +378,13 @@ class Vessel:
             
     def _get_onhand(self, inputs): 
         ## virtual ports
+        DENSITY = {'DSWP':1.0, 'DWP':1.0, 'FWS':1.0, 'DSWS':1.0,
+                   'FO2P':0.98, 'FO2S':0.98, 'FO1P':0.98, 'FO1S':0.98, 'BFOSV':0.98, 'FOST':0.98, 'FOSV':0.98,
+                   'DO1S':0.88,  'DO2S':0.88, 'DOSV1':0.88, 'DOSV2':0.88}
+        
         onhand_json = inputs.vessel_json['onHand']
         self.info['onhand'] = {} # ROB
+        self.info['onhand1'] = {} # ROB
         for o__, o_ in enumerate(onhand_json):
             tank_ = self.info['tankId'].get(o_['tankId'],None)
             # print(tank_, o_['portId'])
@@ -378,22 +396,112 @@ class Vessel:
                 if tank_ not in self.info['onhand'].keys():
                     self.info['onhand'][tank_] = {}
                     
-                # print(o_)
-                vol_ = float(o_['arrivalVolume']) if o_['arrivalVolume'] not in [None] else 0.
-                # print(vol_)
-                if vol_ > 0:
-                    tcg_ = np.interp(vol_, tcg_data_['vol'], tcg_data_['tcg'])
-                    lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
-                    self.info['onhand'][tank_][port_order_+'A'] = {'wt': float(o_['arrivalQuantity']), 'vol': vol_, 'tcg':tcg_, 'lcg':lcg_}
                     
-                vol_ = float(o_['departureVolume']) if o_['arrivalVolume'] not in [None] else 0.
-                # print(vol_)
-                if vol_ > 0:
-                    tcg_ = np.interp(vol_, tcg_data_['vol'], tcg_data_['tcg'])
-                    lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
-                    
-                    self.info['onhand'][tank_][port_order_+'D'] = {'wt': float(o_['departureQuantity']), 'vol': vol_,'tcg':tcg_, 'lcg':lcg_}
+                if port_order_+'A' not in self.info['onhand1'].keys():
+                    self.info['onhand1'][port_order_+'A'] = {}
                 
+                if port_order_+'D' not in self.info['onhand1'].keys():
+                    self.info['onhand1'][port_order_+'D'] = {}
+                    
+                # print(o_)
+                wt_ = float(o_['arrivalQuantity']) if o_['arrivalQuantity'] not in [None] else 0.
+                vol_ = wt_/DENSITY[tank_]
+                # vol_ = float(o_['arrivalVolume']) if o_['arrivalVolume'] not in [None] else 0.
+                
+                # print(vol_)
+                if vol_ > 0:
+                    tcg_ = np.interp(vol_, tcg_data_['vol'], tcg_data_['tcg'])
+                    lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
+                    self.info['onhand'][tank_][port_order_+'A'] = {'wt': wt_, 'vol': vol_, 'tcg':tcg_, 'lcg':lcg_}
+                    self.info['onhand1'][port_order_+'A'][tank_] = wt_
+                    
+                wt_ = float(o_['departureQuantity']) if o_['departureQuantity'] not in [None] else 0.
+                vol_ = wt_/DENSITY[tank_]
+                # vol_ = float(o_['departureVolume']) if o_['arrivalVolume'] not in [None] else 0.
+                # print(vol_)
+                if vol_ > 0:
+                    tcg_ = np.interp(vol_, tcg_data_['vol'], tcg_data_['tcg'])
+                    lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
+                    
+                    self.info['onhand'][tank_][port_order_+'D'] = {'wt': wt_, 'vol': vol_,'tcg':tcg_, 'lcg':lcg_}
+                    self.info['onhand1'][port_order_+'D'][tank_] = wt_
+                
+          
+        self.info['sameROBseawater'] = []
+        for p_ in range(1,inputs.port.info['numPort']):
+            p1_, p2_ = str(p_)+'D', str(p_+1)+'A'
+            port1_, port2_ = inputs.port.info['portOrder'][p1_[:-1]], inputs.port.info['portOrder'][p2_[:-1]]
+            if (self.info['onhand1'][p1_] == self.info['onhand1'][p2_]) and (inputs.port.info['portRotation'][port1_]['seawaterDensity'] == inputs.port.info['portRotation'][port2_]['seawaterDensity']):
+                print('ROB:', p1_, p2_, inputs.loadable.info['arrDepVirtualPort'][p1_], inputs.loadable.info['arrDepVirtualPort'][p2_])
+                self.info['sameROBseawater'].append((inputs.loadable.info['arrDepVirtualPort'][p1_],inputs.loadable.info['arrDepVirtualPort'][p2_]))
+            
+        # print(self.info['onhand'])      
+    
+    def _get_lcg_parameters(self, vessel_info_, lcg_details_):
+        
+        if not Path(vessel_info_['name']+'_lcg_pw.pickle').is_file():
+            npw_ = 10
+            parameters_ = {'npw':npw_}
+            for k_, v_ in lcg_details_.items():
+                
+                
+                if k_ not in vessel_info_['banBallast'] and  v_['type'] in ['ballast'] and abs(v_['lcg'][-1]-v_['lcg'][2]) > 0.1:
+                #if k_ not in vessel_info_['banBallast'] and  v_['type'] in ['ballast','cargo'] and abs(v_['lcg'][-1]-v_['lcg'][2]) > 0.1:
+                    print(k_, v_['lcg'][-1], v_['lcg'][0], v_['lcg'][1] ,v_['lcg'][2])
+                    
+                    lcg_weight_ = np.array(v_['vol'])*1.025 # density == 1 
+                    lcg_mom_ = lcg_weight_ * np.array(v_['lcg'])/1000
+                    
+                    my_pwlf = pwlf.PiecewiseLinFit(lcg_weight_, lcg_mom_)
+                    # fit the data for four line segments
+                    breaks = my_pwlf.fit(npw_)
+                    slopes = my_pwlf.calc_slopes()
+                    intercepts = my_pwlf.intercepts
+                    
+                    ## predict for the determined points
+                    xHat = np.linspace(min(v_['vol']), max(v_['vol']), num=1000)
+                    yHat = np.zeros(len(xHat))
+                    
+                    for i__,i_ in enumerate(xHat):
+                        
+                        m_ = np.where(i_ <= breaks[1:])[0][0]
+                        yHat[i__] = slopes[m_]*i_ + intercepts[m_]
+                        
+#                    yy = np.interp(xHat,tcgVolumes_,tcgValues_)
+#                    mse = np.abs(yy-yHat)
+                    
+                    parameters_[k_] = {'slopes':slopes.tolist(), 'breaks':breaks[1:].tolist(), 'intercepts':intercepts.tolist()}
+            
+                    fig = plt.figure()
+                    ax = plt.axes()
+                    ax.plot(v_['vol'], lcg_mom_,'o')
+                    ax.plot(xHat, yHat, '-')
+                    ax.set_title(vessel_info_['name'] + ' Tank: ' + k_)
+                    ax.set_xlabel("volume")
+                    ax.set_ylabel("LCGMoment")
+                    fig_name = vessel_info_['name'] + '_Tank_'+ k_
+                    fig.savefig(fig_name + '.png')
+                    plt.close(fig)
+                        
+                    print(k_ + ': LCG approximation done!!')
+                    # with open(k_  +'_lcg_pw.pickle', 'wb') as fp_:
+                    #     pickle.dump(parameters_, fp_)   
+                        
+                else:
+                    
+                    print(k_ + ': LCG approximation not needed!!')
+                    # print(k_, v_['lcg'][-1], v_['lcg'][0], v_['lcg'][1] ,v_['lcg'][2])
+            
+            vessel_info_['tankLCG']['lcg_pw'] = parameters_
+            with open(vessel_info_['name']  +'_lcg_pw.pickle', 'wb') as fp_:
+                pickle.dump(parameters_, fp_)     
+                
+        else:
+            
+            with open(vessel_info_['name']  +'_lcg_pw.pickle', 'rb') as fp_:
+                vessel_info_['tankLCG']['lcg_pw'] = pickle.load(fp_)
+            
+    
     def _get_tcg_parameters(self, vessel_info_, tcg_details_):
         
         # with open('tcg_data.json', 'w') as f_:  

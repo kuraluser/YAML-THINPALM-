@@ -182,7 +182,7 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
     await database.execute(query)
     
     data_ =  get_data(data, gID)
- 
+    # print(data_.keys())
     # data_['ballastEdited'] = True
     
     # print('>>>> get vessel API')
@@ -214,7 +214,7 @@ async def status_handler(userId: dict):
     return out
 
 @app.post("/loadicator_results/")
-async def loadicator_handler(data: dict):
+async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
     
     query = users.select().where(users.c.id == data['processId'])
     # out = {'processId': data['processId'], 'status':None, 'result': None}
@@ -229,11 +229,26 @@ async def loadicator_handler(data: dict):
     
     if out.get('feedbackLoop', True):
         print('feedbackloop started!!')
-    # loadicator_url_ = config['url']['loadicator-result'].format(vesselId=limits['limits']['vesselId'],
-    #                                                             voyageId=limits['limits']['voyageId'],
-    #                                                             loadableStudyId=limits['limits']['id'])
-    # print(loadicator_url_)
-    # await post_response(loadicator_url_, out, data["processId"])
+        gID = data['processId']
+        # print(gID)
+        loadable_study_data = data["loadableStudy"]
+        loadable_study_data['feedbackLoopCount'] = out['feedbackLoopCount']
+        loadable_study_data['feedbackLoop'] = out['feedbackLoop']
+        loadable_study_data['feedbackLoopBMSF'] = out['sfbmFac']
+        
+        print('RERUN sfbmFac', out['sfbmFac'])
+        
+        
+        data_ =  get_data(loadable_study_data, gID)
+        
+        logger.info(gID + ": Get vessel API")
+        vessel_url_ = config['url']['vessel-details'].format(vesselId=data_['loadable']['vesselId'])
+        data_['vessel'] = await get_vessel_details(vessel_url_, gID)
+            
+        # print('>>>> add new loadable')
+        logger.info(gID + ": Add feedbackloadable")
+        background_tasks.add_task(start_cpu_bound_task, gID, data_)
+        
     return out
 
 @app.post("/ullage_results/")

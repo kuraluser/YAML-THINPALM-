@@ -94,7 +94,7 @@ def auto_mode(data):
     
     # # # ## gen json  
     out = outputs.gen_json(cargo_rotate.constraints, plan_check.stability_values)
-    # out = outputs.gen_json({str(k_):[] for k_ in range(0,len(outputs.plans.get('ship_status',[])))}, plan_check.stability_values)
+    ## out = outputs.gen_json({str(k_):[] for k_ in range(0,len(outputs.plans.get('ship_status',[])))}, plan_check.stability_values)
     
         
     
@@ -103,13 +103,19 @@ def auto_mode(data):
 def loadicator(data, limits):
     
     out = {"processId": data["processId"], "loadicatorResults":{}}
+    # print(limits)
+    
+    # print(limits['limits']['feedback'], limits['limits']['sfbm'])
     
     if type(data.get("loadicatorPatternDetail",None)) is dict:
+        
+        # Manual for fully Manual
         
         out["loadicatorResults"]["loadablePatternId"] = data['loadicatorPatternDetail']['loadablePatternId']
         out["loadicatorResults"]['loadicatorResultDetails'] = []
         
         results_ =  data['loadicatorPatternDetail']
+        fail_SF_, fail_BM_ = False, False
         
         for u_, v_ in zip(results_['ldTrim'],results_['ldStrength']):
             assert u_['portId'] == v_['portId']
@@ -137,7 +143,6 @@ def loadicator(data, limits):
             # max permissible draft
             max_draft_ = max([float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_]) 
             if limits['limits']['draft'][str(info_['portId'])] < max_draft_:
-                print(max_draft_, limits['limits']['draft'][str(info_['portId'])])
                 info_['judgement'].append('Failed max permissible draft check!')
             # loadline 
             if limits['limits']['draft']['loadline'] < max_draft_:
@@ -149,20 +154,29 @@ def loadicator(data, limits):
             # SF
             if abs(float(v_["shearingForcePersentValue"])) > 100:
                 info_['judgement'].append('Failed SF check!')
+                fail_SF_  = True
             # BM
             if abs(float(v_["bendingMomentPersentValue"])) > 100:
                 info_['judgement'].append('Failed BM check!')
+                fail_BM_ = True
                     
             
             out["loadicatorResults"]['loadicatorResultDetails'].append(info_)
             
+        rerun_ = True if fail_BM_ or fail_SF_ else False
+            
     elif type(data["loadicatorPatternDetails"]) is list:
-        
+        # auto mode
         out = {"processId": data["processId"], "loadicatorResultsPatternWise":[]}
-    
+        
+        # print(len(data['loadicatorPatternDetails']))
+        
+        fail_BMSF_ = 0
+        
         for p_ in data['loadicatorPatternDetails']:
             out_ = {"loadablePatternId":p_["loadablePatternId"], 'loadicatorResultDetails':[]}
             
+            fail_SF_, fail_BM_ = False, False
             for u_, v_ in zip(p_['ldTrim'],p_['ldStrength']):
                 assert u_['portId'] == v_['portId']
                 info_ = {}
@@ -190,43 +204,51 @@ def loadicator(data, limits):
                 info_['judgement'] = []
                 # max permissible draft
                 max_draft_ = max([float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_]) 
-#                print(float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_)
-                
                 if limits['limits']['draft'][str(info_['portId'])] < max_draft_:
-                    print('Failed max permissible draft check!', limits['limits']['draft'][str(info_['portId'])], max_draft_)
                     info_['judgement'].append('Failed max permissible draft check!')
                 # loadline 
                 if limits['limits']['draft']['loadline'] < max_draft_:
-                    print('Failed loadline check!', limits['limits']['draft']['loadline'], max_draft_)
                     info_['judgement'].append('Failed loadline check!')
                 # airDraft
                 if limits['limits']['airDraft'][str(info_['portId'])] < float(info_['airDraft']):
-                    print('Failed airdraft check!', limits['limits']['airDraft'][str(info_['portId'])], float(info_['airDraft']))
                     info_['judgement'].append('Failed airdraft check!')
                 
                 # SF
                 if abs(float(v_["shearingForcePersentValue"])) > 100:
                     info_['judgement'].append('Failed SF check!')
+                    fail_SF_ = True
                 # BM
                 if abs(float(v_["bendingMomentPersentValue"])) > 100:
                     info_['judgement'].append('Failed BM check!')
+                    fail_BM_ = True
             
                 out_["loadicatorResultDetails"].append(info_)
             
             out['loadicatorResultsPatternWise'].append(out_)
-        
+            if fail_SF_ and fail_BM_:
+                fail_BMSF_ += 1
+                
+            
+        rerun_ = True if fail_BMSF_ == len(data['loadicatorPatternDetails']) else False
             
     else:
         print('Unknown type!!')
             
-    rerun_ = False
+        
+    # print(fail_BMSF_)
+    
     if not rerun_:    
         ## feedback loop
         out['feedbackLoop'] = False
-        out['feedbackLoopCount'] = 0
+        out['feedbackLoopCount'] = limits['limits']['feedback']['feedbackLoopCount']
+        out['sfbmFac'] = limits['limits']['sfbm']
+        
         # print('do')
     else:
         print('Rerun!!')
+        out['feedbackLoop'] = True
+        out['feedbackLoopCount'] = limits['limits']['feedback']['feedbackLoopCount'] + 1
+        out['sfbmFac'] = limits['limits']['sfbm'] - 0.05
     ## 
     
     

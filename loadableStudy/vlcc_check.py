@@ -37,7 +37,7 @@ class Check_plans:
                     plan_ = {**v_['cargo'], **v_['ballast'], **v_['other']}
                     result = self._check_plan(plan_, k_, seawater_density=self.input.loadable.info['seawaterDensity'][k_])
                     
-                    print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],4))
+                    print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],5))
                     print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
                     
                     stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
@@ -99,7 +99,7 @@ class Check_plans:
         # print(tank, ullage , trim)
         ullage_range = data['ullageDepth'].to_numpy()
         if trim < -1 or trim > 6 or ullage < ullage_range[0] or ullage > ullage_range[-1]:
-            print(self.input.vessel.info['tankId'][int(tank)], ullage, trim, ullage_range[0], ullage_range[-1])
+            # print(self.input.vessel.info['tankId'][int(tank)], ullage, trim, ullage_range[0], ullage_range[-1])
             return None
         
         a_ = np.where(data['ullageDepth'] <= ullage)[0][-1]     
@@ -161,7 +161,8 @@ class Check_plans:
             v_mom_ += v_[0]['wt']*self.input.vessel.info[type_][k_]['vcg']
             t_mom_ += v_[0]['wt']*v_[0]['tcg']
             
-            # print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'])
+            #if type_ in ['cargoTanks'] and abs(self.input.vessel.info[type_][k_]['lcg'] - v_[0]['lcg']) > 0.01:
+            #    print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'], v_[0].get('wt',0), v_[0]['fillRatio'])
             # print(k_, v_[0]['wt'], v_[0]['tcg'], v_[0]['wt']*v_[0]['tcg'])
             # print(k_, v_[0]['wt'], self.input.vessel.info[type_][k_]['lcg'], v_[0]['wt']*self.input.vessel.info[type_][k_]['lcg'])
             
@@ -189,7 +190,7 @@ class Check_plans:
         bg_ = lcg_ - lcb_
         trim_ = bg_*disp_/mtc_/100
         
-        # print(disp_, mtc_, lcb_)
+        # print(disp_, lcb_, mtc_, trim_)
         
         df_ = draft_ -  (0.5*lpp_ + lcf_)/lpp_*trim_
         da_ = df_ + trim_

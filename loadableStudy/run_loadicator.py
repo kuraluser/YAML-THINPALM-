@@ -14,6 +14,11 @@ fname = 'loadicator-request0413.json'
 fname = 'algo-request0413.json'
 
 fname = 'loadicator_6001a.json'
+fname = 'loadicator_6606.json'
+
+fname = 'loadicator_6680.json'
+fname = 'loadicator_0713.json'
+
 
 with open(fname) as f_:    
     data = json.load(f_)
@@ -26,12 +31,12 @@ with open(fname) as f_:
 #   'airDraft': {'107327': 200, '107327': 200}}}
 
 
-limits = {'limits': {'draft': {'loadline': 20.943, '359': 20.0, '235': 20.0},
-  'operationId': {'359': '1', '235': '2'},
-  'id': 6001,
+limits = {'limits': {'draft': {'loadline': 20.943, '359': 20.0, '1': 20.0},
+  'operationId': {'359': '1', '1': '2'},
+  'id': 6861,
   'vesselId': 1,
-  'voyageId': 1948,
-  'airDraft': {'359': 20.0, '235': 20.0}}}
+  'voyageId': 2042,
+  'airDraft': {'359': 20.0, '1': 20.0}}}
 
 if __name__ == "__main__":
     message = loadicator(data, limits)

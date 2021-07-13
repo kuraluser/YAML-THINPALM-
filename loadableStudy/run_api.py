@@ -56,7 +56,20 @@ fname1 = 'loadablestudy_6676.json'
 fname1 = 'loadablestudy_6849.json' # max draft error
 # fname1 = 'loadablestudy_6854.json' # port ordering error
 
-fname1 = 'ls.json'
+
+
+
+fname1 = 'loadableStudy_8066.json' # sea water density different between arrival and departure port same set of ballast tanks might not be possible
+fname1 = 'pattern_validate.json'
+fname1 = 'loadablePattern_request_3654a.json' # commingle
+fname1 = 'loadablePattern_request_3984.json' # 1 cargo loaded at 2 port
+
+fname1 = 'ballast_edit_request_0611.json'
+
+fname1 = 'loadableStudy_8095.json'
+fname1 = 'loadableStudy_8380.json'
+
+fname1 = 'loadableStudy_0713.json'
 
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #

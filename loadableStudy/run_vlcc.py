@@ -13,7 +13,6 @@ from api_vlcc import gen_allocation
 # sys.stdout = open('log.txt', 'w')
 
 
-fname = 'loadableStudy_4618.json' # 2 cargo at 1st port; 2 ports; zero ballast not possible at discharge port
 
 # fname = 'loadableStudy_4614.json' # api too high; max draft too low
 # fname = 'loadableStudy_4614a.json' # fixed; 2 cargo at 1st port; 2 ports;
@@ -28,14 +27,14 @@ fname = 'loadableStudy_4618.json' # 2 cargo at 1st port; 2 ports; zero ballast n
 
 # fname = 'loadableStudy_4601.json' # unload 210k total load;
 
-# fname = 'loadableStudy70rob2.json' #  non-zero ballast 20sec full load
+fname = 'loadableStudy70rob2.json' #  non-zero ballast 20sec full load
 # fname = 'loadableStudy66c2.json'  # rotation at 2nd port; load more if non-zero ballast
-# fname = 'loadableStudy23c2.json' # rotation not required
-# fname = 'loadableStudy26c2.json' # commingle 4C:50 onboard
+# 
+fname = 'loadableStudy26c2.json' # commingle 4C:0 onboard 90sec deballastPercent = 1
 
 # 
 # fname = 'loadableStudy_4601.json' # partial load 200k 40% cargo deballast disable
-fname = 'loadableStudy_5009.json'
+# fname = 'loadableStudy_5009.json'
 
 # fname = 'loadableStudy_5233.json' # infeasible
 
@@ -65,27 +64,119 @@ fname = 'loadableStudy_5009.json'
 # fname = 'loadablePattern_request_2911.json'
 # fname = 'loadableStudy_6165.json'
 
-fname = 'loadableStudy_6164.json'
-fname = 'loadableStudy_6318.json' # missing maxDraft at port 2
-fname = 'loadableStudy_6159.json'
+# fname = 'loadableStudy_6164.json'
+# fname = 'loadableStudy_6318.json' # missing maxDraft at port 2
+# fname = 'loadableStudy_6159.json' # missing maxDraft 
 
-fname = 'request0421.json' # deballast limit relax
-# fname = 'request0422a.json' # deballast limit relax
-fname = 'request0422a.json'
+# fname = 'request0421.json' # deballast limit relax
+# fname = 'request0422b.json' # max draft error
 
-fname = 'loadablePattern_request_3314.json'
+# fname = 'request0422a.json' # infeasible
+# fname = 'loadableStudy_6540.json'
 
-fname = 'loadablePattern_request_3325.json'
+# fname = 'loadablePattern_request_3314.json' # manual 1 dec place wt in tank
+# fname = 'request_commingle0429a.json'
+
+# fname = 'request_commingle0429c.json' # 2 commingle cargo
 
 
-fname = 'request_commingle0429a.json'
-fname = 'loadablePattern_request_3325.json'
 
-fname = 'loadablePattern_request_3546.json'
+# fname = 'loadableStudy_6572.json'
+# fname = 'loadablePattern_request_3325.json'
 
-fname = 'loadablestudy_6669.json'
-fname = 'loadablestudy_6799.json'
-fname = 'loadableStudy66c2.json'  # rotation at 2nd port; load more if non-zero ballast
+
+
+# fname = 'loadableStudy_6671.json' # loadable json
+# fname = 'loadablePattern_request_3546.json'
+
+# fname = 'loadablestudy_6711.json'
+# fname = 'loadablestudy_6799.json'
+
+# fname = 'loadablestudy_6849.json' # max draft error
+# fname = 'loadablestudy_6854.json' # port order error
+
+# fname = 'loadable_study_2cargos.json'
+# fname = 'loadableStudy_4618.json' # 2 cargo at 1st port; 2 ports; Port 2 and 3 cannot share same ballast tank; zero ballast not possible at discharge port; 
+# fname = 'loadableStudy66c2.json'  # rotation at 2nd port; load more if non-zero ballast
+# fname = 'loadableStudy23c2.json' # rotation not required
+
+##------------
+# fname = 'request0422a.json' # infeasible
+
+# fname = 'loadablestudy_6849.json' # max draft error
+# fname = 'loadableStudy26c2.json' # commingle 4C:0 onboard 90sec deballastPercent = 1
+
+# 
+
+# fname = 'loadablePattern_request_3995.json'
+# fname = 'discharge_port_error.json' # bulking
+## fname = 'loadablePattern_request_3654.json' # manual commingle
+# fname = 'loadableStudy_8016a.json' # API error
+
+# fname = 'pattern_validate.json'
+
+# fname = '7588-loadablestudy.json' # fix draft error duplication 
+# fname = '7872-loadablestudy.json' # 2 port 2 cargo
+# fname = '7967-loadablestudy.json' # fix loading hrs
+
+# fname = 'pattern_validate.json'
+# fname = 'loadablePattern_request_3995.json' # manual
+# fname = 'Loadablepatternrequest-4439.json' # loosen 98% vol, symmetric tank
+# fname = 'loadablePattern_request_3654a.json' # commingle
+# fname = 'loadablePattern_request_3984.json' # 1 cargo loaded at 2 port
+
+
+# fname = 'loadableStudy_7410.json'
+fname = 'loadableStudy_8066.json' # sea water density different between arrival and departure port same set of ballast tanks might not be possible
+
+# UAT
+# fname = 'loadableStudy_8073.json'
+# fname = 'loadableStudy_8080.json'
+# fname = 'loadableStudy_8154.json'
+# fname = 'loadableStudy_8095.json'
+# fname = 'loadableStudy_8219a.json' # cargoToBeDischargeFirstId should be cargoNominationId 
+
+# fname = 'loadablePattern_request_4900.json' # failed 98% volume > .98005
+# fname = 'loadableStudy_8254.json'
+
+# fname = 'loadableStudy_8252.json' # infeasible
+# fname = 'loadableStudy_8247.json' # infeasible
+# fname = 'loadableStudy_8251.json' # infeasbible
+
+# fname = 'loadableStudy_8285.json' # loadicator results mismatched
+# fname = 'loadableStudy_8018.json' # commingle section error
+# fname = 'loadableStudy_8288.json'
+# fname = 'loadableStudy_8302.json'
+
+# fname = 'loadableStudy_8310a.json' # infeasbile
+# fname = 'loadableStudy_8311.json' # infeasbile
+
+# fname = 'pattern_edit_request0615.json'
+
+# fname = 'ballast_edit_request_0611.json' # fully manual
+
+# fname = 'loadableStudy_8327.json' # commingle error
+# fname = 'loadableStudy_8328b.json' # priority
+
+fname = 'loadableStudy_8380.json'
+
+fname = 'loadableStudy_9220.json'
+
+# fname = 'loadableStudy_8441a.json' #first port bunkering
+# fname = 'loadableStudy_9254.json' #first port bunkering 
+
+# fname = 'loadableStudy_8481.json' # missing port
+# fname = 'loadableStudy_9283.json' # missing port
+# fname = 'loadableStudy_9316.json'
+# fname = 'loadableStudy_9220a.json'
+
+fname = 'loadableStudy_8486a.json' # "totalQuantity": "287702.5000",
+fname = 'loadableStudy_8487.json' # "totalQuantity": "287702.5000",
+
+
+# fname = 'loadableStudy_8520.json'
+# fname = 'loadableStudy_9660.json'
+
 
 ## to be modified in main.py --------------------------------------------
 data = {}
@@ -100,11 +191,12 @@ with open(fname) as f_:
     else:
         data['loadable'] = data_
         
+        
 with open('vessel_info.json') as f_:    
     data['vessel'] = json.load(f_)
 
 data['processId'] = str(uuid4())
-data['ballastEdited'] = False
+data['ballastEdited'] = data_.get('ballastEdited',False)
 
 
 

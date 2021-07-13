@@ -730,7 +730,7 @@ def vlcc_ortools(inputs):
     ListMOM = 500
     
     cargoweight = 1e6
-    deballastPercent = 0.4
+    deballastPercent = 1.0
     
     P_stable = list(set([i for i in range(1, NP)]) - set(fixBallastPort)) # stable port
     
@@ -1493,6 +1493,7 @@ def vlcc_ortools(inputs):
     z4_MTC = {}
     
     for i in P_stable:
+        
         # Constr161
         solver.Add(L_mom[i] == (solver.Sum([wC[t][i]*LCGt[t] for t in T]) + 
                     solver.Sum([wB[t][i]*LCGt[t] for t in TB]) + 
@@ -1673,6 +1674,8 @@ def vlcc_ortools(inputs):
     for i in range(1,Fr+1):
         
         for j in P_stable:
+            
+          
             
             # Constr18b
             solver.Add(wn[i][j] == wn[i-1][j] + 

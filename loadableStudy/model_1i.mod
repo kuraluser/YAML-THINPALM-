@@ -121,6 +121,8 @@
 ## basic: set and params -----------------------------------------------------------
 set T; # set of all cargo tanks
 set T1; # set of cargos tanks without pw tcg details
+#set T2; # set of cargos tanks without pw lcg details
+
 set T_loaded within T; # set of loaded tanks (preloaded condition)
 
 set C; # set of all cargoes
@@ -188,6 +190,8 @@ param deballastPercent default 0.4;
 ## ballast tanks
 set TB; #set of ballast tanks
 set TB1; # set of ballast tanks with no pw tcg details
+set TB2; # set of ballast tanks with no pw lcg details
+
 param densitySeaWater{p in Pbar} default 1.025; # density of water @ high temperature
 param densityBallast{p in Pbar} default 1.025; # density of water @ high temperature
 
@@ -297,102 +301,41 @@ param TCGtp{t in OtherTanks, p in P} default 0;
 param ListMOM default 500; # upper and lower limits of tcg mom
 param TCGdw default 0; # TCG deadweight constant
 
-param pwBallast default 0;
-param mTank1{t in T union TB} default 0; # need update input based on tcg details
-param mTank2{t in T union TB} default 0; # need update input based on tcg details
-param mTank3{t in T union TB} default 0; # need update input based on tcg details
-param mTank4{t in T union TB} default 0; # need update input based on tcg details
-param mTank5{t in T union TB} default 0; # need update input based on tcg details
-param mTank6{t in T union TB} default 0; # need update input based on tcg details
-param mTank7{t in T union TB} default 0; # need update input based on tcg details
-param mTank8{t in T union TB} default 0; # need update input based on tcg details
-param mTank9{t in T union TB} default 0; # need update input based on tcg details
-param mTank10{t in T union TB} default 0; # need update input based on tcg details
-
-param bTank1{t in T union TB} default 0; # need update input based on tcg details
-param bTank2{t in T union TB} default 0; # need update input based on tcg details
-param bTank3{t in T union TB} default 0; # need update input based on tcg details
-param bTank4{t in T union TB} default 0; # need update input based on tcg details
-param bTank5{t in T union TB} default 0; # need update input based on tcg details
-param bTank6{t in T union TB} default 0; # need update input based on tcg details
-param bTank7{t in T union TB} default 0; # need update input based on tcg details
-param bTank8{t in T union TB } default 0; # need update input based on tcg details
-param bTank9{t in T union TB} default 0; # need update input based on tcg details
+param pwTCG default 0;
+param mTankTCG{p in 1..pwTCG,   t in T union TB} default 0; # need update input based on tcg details
+param bTankTCG{p in 1..pwTCG-1, t in T union TB} default 0; # need update input based on tcg details
 
 # stability - trim
 param LCGt{t in AllTanks}; #tank LCG
 param LCGship;
 param LCGdw default 0;
+param LCGtp{t in OtherTanks, p in P} default 0;
 #param TrimMOM default 1;
-param trim_upper{p in P} default 0.001;
-param trim_lower{p in P} default -0.001;
+param trim_upper{p in P} default 0.0001;
+param trim_lower{p in P} default -0.0001;
 
-param mLCB1 default 0;
-param mLCB2 default 0;
-param mLCB3 default 0;
-param mLCB4 default 0;
-param mLCB5 default 0;
-param mLCB6 default 0;
-param mLCB7 default 0;
-param mLCB8 default 0;
-param mLCB9 default 0;
-param mLCB10 default 0;
+param pwLCG default 0;
+param mTankLCG{p in 1..pwLCG,   t in T union TB} default 0; # need update input based on tcg details
+param bTankLCG{p in 1..pwLCG-1, t in T union TB} default 0; # need update input based on tcg details
 
-param bLCB1 default 0;
-param bLCB2 default 0;
-param bLCB3 default 0;
-param bLCB4 default 0;
-param bLCB5 default 0;
-param bLCB6 default 0;
-param bLCB7 default 0;
-param bLCB8 default 0;
-param bLCB9 default 0;
 
-param mMTC1 default 0;
-param mMTC2 default 0;
-param mMTC3 default 0;
-param mMTC4 default 0;
-param mMTC5 default 0;
-param mMTC6 default 0;
-param mMTC7 default 0;
-param mMTC8 default 0;
-param mMTC9 default 0;
-param mMTC10 default 0;
+param pwLCB default 0;
+param mLCB{p in 1..pwLCB} default 0;
+param bLCB{p in 1..pwLCB-1}  default 0;
 
-param bMTC1 default 0;
-param bMTC2 default 0;
-param bMTC3 default 0;
-param bMTC4 default 0;
-param bMTC5 default 0;
-param bMTC6 default 0;
-param bMTC7 default 0;
-param bMTC8 default 0;
-param bMTC9 default 0;
+param pwMTC default 0;
+param mMTC{p in 1..pwMTC} default 0;
+param bMTC{p in 1..pwMTC-1}  default 0;
+
 
 # stability - Draft 
 param base_draft{p in P} default 0;
 
-param mDraft1 default 0;
-param mDraft2 default 0;
-param mDraft3 default 0;
-param mDraft4 default 0;
-param mDraft5 default 0;
-param mDraft6 default 0;
-param mDraft7 default 0;
-param mDraft8 default 0;
-param mDraft9 default 0;
-param mDraft10 default 0;
+param pwDraft default 0;
+param mDraft{p in 1..pwDraft} default 0;
+param bDraft{p in 1..pwDraft-1}  default 0;
 
-param bDraft1 default 0;
-param bDraft2 default 0;
-param bDraft3 default 0;
-param bDraft4 default 0;
-param bDraft5 default 0;
-param bDraft6 default 0;
-param bDraft7 default 0;
-param bDraft8 default 0;
-param bDraft9 default 0;
-
+param disp0 default 123177.0;
 # stability - SF and BM
 param adjMeanDraft default 0.166895;
 param adjLCB default -13665.8;
@@ -456,6 +399,8 @@ var zBb2{TB} binary;
 var yB{t in TB,p in P} = wB[t,p]/densityBallast[p]; # volume of water (w.r.t. low density) planned to be added into ballast tank t at port p
 
 var TB_tmom{t in TB, p in P} default 0; # TMom TB
+var TB_lmom{t in TB, p in P} default 0; # TMom TB
+
 var T_tmom{t in T, p in P} default 0; # TMom T
 var T_mom{p in P} default 0; # TCG Mom
 var L_mom{p in P} default 0; # LCG Mom
@@ -650,8 +595,8 @@ subject to Condition114b {t in TB, (u,v) in loadingPortNotLast}: wB[t,u] >= wB[t
 # decreasing ballast tank
 subject to Condition114c {(u,v) in loadingPort}: sum{t in TB}xB[t,u] >= sum{t in TB}xB[t,v];
 # depart and arrival has to use same tank
-subject to Condition114d2 {t in TB, (u,v) in depArrPort2}: wB[t,u] = wB[t,v]; # zero ROB
-subject to Condition114d1 {t in TB, (u,v) in depArrPort1}: xB[t,u] = xB[t,v];
+subject to Condition114d2 {t in TB, (u,v) in depArrPort2}: wB[t,u] = wB[t,v]; # fixed ROB
+subject to Condition114d1 {t in TB, (u,v) in depArrPort1}: wB[t,u] >= wB[t,v]; # non-zero ROB
 # rotation loading ports
 subject to Condition114e1 {t in TB, (u,v) in rotatingPort1}:  -wB[t,u] +  wB[t,v] <= 1e6*(1-zBa1[t]);
 subject to Condition114e2 {t in TB, (u,v) in rotatingPort1}:    wB[t,u] -  wB[t,v] <= 1e6*(1-zBb1[t]);
@@ -695,10 +640,12 @@ subject to Constr13b {p in P_last_loading}: sum{t in T} wC[t,p] <= cargoweight;
 
 ## New list constraint
 #  ballast
-subject to Constr15b1 {t in TB diff TB1, p in P_stable}: TB_tmom[t,p] = <<bTank1[t], bTank2[t], bTank3[t], bTank4[t], bTank5[t], bTank6[t], bTank7[t], bTank8[t], bTank9[t]; mTank1[t], mTank2[t], mTank3[t], mTank4[t], mTank5[t], mTank6[t], mTank7[t], mTank8[t], mTank9[t], mTank10[t]>> wB[t,p];
+#subject to Constr15b1 {t in TB diff TB1, p in P_stable}: TB_tmom[t,p] = <<bTank1[t], bTank2[t], bTank3[t], bTank4[t], bTank5[t], bTank6[t], bTank7[t], bTank8[t], bTank9[t]; mTank1[t], mTank2[t], mTank3[t], mTank4[t], mTank5[t], mTank6[t], mTank7[t], mTank8[t], mTank9[t], mTank10[t]>> wB[t,p];
+subject to Constr15b1 {t in TB diff TB1, p in P_stable}: TB_tmom[t,p] = <<{s in 1..pwTCG-1} bTankTCG[s,t]; {s in 1..pwTCG} mTankTCG[s,t]>> wB[t,p];
 subject to Constr15b2 {t in TB1, p in P_stable}: TB_tmom[t,p] = wB[t,p]*TCGt[t];
 # cargo
-subject to Constr15c1 {t in T diff T1, p in P_stable}: T_tmom[t,p] = <<bTank1[t], bTank2[t], bTank3[t], bTank4[t], bTank5[t], bTank6[t], bTank7[t], bTank8[t], bTank9[t]; mTank1[t], mTank2[t], mTank3[t], mTank4[t], mTank5[t], mTank6[t], mTank7[t], mTank8[t], mTank9[t], mTank10[t]>> wC[t,p]; 
+#subject to Constr15c1 {t in T diff T1, p in P_stable}: T_tmom[t,p] = <<bTank1[t], bTank2[t], bTank3[t], bTank4[t], bTank5[t], bTank6[t], bTank7[t], bTank8[t], bTank9[t]; mTank1[t], mTank2[t], mTank3[t], mTank4[t], mTank5[t], mTank6[t], mTank7[t], mTank8[t], mTank9[t], mTank10[t]>> wC[t,p]; 
+subject to Constr15c1 {t in T diff T1, p in P_stable}: T_tmom[t,p] = <<{s in 1..pwTCG-1} bTankTCG[s,t]; {s in 1..pwTCG} mTankTCG[s,t]>> wC[t,p]; 
 subject to Constr15c2 {t in T1, p in P_stable}: T_tmom[t,p] = wC[t,p]*TCGt[t];
 
 subject to Constr153 {p in P_stable}: T_mom[p] = sum{t in T} T_tmom[t,p] + sum{t in TB } TB_tmom[t,p]  + sum{t in OtherTanks} weightOtherTank[t,p]*TCGtp[t,p] + deadweightConst*TCGdw;
@@ -706,9 +653,23 @@ subject to Constr154 {p in P_stable}: -ListMOM <= T_mom[p] <= ListMOM;
 
 
 ## Trim constraint
-subject to Constr161 {p in P_stable}: L_mom[p] = sum{t in T} wC[t,p]*LCGt[t] + sum{t in TB} wB[t,p]*LCGt[t] + sum{t in OtherTanks} weightOtherTank[t,p]*LCGt[t] + lightWeight*LCGship + deadweightConst*LCGdw;
-subject to Constr163 {p in P_stable}: LCBp[p] = (<<bLCB1,bLCB2,bLCB3,bLCB4,bLCB5,bLCB6,bLCB7,bLCB8,bLCB9; mLCB1, mLCB2, mLCB3, mLCB4, mLCB5, mLCB6, mLCB7, mLCB8, mLCB9, mLCB10 >> displacement1[p])*densitySeaWater[p]/1.025  + adjLCB;
-subject to Constr164 {p in P_stable}: MTCp[p] = (<<bMTC1,bMTC2,bMTC3,bMTC4,bMTC5,bMTC6,bMTC7,bMTC8,bMTC9; mMTC1, mMTC2, mMTC3, mMTC4, mMTC5, mMTC6, mMTC7, mMTC8, mMTC9, mMTC10 >> displacement1[p])*densitySeaWater[p]/1.025  + adjMTC;
+#  ballast
+#subject to Constr16b1 {t in TB diff TB2, p in P_stable}: TB_lmom[t,p] = 1000 * (<<bTank1l[t], bTank2l[t], bTank3l[t], bTank4l[t], bTank5l[t], bTank6l[t], bTank7l[t], bTank8l[t], bTank9l[t]; mTank1l[t], mTank2l[t], mTank3l[t], mTank4l[t], mTank5l[t], mTank6l[t], mTank7l[t], mTank8l[t], mTank9l[t], mTank10l[t]>> wB[t,p]);
+subject to Constr16b1 {t in TB diff TB2, p in P_stable}: TB_lmom[t,p] = 1000 * (<<{s in 1..pwLCG-1} bTankLCG[s,t]; {s in 1..pwLCG} mTankLCG[s,t]>> wB[t,p]);
+subject to Constr16b2 {t in TB2, p in P_stable}: TB_lmom[t,p] = wB[t,p]*LCGt[t];
+
+
+#subject to Constr161 {p in P_stable}: L_mom[p] = sum{t in T} wC[t,p]*LCGt[t] + sum{t in TB} wB[t,p]*LCGt[t] + sum{t in OtherTanks} weightOtherTank[t,p]*LCGtp[t,p] + lightWeight*LCGship + deadweightConst*LCGdw;
+subject to Constr161 {p in P_stable}: L_mom[p] = sum{t in T} wC[t,p]*LCGt[t] + sum{t in TB} TB_lmom[t,p] + sum{t in OtherTanks} weightOtherTank[t,p]*LCGtp[t,p] + lightWeight*LCGship + deadweightConst*LCGdw;
+
+#subject to Constr163 {p in P_stable}: LCBp[p] = (<<bLCB1,bLCB2,bLCB3,bLCB4,bLCB5,bLCB6,bLCB7,bLCB8,bLCB9; mLCB1, mLCB2, mLCB3, mLCB4, mLCB5, mLCB6, mLCB7, mLCB8, mLCB9, mLCB10 >> displacement1[p])*densitySeaWater[p]/1.025  + adjLCB;
+#subject to Constr164 {p in P_stable}: MTCp[p] = (<<bMTC1,bMTC2,bMTC3,bMTC4,bMTC5,bMTC6,bMTC7,bMTC8,bMTC9; mMTC1, mMTC2, mMTC3, mMTC4, mMTC5, mMTC6, mMTC7, mMTC8, mMTC9, mMTC10 >> displacement1[p])*densitySeaWater[p]/1.025  + adjMTC;
+
+subject to Constr163 {p in P_stable}: LCBp[p] = (<<{s in 1..pwLCB-1} bLCB[s]; {s in 1..pwLCB} mLCB[s]>> displacement1[p])*densitySeaWater[p]/1.025  + adjLCB;
+#subject to Constr163 {p in P_stable}: LCBp[p] = (<<{s in 1..pwLCB-1} bLCB[s]; {s in 1..pwLCB} mLCB[s]>> (displacement1[p] - disp0)) + adjLCB;
+
+
+subject to Constr164 {p in P_stable}: MTCp[p] = (<<{s in 1..pwMTC-1} bMTC[s]; {s in 1..pwMTC} mMTC[s]>> displacement1[p])*densitySeaWater[p]/1.025 + adjMTC ;
 
 subject to Constr16a {p in P_stable}: MTCp[p]*trim_lower[p]*100 <= L_mom[p] - LCBp[p] ;
 subject to Constr16b {p in P_stable}: L_mom[p] - LCBp[p] <= MTCp[p]*trim_upper[p]*100;
@@ -724,7 +685,8 @@ subject to Constr19b {f in 1..Fr, p in P_stable}: mn[f,p] = mn[f-1,p] + sum {t i
 
 # mean_draft=pwl(displacement)
 #subject to Constr18d {p in P}: mean_draft[p] = (<<bDraft1,bDraft2,bDraft3,bDraft4,bDraft5,bDraft6,bDraft7,bDraft8,bDraft9; mDraft1, mDraft2, mDraft3, mDraft4, mDraft5, mDraft6, mDraft7, mDraft8, mDraft9, mDraft10 >> displacement1[p])*densitySeaWater[p]/1.025 + adjMeanDraft;
-subject to Constr18d {p in P}: mean_draft[p] = <<bDraft1,bDraft2,bDraft3,bDraft4,bDraft5,bDraft6,bDraft7,bDraft8,bDraft9; mDraft1, mDraft2, mDraft3, mDraft4, mDraft5, mDraft6, mDraft7, mDraft8, mDraft9, mDraft10 >> displacement[p] + adjMeanDraft;
+#subject to Constr18d {p in P}: mean_draft[p] = <<bDraft1,bDraft2,bDraft3,bDraft4,bDraft5,bDraft6,bDraft7,bDraft8,bDraft9; mDraft1, mDraft2, mDraft3, mDraft4, mDraft5, mDraft6, mDraft7, mDraft8, mDraft9, mDraft10 >> displacement[p] + adjMeanDraft;
+subject to Constr18d {p in P}: mean_draft[p] = <<{s in 1..pwDraft-1} bDraft[s]; {s in 1..pwDraft}mDraft[s]>> displacement[p] + adjMeanDraft;
 
 
 subject to Condition200a {p in P_stable}: est_trim[p] = (trim_upper[p]+trim_lower[p])/2;

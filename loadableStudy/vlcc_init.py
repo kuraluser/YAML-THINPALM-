@@ -94,6 +94,7 @@ class Process_input(object):
         ## for auto only
         self.feedbackLoop      = data['loadable'].get('feedbackLoop', False)
         self.feedbackLoopCount = data['loadable'].get('feedbackLoopCount', 0)
+        self.feedback_sf_bm_frac = data['loadable'].get('feedbackLoopBMSF', 1)
         
         
     def prepare_dat_file(self, ballast_weight=1000):
@@ -115,7 +116,7 @@ class Process_input(object):
             self.infeasible_analysis()
         
         
-    def get_stability_param(self, ballast_weight_ = 91800, sf_bm_frac = 0.9, trim_upper = 1, trim_lower = 1):
+    def get_stability_param(self, ballast_weight_ = 91800, sf_bm_frac = 0.95, trim_upper = 1, trim_lower = 1):
         
         # ARR_DEP_ = {0:'A', 1:'D'}
 #        self.trim_range = [-0.1,0.1]
@@ -124,7 +125,7 @@ class Process_input(object):
         self.base_draft = {}
         self.sf_base_value, self.sf_draft_corr, self.sf_trim_corr = {}, {}, {}
         self.bm_base_value, self.bm_draft_corr, self.bm_trim_corr = {}, {}, {}
-        self.sf_bm_frac = sf_bm_frac
+        self.sf_bm_frac = min(sf_bm_frac, self.feedback_sf_bm_frac)
         self.limits = {'draft':{}}
         
         min_draft_limit_  = 10.425
@@ -137,6 +138,7 @@ class Process_input(object):
         self.limits['voyageId'] = self.voyage_id
         self.limits['airDraft'] = self.port.info['maxAirDraft']
         self.limits['sfbm'] = self.sf_bm_frac
+        self.limits['feedback'] = {'feedbackLoop': self.feedbackLoop,'feedbackLoopCount':self.feedbackLoopCount}
         
         # print(self.limits)
         
@@ -754,6 +756,15 @@ class Process_input(object):
                     if i_ not in tb_list_:
                         str1 += i_ + ' '
                 print(str1+';', file=text_file)
+                
+                print('# ballast tanks with non-pw lcg details',file=text_file)#  
+                tb_list_ = list(self.vessel.info['tankLCG']['lcg_pw'].keys()) + self.vessel.info['banBallast']
+                # tb_list_ = self.vessel.info['banBallast']
+                str1 = 'set TB2 := '
+                for i_, j_ in self.vessel.info['ballastTanks'].items():
+                    if i_ not in tb_list_:
+                        str1 += i_ + ' '
+                print(str1+';', file=text_file)
     #            
                 # density of seawater
                 print('# density of seawater ',file=text_file)#
@@ -815,18 +826,17 @@ class Process_input(object):
                 
                 print('# departure arrival ports non-empty and empty ROB',file=text_file)#
                 str1 = 'set depArrPort1 := '
-                if self.vessel.info['onhand'] : # non-empty ROB
-                    for k__, k_  in enumerate(self.vessel.info['loading']):
-                        if k__ < len(self.vessel.info['loading'])-1:
+                for k__, k_  in enumerate(self.vessel.info['loading']):
+                    if k__ < len(self.vessel.info['loading'])-1:
+                        if (str(k_), str(k_+1)) not in self.vessel.info['sameROBseawater']:
                             str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
                 print(str1+';', file=text_file)
                 
                 str1 = 'set depArrPort2 := '
-                # if not self.vessel.info['onhand'] : # empty ROB
-                #     for k__, k_  in enumerate(self.vessel.info['loading']):
-                #         # if k__ < len(self.vessel.info['loading'])-1:
-                #         if self.loadable.info['seawaterDensity'][str(k_)] == self.loadable.info['seawaterDensity'][str(int(k_)+1)]:
-                #             str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
+                for k__, k_  in enumerate(self.vessel.info['loading']):
+                    if k__ < len(self.vessel.info['loading'])-1:
+                        if (str(k_), str(k_+1)) in self.vessel.info['sameROBseawater']:
+                            str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
                 print(str1+';', file=text_file)
                 
                 
@@ -923,11 +933,12 @@ class Process_input(object):
                 
                 tanks_ = {**self.vessel.info['cargoTanks'], **self.vessel.info['ballastTanks'], 
                           **self.vessel.info['fuelTanks'], **self.vessel.info['dieselTanks'], **self.vessel.info['freshWaterTanks']}
+                
                 print('# LCGs of tanks', file=text_file)
                 str1 = 'param LCGt := '
                 for i_, j_ in tanks_.items():
                     if i_ not in  self.vessel.info['banBallast']:
-                        str1 += i_ + ' ' +  "{:.3f}".format(j_['lcg']) + ' '
+                        str1 += i_ + ' ' +  "{:.4f}".format(j_['lcg']) + ' '
                 print(str1+';', file=text_file)   
                 
                 
@@ -938,31 +949,58 @@ class Process_input(object):
                     if i_ not in self.vessel.info['banBallast']:
                         tcg_ = self.vessel.info['tankTCG']['tcg'].get(i_,{}).get('tcg',[0.,0.,0.,0.])[-3] # FPTU missing
                         self.vessel.info['TCGt'][i_] = tcg_
-                        str1 += i_ + ' ' +  "{:.3f}".format(tcg_)  + ' '
+                        str1 += i_ + ' ' +  "{:.4f}".format(tcg_)  + ' '
                 print(str1+';', file=text_file)   
                 
                 
                 
                 print('# num of pw TCG curves for ballast tank', file=text_file)
-                str1 = 'param pwBallast := ' +  str(self.vessel.info['tankTCG']['tcg_pw']['npw'])
+                str1 = 'param pwTCG := ' +  str(self.vessel.info['tankTCG']['tcg_pw']['npw'])
                 print(str1+';', file=text_file)
                 
                 print('# slopes of TCG curves for tanks', file=text_file)
+                print('param mTankTCG := ', file=text_file)
                 for m_ in range(1,self.vessel.info['tankTCG']['tcg_pw']['npw']+1):
-                    str1 = 'param mTank' + str(m_) + ' := '
+                    str1 = '[' + str(m_) + ',*] := '
                     for k_, v_ in self.vessel.info['tankTCG']['tcg_pw'].items():
                         if k_ not in (['npw']+self.vessel.info['banBallast']):
                             str1 += k_ + ' ' + str(round(v_['slopes'][m_-1],8)) + ' '
-                    print(str1+';', file=text_file)
+                    print(str1, file=text_file)
+                print(';', file=text_file)    
                     
                 print('# breaks of TCG curves for tanks', file=text_file)
+                print('param bTankTCG := ', file=text_file)
                 for m_ in range(1,self.vessel.info['tankTCG']['tcg_pw']['npw']):
-                    str1 = 'param bTank' + str(m_) + ' := '
+                    str1 = '[' + str(m_) + ',*] := '
                     for k_, v_ in self.vessel.info['tankTCG']['tcg_pw'].items():
                         if k_ not in (['npw']+self.vessel.info['banBallast']):
                             str1 += k_ + ' ' + str(round(v_['breaks'][m_-1],8)) + ' '
-                    print(str1+';', file=text_file)
+                    print(str1, file=text_file)
+                print(';', file=text_file)    
                     
+                print('# num of pw LCG curves for ballast tank', file=text_file)
+                str1 = 'param pwLCG := ' +  str(self.vessel.info['tankLCG']['lcg_pw']['npw'])
+                print(str1+';', file=text_file)
+                
+                print('# slopes of LCG curves for tanks', file=text_file)
+                print('param mTankLCG := ', file=text_file)
+                for m_ in range(1,self.vessel.info['tankLCG']['lcg_pw']['npw']+1):
+                    str1 = '[' + str(m_) + ',*] := '
+                    for k_, v_ in self.vessel.info['tankLCG']['lcg_pw'].items():
+                        if k_ not in (['npw']+self.vessel.info['banBallast']):
+                            str1 += k_ + ' ' + str(round(v_['slopes'][m_-1],8)) + ' '
+                    print(str1, file=text_file)
+                print(';', file=text_file)
+                
+                print('# breaks of LCG curves for tanks', file=text_file)
+                print('param bTankLCG := ', file=text_file)
+                for m_ in range(1,self.vessel.info['tankLCG']['lcg_pw']['npw']):
+                    str1 = '[' + str(m_) + ',*] := '
+                    for k_, v_ in self.vessel.info['tankLCG']['lcg_pw'].items():
+                        if k_ not in (['npw']+self.vessel.info['banBallast']):
+                            str1 += k_ + ' ' + str(round(v_['breaks'][m_-1],8)) + ' '
+                    print(str1, file=text_file)
+                print(';', file=text_file)    
                     
                 print('# TCGs for others tanks', file=text_file)
                 str1 = 'param TCGtp := '
@@ -974,30 +1012,57 @@ class Process_input(object):
                         if k_ not in ['1A']:
                             for k1_,v1_ in self.loadable.info['virtualArrDepPort'].items():
                                 if v1_ == k_:
-                                    str1 += str(k1_) + ' ' + "{:.3f}".format(tcg_) + ' '
+                                    str1 += str(k1_) + ' ' + "{:.4f}".format(tcg_) + ' '
+                                    
+                    print(str1, file=text_file)
+                print(';', file=text_file)
+                
+                print('# LCGs for others tanks', file=text_file)
+                str1 = 'param LCGtp := '
+                print(str1, file=text_file)
+                for i_, j_ in self.vessel.info['onhand'].items():
+                    str1 = '['+ i_ + ',*] = '
+                    for k_, v_ in j_.items():
+                        lcg_ = j_[k_]['lcg']
+                        if k_ not in ['1A']:
+                            for k1_,v1_ in self.loadable.info['virtualArrDepPort'].items():
+                                if v1_ == k_:
+                                    str1 += str(k1_) + ' ' + "{:.4f}".format(lcg_) + ' '
                                     
                     print(str1, file=text_file)
                 print(';', file=text_file)
                     
                 print('# slopes of LCB x Disp curve', file=text_file)
+                str1 = 'param pwLCB := ' +  str(len(self.vessel.info['lcb_mtc']['lcb']['slopes']))
+                print(str1+';', file=text_file)
+                
+                # str1 = 'param adjLCB := ' +  "{:.8f}".format(self.vessel.info['lcb_mtc']['lcb']['adj'])
+                # print(str1+';', file=text_file)
+                
+                str1 = 'param mLCB := '
                 for m_ in range(1, len(self.vessel.info['lcb_mtc']['lcb']['slopes'])+1):
-                    str1 = 'param mLCB' + str(m_) + ' := ' + str(round(self.vessel.info['lcb_mtc']['lcb']['slopes'][m_-1],8))  
-                    print(str1+';', file=text_file)
+                    str1 +=  str(m_) + ' ' + str(round(self.vessel.info['lcb_mtc']['lcb']['slopes'][m_-1],8))  + ' '
+                print(str1+';', file=text_file)
                     
                 print('# breaks of LCB x Disp curve', file=text_file)
+                str1 = 'param bLCB := '
                 for m_ in range(1,len(self.vessel.info['lcb_mtc']['lcb']['slopes'])):
-                    str1 = 'param bLCB' + str(m_) + ' := ' + str(round(self.vessel.info['lcb_mtc']['lcb']['breaks'][m_-1],8))  
-                    print(str1+';', file=text_file)
+                    str1 += str(m_) + ' ' + str(round(self.vessel.info['lcb_mtc']['lcb']['breaks'][m_-1],8))  + ' '
+                print(str1+';', file=text_file)
                     
                 print('# slopes of MTC curve', file=text_file)
+                str1 = 'param pwMTC := ' +  str(len(self.vessel.info['lcb_mtc']['mtc']['slopes']))
+                print(str1+';', file=text_file)
+                str1 = 'param mMTC := '
                 for m_ in range(1, len(self.vessel.info['lcb_mtc']['mtc']['slopes'])+1):
-                    str1 = 'param mMTC' + str(m_) + ' := ' + str(round(self.vessel.info['lcb_mtc']['mtc']['slopes'][m_-1],10))  
-                    print(str1+';', file=text_file)
+                    str1 += str(m_) + ' ' + str(round(self.vessel.info['lcb_mtc']['mtc']['slopes'][m_-1],10))  + ' '
+                print(str1+';', file=text_file)
                     
                 print('# breaks of MTC curve', file=text_file)
+                str1 = 'param bMTC := ' 
                 for m_ in range(1,len(self.vessel.info['lcb_mtc']['mtc']['slopes'])):
-                    str1 = 'param bMTC' + str(m_) + ' := ' + str(round(self.vessel.info['lcb_mtc']['mtc']['breaks'][m_-1],10))  
-                    print(str1+';', file=text_file)
+                    str1 += str(m_) + ' ' + str(round(self.vessel.info['lcb_mtc']['mtc']['breaks'][m_-1],10))  + ' '
+                print(str1+';', file=text_file)
                 
                 print('# upper limit on displacement', file=text_file)
                 # stability - draft
@@ -1024,14 +1089,18 @@ class Process_input(object):
                 print(str1+';', file=text_file)
                 
                 print('# slopes of draft curve', file=text_file)
+                str1 = 'param pwDraft := ' +  str(len(self.vessel.info['lcb_mtc']['draft']['slopes']))
+                print(str1+';', file=text_file)
+                str1 = 'param mDraft := '
                 for m_ in range(1, len(self.vessel.info['lcb_mtc']['draft']['slopes'])+1):
-                    str1 = 'param mDraft' + str(m_) + ' := ' + str(round(self.vessel.info['lcb_mtc']['draft']['slopes'][m_-1],18))  
-                    print(str1+';', file=text_file)
+                    str1 += str(m_) + ' ' + str(round(self.vessel.info['lcb_mtc']['draft']['slopes'][m_-1],18))  + ' '
+                print(str1+';', file=text_file)
                     
                 print('# breaks of draft curve', file=text_file)
+                str1 = 'param bDraft :='
                 for m_ in range(1,len(self.vessel.info['lcb_mtc']['draft']['slopes'])):
-                    str1 = 'param bDraft' + str(m_) + ' := ' + str(round(self.vessel.info['lcb_mtc']['draft']['breaks'][m_-1],8))  
-                    print(str1+';', file=text_file)
+                    str1 += str(m_) + ' ' + str(round(self.vessel.info['lcb_mtc']['draft']['breaks'][m_-1],8))  + ' '
+                print(str1+';', file=text_file)
                 
                 print('# number of frames ',file=text_file)#
                 str1 = 'param Fr := ' + str(len(self.vessel.info['frames'])) 
