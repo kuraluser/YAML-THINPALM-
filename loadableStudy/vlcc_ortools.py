@@ -290,12 +290,13 @@ def vlcc_ortools(inputs):
                 V_locked[k_][tank_][k1_] = W_locked[k_][tank_][k1_]/densityCargo_Low[k_]
                 
     B_locked = {}
-    for k_, v_ in inputs.loadable.info['ballastOperation'].items():
-        tank_ = k_
-        B_locked[tank_] = {}
-        for v__ in v_:
-            if v__['order'] != '0':
-                B_locked[tank_][v__['order'] ] = round(v__['qty'],3)
+    if inputs.mode in ['Auto']:
+        for k_, v_ in inputs.loadable.info['ballastOperation'].items():
+            tank_ = k_
+            B_locked[tank_] = {}
+            for v__ in v_:
+                if v__['order'] != '0':
+                    B_locked[tank_][v__['order'] ] = round(v__['qty'],3)
                 
             
         
@@ -857,6 +858,7 @@ def vlcc_ortools(inputs):
                                               solver.Sum([w[c][t][p] for p in P_dis])) for c in C for t in Tc[c]]) - 1*solver.Sum([wB[t][p] for t in TB for p in P])
     solver.Maximize(Action_Amount)
     
+    
     # Constraints
     ## -----------------------------------------------------------
     # Condition 0
@@ -884,7 +886,7 @@ def vlcc_ortools(inputs):
                 # Condition 01c
                 # one tank can only take in two cargo
                 solver.Add(x[j][i] + x[k][i] <= 2)
-    
+        
     # Condition01z
     for i in list(set(C)-set(C_loaded)-set(C_locked)):
         for k in P_last_loading:
@@ -914,7 +916,7 @@ def vlcc_ortools(inputs):
             # amount of cargo to be loaded <= amount available at the port.
             solver.Add(solver.Sum([w[i][k][j]/densityCargo_Low[i] for k in Tc[i]]) >= 0)
             solver.Add(solver.Sum([w[i][k][j]/densityCargo_Low[i] for k in Tc[i]]) <= Vcp[i][j])
-    
+        
     # Condition 041
     for i in C:
         for j in Tc[i]:
@@ -943,7 +945,7 @@ def vlcc_ortools(inputs):
             solver.Add(-1e6*delta[i][j] <= -solver.Sum([qw2f[i][k][j]/10/densityCargo_Low[i] for k in Tc[i]]))
 
             solver.Add(-solver.Sum([qw2f[i][k][j]/10/densityCargo_Low[i] for k in Tc[i]]) <= 1e6*delta[i][j])
-            
+                
     # Condition 051 
     for i in C:
         for j in Tc[i]:
@@ -965,10 +967,10 @@ def vlcc_ortools(inputs):
             for k in list(set(Pbar)-set([NP])):
                 # amount of cargo c left in tank when leaving port p for port p+1 is equal to the amount of cargo c moved from/to tank t at port p.
                 solver.Add((qw2f[i][j][k]/10/densityCargo_Low[i] + w[i][j][k+1]/densityCargo_Low[i]) == qw2f[i][j][k+1]/10/densityCargo_Low[i])
-
-   
     
-    
+       
+        
+        
     ## preloaded condition
     # condition22, condition 23, # condition 23a, 23b, condition 24, 24a
     for i in C_loaded:
@@ -997,10 +999,10 @@ def vlcc_ortools(inputs):
             # condition 24
             # follow the existing stowage of preloaded cargoes
             solver.Add(qw2f[i][j][0]/10/densityCargo_Low[i] == Q0.get(i, {}).get(j,0))
+        
     
-
-    
-    
+        
+        
     ## locked tank / pre-allocated condition
     # condition 25, condition 26, condition 26a, 26b, condition 27
     for i in C_locked:
@@ -1032,676 +1034,676 @@ def vlcc_ortools(inputs):
             for k in P_last_loading:
                 solver.Add(qw2f[i][j][k]/10/densityCargo_Low[i] <= upperBoundC[i][j]*capacityCargoTank[j]*x[i][j])
         
-             
-    
-    # commingled
-    # Constr 5b
-    for i1, i2 in zip(Cm_1,Cm_2):
-        for j in T:
-            for k in P_last_loading:
-                solver.Add((qw2f[i1][j][k]/10/densityCargo_Low[i1]*densityCargo_Low[i1]/density_Cm[i1] + qw2f[i2][j][k]/10/densityCargo_Low[i2]*densityCargo_Low[i2]/density_Cm[i2]) <= upperBound[j]*capacityCargoTank[j])
-    # Constr 5c    
-    # for i1, i2 in zip(Cm_1,Cm_2):
-    #       solver.Add(solver.Sum([x[i1][j]*x[i2][j]  for j in Tm]) <= 1)
-    for i1, i2 in zip(Cm_1,Cm_2):
-        solver.Add(solver.Sum([zz[i1][i2][j]  for j in Tm]) <= 1) # zz = x1*x2
-        for j in Tm:
-            solver.Add(zz[i1][i2][j] <= x[i1][j])  # zz <= x1
-            solver.Add(zz[i1][i2][j] <= x[i2][j])  # zz <= x2
-            solver.Add(zz[i1][i2][j] >= x[i1][j]+x[i2][j]-1)  # zz >= x1+x2-1
-        
-    # manual commingle
-    # Constr5d1, 5d2, 5d3, 5d4
-    for i1, i2 in zip(Cm_1,Cm_2):
-        for j in Tm:
-            for k in P_last_loading:
-                # Constr5d1
-                solver.Add((x[i2][j]*Qm_2 - qw2f[i2][j][k]/10) <= Mm*(1-x[i1][j]))
-                # Constr5d2
-                solver.Add((qw2f[i2][j][k]/10 - x[i2][j]*(Qm_2+Mm)) <= Mm*(1-x[i1][j]))
-                # Constr5d3
-                solver.Add((x[i1][j]*Qm_1 - qw2f[i1][j][k]/10) <= Mm*(1-x[i2][j]))
-                # Constr5d4
-                solver.Add((qw2f[i1][j][k]/10 - x[i1][j]*(Qm_1+Mm)) <= Mm*(1-x[i2][j]))
-        
-    # # Constr7a
-    # for i in list(set(C)-set(C_loaded)-set(C_locked)):
-    #     for j in Tc[i]:
-    #         for k in P_last_loading:
-    #             # Constr7a DISABLE CURRENTLY
-    #             # solver.Add(lowerBound[j]*capacityCargoTank[j]*x[i][j] <= qw2f[i][j][k]/10/densityCargo_Low[i]*densityCargo_Low[i]/density_low[i])
-    #             pass
-    
-    
-    # Constr8 
-    for i in C:
-        for j in Tc[i]:
-            for k in P_last_loading:
-                # Constr8
-                solver.Add((qw2f[i][j][k]/1000 - 1e4*(x[i][j])) <= 0)
-        
-    # Constr11  # Constr12
-    for i in TB:
-        for j in P:
-            solver.Add(wB[i][j]/densityBallast <= upperBoundB1[i]*capacityBallastTank[i]*xB[i][j])
-            solver.Add(lowerBoundB1[i]*capacityBallastTank[i]*xB[i][j] <= wB[i][j]/densityBallast)
+                 
+    if inputs.mode in ['Auto']:    
+        # commingled
+        # Constr 5b
+        for i1, i2 in zip(Cm_1,Cm_2):
+            for j in T:
+                for k in P_last_loading:
+                    solver.Add((qw2f[i1][j][k]/10/densityCargo_Low[i1]*densityCargo_Low[i1]/density_Cm[i1] + qw2f[i2][j][k]/10/densityCargo_Low[i2]*densityCargo_Low[i2]/density_Cm[i2]) <= upperBound[j]*capacityCargoTank[j])
+        # Constr 5c    
+        # for i1, i2 in zip(Cm_1,Cm_2):
+        #       solver.Add(solver.Sum([x[i1][j]*x[i2][j]  for j in Tm]) <= 1)
+        for i1, i2 in zip(Cm_1,Cm_2):
+            solver.Add(solver.Sum([zz[i1][i2][j]  for j in Tm]) <= 1) # zz = x1*x2
+            for j in Tm:
+                solver.Add(zz[i1][i2][j] <= x[i1][j])  # zz <= x1
+                solver.Add(zz[i1][i2][j] <= x[i2][j])  # zz <= x2
+                solver.Add(zz[i1][i2][j] >= x[i1][j]+x[i2][j]-1)  # zz >= x1+x2-1
             
+        # manual commingle
+        # Constr5d1, 5d2, 5d3, 5d4
+        for i1, i2 in zip(Cm_1,Cm_2):
+            for j in Tm:
+                for k in P_last_loading:
+                    # Constr5d1
+                    solver.Add((x[i2][j]*Qm_2 - qw2f[i2][j][k]/10) <= Mm*(1-x[i1][j]))
+                    # Constr5d2
+                    solver.Add((qw2f[i2][j][k]/10 - x[i2][j]*(Qm_2+Mm)) <= Mm*(1-x[i1][j]))
+                    # Constr5d3
+                    solver.Add((x[i1][j]*Qm_1 - qw2f[i1][j][k]/10) <= Mm*(1-x[i2][j]))
+                    # Constr5d4
+                    solver.Add((qw2f[i1][j][k]/10 - x[i1][j]*(Qm_1+Mm)) <= Mm*(1-x[i2][j]))
             
-    ## max num of tanks available
-    # Constr12a1 12a2
-    # solver.Add(solver.Sum([x[i][j] for i in C for j in T]) <= maxTankUsed) Constr12a
-    for j in T:
-        solver.Add(solver.Sum([x[i][j] for i in C]) <= 100*xt[j])
+        # # Constr7a
+        # for i in list(set(C)-set(C_loaded)-set(C_locked)):
+        #     for j in Tc[i]:
+        #         for k in P_last_loading:
+        #             # Constr7a DISABLE CURRENTLY
+        #             # solver.Add(lowerBound[j]*capacityCargoTank[j]*x[i][j] <= qw2f[i][j][k]/10/densityCargo_Low[i]*densityCargo_Low[i]/density_low[i])
+        #             pass
         
-    solver.Add(solver.Sum([xt[j] for j in T]) <= maxTankUsed) 
-    
-    ##?? why remove?
-    # load all  cargo 
-    # Condition111
-    # for i in P_last_loading:
-    #     solver.Add((solver.Sum([Wcp[c][pp] for c in C for pp in P if Wcp[c][pp]>0])-
-    #                 solver.Sum([qw2f[c][t][i]/10 for c in C for t in T])) >= -intended)
-    #     solver.Add((solver.Sum([Wcp[c][pp] for c in C for pp in P if Wcp[c][pp]>0])-
-    #                 solver.Sum([qw2f[c][t][i]/10 for c in C for t in T])) <= intended)       
-    
-    # Constr122
-    for u, v in cargoPriority:
-        solver.Add(solver.Sum([qw2f[v][t][p]/10/toLoad[v] for t in Tc[v] for p in P_last_loading]) <= solver.Sum([qw2f[u][t][p]/10/toLoad[u] for t in Tc[u] for p in P_last_loading]))
-    # symmetric loading
-    # Condition112a, 112b, 112c1, 112c2, 112c3
-    for i in C:
-        solver.Add(x[i]['1P'] == x[i]['1S']) 
-        solver.Add(x[i]['2P'] == x[i]['2S'])
-        solver.Add(x[i]['3P'] == x[i]['3S']) 
-        solver.Add(x[i]['4P'] == x[i]['4S'])
-        solver.Add(x[i]['5P'] == x[i]['5S'])
-
-        # for j in P_last_loading:
-        #     solver.Add(qw2f[i]['1P'][j]/10 == qw2f[i]['1S'][j]/10)
-        #     solver.Add(qw2f[i]['2P'][j]/10 == qw2f[i]['2S'][j]/10)            
-           
-    # Condition112a1, 112a2 
-    for u, v in symmetricVolTank:
-        for p in P_last_loading:
-            solver.Add(solver.Sum([qw2f[c][u][p]/10/densityCargo_Low[c]/capacityCargoTank[u] for c in C]) - 
-                        solver.Sum([qw2f[c][v][p]/10/densityCargo_Low[c]/capacityCargoTank[v] for c in C]) <= 0.1)
-            solver.Add(-0.1 <= (solver.Sum([qw2f[c][u][p]/10/densityCargo_Low[c]/capacityCargoTank[u] for c in C]) - 
-                        solver.Sum([qw2f[c][v][p]/10/densityCargo_Low[c]/capacityCargoTank[v] for c in C])))
- 
-    # diff cargos in slop tanks, except when only one cargo
-    # Condition112f
-    for i in C:
-        for u, v in cargoTankNonSym:
-            solver.Add(x[i][u] + x[i][v] <= diffSlop)
+        
+        # Constr8 
+        for i in C:
+            for j in Tc[i]:
+                for k in P_last_loading:
+                    # Constr8
+                    solver.Add((qw2f[i][j][k]/1000 - 1e4*(x[i][j])) <= 0)
             
-    # Condition112g1, Condition112g2
-    solver.Add(solver.Sum([x[i]['SLS'] for i in C]) == 1)
-    solver.Add(solver.Sum([x[i]['SLP'] for i in C]) == 1)
-    
-    for i in C_max:
-        # Condition112h1, Condition112h2, Condition112h3, Condition112h4, Condition112h5
-        solver.Add(x[i]['1P'] + x[i]['1C'] >= 1)
-        solver.Add(x[i]['2P'] + x[i]['2C'] >= 1)
-        solver.Add(x[i]['3P'] + x[i]['3C'] >= 1)
-        solver.Add(x[i]['4P'] + x[i]['4C'] >= 1)
-        solver.Add(x[i]['5P'] + x[i]['5C'] >= 1)
-        # C_max cannot occupy 2 consecutive rows
-        # Condition112i1, Condition112i2, Condition112i3, Condition112i4
-        solver.Add(x[i]['1P'] + x[i]['1C'] + x[i]['1P'] + x[i]['2P'] + x[i]['2C'] + x[i]['2S'] <= 5)
-        solver.Add(x[i]['2P'] + x[i]['2C'] + x[i]['2P'] + x[i]['3P'] + x[i]['3C'] + x[i]['3S'] <= 5)
-        solver.Add(x[i]['3P'] + x[i]['3C'] + x[i]['3P'] + x[i]['4P'] + x[i]['4C'] + x[i]['4S'] <= 5)
-        solver.Add(x[i]['4P'] + x[i]['4C'] + x[i]['4P'] + x[i]['5P'] + x[i]['5C'] + x[i]['5S'] <= 5)
+        # Constr11  # Constr12
+        for i in TB:
+            for j in P:
+                solver.Add(wB[i][j]/densityBallast <= upperBoundB1[i]*capacityBallastTank[i]*xB[i][j])
+                solver.Add(lowerBoundB1[i]*capacityBallastTank[i]*xB[i][j] <= wB[i][j]/densityBallast)
                 
-    
-    # Condition112b1 Condition112b2
-    for i in C:
+                
+        ## max num of tanks available
+        # Constr12a1 12a2
+        # solver.Add(solver.Sum([x[i][j] for i in C for j in T]) <= maxTankUsed) Constr12a
         for j in T:
-            for k in P_last_loading:
-                solver.Add(qw2f[i][j][k]/10 >= minCargoAmt*x[i][j])
-                solver.Add(qw2f[i][j][k]/10 <= 1e5*x[i][j])
-    
-    for j in TB:
-        # ballast requirement
-        # Condition113d1 Condition113d2
-        for k in P:
-            solver.Add(wB[j][k] >= minBallastAmt*xB[j][k])
-            solver.Add(wB[j][k] <= 1e4*xB[j][k])
-
+            solver.Add(solver.Sum([x[i][j] for i in C]) <= 100*xt[j])
             
+        solver.Add(solver.Sum([xt[j] for j in T]) <= maxTankUsed) 
+        
+        ##?? why remove?
+        # load all  cargo 
+        # Condition111
+        # for i in P_last_loading:
+        #     solver.Add((solver.Sum([Wcp[c][pp] for c in C for pp in P if Wcp[c][pp]>0])-
+        #                 solver.Sum([qw2f[c][t][i]/10 for c in C for t in T])) >= -intended)
+        #     solver.Add((solver.Sum([Wcp[c][pp] for c in C for pp in P if Wcp[c][pp]>0])-
+        #                 solver.Sum([qw2f[c][t][i]/10 for c in C for t in T])) <= intended)       
+        
+        # Constr122
+        for u, v in cargoPriority:
+            solver.Add(solver.Sum([qw2f[v][t][p]/10/toLoad[v] for t in Tc[v] for p in P_last_loading]) <= solver.Sum([qw2f[u][t][p]/10/toLoad[u] for t in Tc[u] for p in P_last_loading]))
+        # symmetric loading
+        # Condition112a, 112b, 112c1, 112c2, 112c3
+        for i in C:
+            solver.Add(x[i]['1P'] == x[i]['1S']) 
+            solver.Add(x[i]['2P'] == x[i]['2S'])
+            solver.Add(x[i]['3P'] == x[i]['3S']) 
+            solver.Add(x[i]['4P'] == x[i]['4S'])
+            solver.Add(x[i]['5P'] == x[i]['5S'])
     
-    # initial ballast condition
-    # Condition114a1, Condition114a2, Condition114a3
-    for j in incTB:
-        solver.Add(initBallast.get(j,0.) <= wB[j][int(firstloadingPort)])
-    for j in decTB:
-        solver.Add(initBallast.get(j,0.) >= wB[j][int(firstloadingPort)])
-    for j in TB:
-        solver.Add(initBallast.get(j,0.) == wB[j][0])
-    
-    # decreasing ballast except last loading port
-    # Condition 114b
-    for i in TB:
-        for (u_, v_) in loadingPortNotLast:
-            solver.Add(wB[i][u_] >= wB[i][v_])
-    
-        
-    # decreasing ballast tank
-    # Condition 114c
-    for u_, v_ in loadingPort:
-        solver.Add(solver.Sum([xB[t][u_] for t in TB]) >= solver.Sum([xB[t][v_] for t in TB]))
-        
-    for j in TB:
-        # depart and arrival has to use same tank
-        # Condition 114d1, Condition 114d2
-        for (u, v) in depArrPort1:
-            solver.Add(xB[j][u] == xB[j][v])
-        for (u, v) in depArrPort2:
-            solver.Add(wB[j][u] == wB[j][v])
-        
-        # rotation loading ports
-        # Condition 114e1, Condition 114e2
-        for u_, v_ in rotatingPort:
-            solver.Add((-wB[j][u_] +  wB[j][v_]) <= 1e6*(1-zBa[j]))
-            solver.Add((wB[j][u_] -  wB[j][v_]) <= 1e6*(1-zBb[j]))
-            
-        # Condition 114e3
-        solver.Add((zBa[j] + zBb[j]) == 1)
-        
-        # fixed ballast
-        # Condition 114f1
-        for p in fixBallastPort:
-            if int(p) > 0:
-                solver.Add(B_locked.get(j,{}).get(int(p),0) == wB[j][int(p)])
-            
-    # deballast amt
-    # Condition 114g1
-    for i in list(set(loadPort).intersection(set(P_stable))):
-        solver.Add(solver.Sum([wB[t][i] for t in TB]) + deballastPercent*loadingPortAmt[i] >= solver.Sum([wB[t][i-1] for t in TB]))
-        
-    # departure of last loading port
-    # Condition114h
-    for i in lastLoadingPortBallastBan:
-        for j in specialBallastPort:
-            solver.Add(xB[i][j] == 0)
-    # arrival of last loading port
-    # Condition114h1
-    for i in TB:
-        for j in zeroBallastPort:
-            solver.Add(xB[i][j] == 0)
-            
-    ## ship stabilty
-    # assume the ship satisfies all the stability conditions when entering the first port, and ballast tank allocation will be refreshed before leaving each port.
+            # for j in P_last_loading:
+            #     solver.Add(qw2f[i]['1P'][j]/10 == qw2f[i]['1S'][j]/10)
+            #     solver.Add(qw2f[i]['2P'][j]/10 == qw2f[i]['2S'][j]/10)            
+               
+        # Condition112a1, 112a2 
+        for u, v in symmetricVolTank:
+            for p in P_last_loading:
+                solver.Add(solver.Sum([qw2f[c][u][p]/10/densityCargo_Low[c]/capacityCargoTank[u] for c in C]) - 
+                            solver.Sum([qw2f[c][v][p]/10/densityCargo_Low[c]/capacityCargoTank[v] for c in C]) <= 0.1)
+                solver.Add(-0.1 <= (solver.Sum([qw2f[c][u][p]/10/densityCargo_Low[c]/capacityCargoTank[u] for c in C]) - 
+                            solver.Sum([qw2f[c][v][p]/10/densityCargo_Low[c]/capacityCargoTank[v] for c in C])))
      
-    # Constr 17a
-    for i in T:
-        for j in P:
-            solver.Add(wC[i][j] == onboard.get(i,0.) + solver.Sum([qw2f[k][i][j]/10 for k in C]))
-
-            
-    # draft constraint
-    # displacement
-    # Constr13c1
-    # Constr13c2
-    # loading and unloading port
-    # Constr13
-    for i in P_stable:
-        solver.Add(displacement[i] == (solver.Sum([wC[t][i] for t in T]) + 
-                      solver.Sum([wB[t][i] for t in TB]) + 
-                      solver.Sum([weightOtherTank.get(t,{}).get(i,0.) for t in OtherTanks]) + 
-                      lightWeight + deadweightConst))
-        solver.Add(displacement1[i] == displacement[i]*1.025/densitySeaWater[i])
-        solver.Add(displacement[i] >= (displacementLowLimit[i] + 0.001))
-        solver.Add(displacement[i] <= (displacementLimit[i] - 0.001))
-    
-    # deadweight constraint
-    # Constr13a
-    for i in P_stable:
-        solver.Add((solver.Sum([wC[t][i] for t in T]) + 
-                    solver.Sum([wB[t][i] for t in TB]) +
-                    solver.Sum([weightOtherTank.get(t,{}).get(i,0.) for t in OtherTanks]) + 
-                    deadweightConst) <= deadweight)
-    
-    # Constr13b
-    for i in P_last_loading:
-        solver.Add(solver.Sum([wC[t][i] for t in T]) <= cargoweight)
+        # diff cargos in slop tanks, except when only one cargo
+        # Condition112f
+        for i in C:
+            for u, v in cargoTankNonSym:
+                solver.Add(x[i][u] + x[i][v] <= diffSlop)
+                
+        # Condition112g1, Condition112g2
+        solver.Add(solver.Sum([x[i]['SLS'] for i in C]) == 1)
+        solver.Add(solver.Sum([x[i]['SLP'] for i in C]) == 1)
         
-        
-    ## New list constraint
-    # 10 pieces
-    lambda1_TB = {}
-    lambda2_TB = {}
-    lambda3_TB = {}
-    lambda4_TB = {}
-    lambda5_TB = {}
-    lambda6_TB = {}
-    lambda7_TB = {}
-    lambda8_TB = {}
-    lambda9_TB = {}
-    lambda10_TB = {}
-    lambda11_TB = {}
-    
-    z1_TB = {}
-    z2_TB = {}
-    z3_TB = {}
-    z4_TB = {}
-  
-    for i in list(set(TB)-set(TB1)):
-        lambda1_TB[i] = {}
-        lambda2_TB[i] = {}
-        lambda3_TB[i] = {}
-        lambda4_TB[i] = {}
-        lambda5_TB[i] = {}
-        lambda6_TB[i] = {}
-        lambda7_TB[i] = {}
-        lambda8_TB[i] = {}
-        lambda9_TB[i] = {}
-        lambda10_TB[i] = {}
-        lambda11_TB[i] = {}
-        z1_TB[i] = {}
-        z2_TB[i] = {}
-        z3_TB[i] = {}
-        z4_TB[i] = {}
-        
-           
-        for j in P_stable:
-            lambda1_TB[i][j] = solver.NumVar(0, 1, 'lambda1_TB[%s][%d]' % (i,j))
-            lambda2_TB[i][j] = solver.NumVar(0, 1, 'lambda2_TB[%s][%d]' % (i,j))
-            lambda3_TB[i][j] = solver.NumVar(0, 1, 'lambda3_TB[%s][%d]' % (i,j))
-            lambda4_TB[i][j] = solver.NumVar(0, 1, 'lambda4_TB[%s][%d]' % (i,j))
-            lambda5_TB[i][j] = solver.NumVar(0, 1, 'lambda5_TB[%s][%d]' % (i,j))
-            lambda6_TB[i][j] = solver.NumVar(0, 1, 'lambda6_TB[%s][%d]' % (i,j))
-            lambda7_TB[i][j] = solver.NumVar(0, 1, 'lambda7_TB[%s][%d]' % (i,j))
-            lambda8_TB[i][j] = solver.NumVar(0, 1, 'lambda8_TB[%s][%d]' % (i,j))
-            lambda9_TB[i][j] = solver.NumVar(0, 1, 'lambda9_TB[%s][%d]' % (i,j))
-            lambda10_TB[i][j] = solver.NumVar(0, 1, 'lambda10_TB[%s][%d]' % (i,j))
-            lambda11_TB[i][j] = solver.NumVar(0, 1, 'lambda11_TB[%s][%d]' % (i,j))
-            z1_TB[i][j] = solver.IntVar(0, 1, 'z1_TB[%s][%d]' % (i,j))
-            z2_TB[i][j] = solver.IntVar(0, 1, 'z2_TB[%s][%d]' % (i,j))
-            z3_TB[i][j] = solver.IntVar(0, 1, 'z3_TB[%s][%d]' % (i,j))
-            z4_TB[i][j] = solver.IntVar(0, 1, 'z4_TB[%s][%d]' % (i,j))
-  
-            solver.Add(lambda3_TB[i][j] + lambda7_TB[i][j] + lambda11_TB[i][j] <= z1_TB[i][j])
-            solver.Add(lambda1_TB[i][j] + lambda5_TB[i][j] + lambda9_TB[i][j] <= 1 - z1_TB[i][j])
-            solver.Add(lambda4_TB[i][j] + lambda5_TB[i][j] + lambda6_TB[i][j] <= z2_TB[i][j])
-            solver.Add(lambda1_TB[i][j] + lambda2_TB[i][j] + lambda8_TB[i][j]  + 
-                        lambda9_TB[i][j] + lambda10_TB[i][j] + lambda11_TB[i][j] <= 1 - z2_TB[i][j])
-            solver.Add(lambda6_TB[i][j] + lambda7_TB[i][j] + lambda8_TB[i][j]  + 
-                        lambda9_TB[i][j] + lambda10_TB[i][j] + lambda11_TB[i][j] <= z3_TB[i][j])
-            solver.Add(lambda1_TB[i][j] + lambda2_TB[i][j] + lambda3_TB[i][j]  + 
-                        lambda4_TB[i][j] <= 1 - z3_TB[i][j])
-            solver.Add(lambda10_TB[i][j] + lambda11_TB[i][j] <= z4_TB[i][j])
-            solver.Add(lambda1_TB[i][j] + lambda2_TB[i][j] + lambda3_TB[i][j]  + 
-                        lambda4_TB[i][j] + lambda5_TB[i][j] + lambda6_TB[i][j]  + 
-                        lambda7_TB[i][j] + lambda8_TB[i][j]<= 1 - z4_TB[i][j])
-            
-            solver.Add(lambda1_TB[i][j]+lambda2_TB[i][j]+lambda3_TB[i][j]+
-                        lambda4_TB[i][j]+lambda5_TB[i][j]+lambda6_TB[i][j]+
-                        lambda7_TB[i][j]+lambda8_TB[i][j]+lambda9_TB[i][j]+
-                        lambda10_TB[i][j]+lambda11_TB[i][j] == 1)
-
-            ##?? check on need for seawater density
-            solver.Add(wB[i][j] == lambda1_TB[i][j]*bTank_n[0][i]+lambda2_TB[i][j]*bTank_n[1][i]+lambda3_TB[i][j]*bTank_n[2][i]+
-                                    lambda4_TB[i][j]*bTank_n[3][i]+lambda5_TB[i][j]*bTank_n[4][i]+lambda6_TB[i][j]*bTank_n[5][i]+
-                                    lambda7_TB[i][j]*bTank_n[6][i]+lambda8_TB[i][j]*bTank_n[7][i]+lambda9_TB[i][j]*bTank_n[8][i]+
-                                    lambda10_TB[i][j]*bTank_n[9][i]+lambda11_TB[i][j]*bTank_n[10][i])
-            
-            
-            # Constr15b1
-            solver.Add(TB_tmom[i][j] == (lambda1_TB[i][j]*cTank_n[0][i]+lambda2_TB[i][j]*cTank_n[1][i]+lambda3_TB[i][j]*cTank_n[2][i]+
-                                        lambda4_TB[i][j]*cTank_n[3][i]+lambda5_TB[i][j]*cTank_n[4][i]+lambda6_TB[i][j]*cTank_n[5][i]+
-                                        lambda7_TB[i][j]*cTank_n[6][i]+lambda8_TB[i][j]*cTank_n[7][i]+lambda9_TB[i][j]*cTank_n[8][i]+
-                                        lambda10_TB[i][j]*cTank_n[9][i]+lambda11_TB[i][j]*cTank_n[10][i]))
+        for i in C_max:
+            # Condition112h1, Condition112h2, Condition112h3, Condition112h4, Condition112h5
+            solver.Add(x[i]['1P'] + x[i]['1C'] >= 1)
+            solver.Add(x[i]['2P'] + x[i]['2C'] >= 1)
+            solver.Add(x[i]['3P'] + x[i]['3C'] >= 1)
+            solver.Add(x[i]['4P'] + x[i]['4C'] >= 1)
+            solver.Add(x[i]['5P'] + x[i]['5C'] >= 1)
+            # C_max cannot occupy 2 consecutive rows
+            # Condition112i1, Condition112i2, Condition112i3, Condition112i4
+            solver.Add(x[i]['1P'] + x[i]['1C'] + x[i]['1P'] + x[i]['2P'] + x[i]['2C'] + x[i]['2S'] <= 5)
+            solver.Add(x[i]['2P'] + x[i]['2C'] + x[i]['2P'] + x[i]['3P'] + x[i]['3C'] + x[i]['3S'] <= 5)
+            solver.Add(x[i]['3P'] + x[i]['3C'] + x[i]['3P'] + x[i]['4P'] + x[i]['4C'] + x[i]['4S'] <= 5)
+            solver.Add(x[i]['4P'] + x[i]['4C'] + x[i]['4P'] + x[i]['5P'] + x[i]['5C'] + x[i]['5S'] <= 5)
                     
-    # Constr15b2
-    for i in TB1:
-        for j in P_stable:
-            # solver.Add(TB_tmom[i][j] == wB[i][j]*TCGt[i])
-            TB_tmom[i][j] = wB[i][j]*TCGt[i]
-            
-            
-    # Constr15c1
-    lambda1_T = {}
-    lambda2_T = {}
-    lambda3_T = {}
-    lambda4_T = {}
-    lambda5_T = {}
-    lambda6_T = {}
-    lambda7_T = {}
-    lambda8_T = {}
-    lambda9_T = {}
-    lambda10_T = {}
-    lambda11_T = {}
+        
+        # Condition112b1 Condition112b2
+        for i in C:
+            for j in T:
+                for k in P_last_loading:
+                    solver.Add(qw2f[i][j][k]/10 >= minCargoAmt*x[i][j])
+                    solver.Add(qw2f[i][j][k]/10 <= 1e5*x[i][j])
+        
+        for j in TB:
+            # ballast requirement
+            # Condition113d1 Condition113d2
+            for k in P:
+                solver.Add(wB[j][k] >= minBallastAmt*xB[j][k])
+                solver.Add(wB[j][k] <= 1e4*xB[j][k])
     
-    z1_T = {}
-    z2_T = {}
-    z3_T = {}
-    z4_T = {}
-
-    for i in list(set(T)-set(T1)):
-        lambda1_T[i] = {}
-        lambda2_T[i] = {}
-        lambda3_T[i] = {}
-        lambda4_T[i] = {}
-        lambda5_T[i] = {}
-        lambda6_T[i] = {}
-        lambda7_T[i] = {}
-        lambda8_T[i] = {}
-        lambda9_T[i] = {}
-        lambda10_T[i] = {}
-        lambda11_T[i] = {}
-        z1_T[i] = {}
-        z2_T[i] = {}
-        z3_T[i] = {}
-        z4_T[i] = {}
-
-        for j in P_stable:
-            lambda1_T[i][j] = solver.NumVar(0, 1, 'lambda1_T[%s][%d]' % (i,j))
-            lambda2_T[i][j] = solver.NumVar(0, 1, 'lambda2_T[%s][%d]' % (i,j))
-            lambda3_T[i][j] = solver.NumVar(0, 1, 'lambda3_T[%s][%d]' % (i,j))
-            lambda4_T[i][j] = solver.NumVar(0, 1, 'lambda4_T[%s][%d]' % (i,j))
-            lambda5_T[i][j] = solver.NumVar(0, 1, 'lambda5_T[%s][%d]' % (i,j))
-            lambda6_T[i][j] = solver.NumVar(0, 1, 'lambda6_T[%s][%d]' % (i,j))
-            lambda7_T[i][j] = solver.NumVar(0, 1, 'lambda7_T[%s][%d]' % (i,j))
-            lambda8_T[i][j] = solver.NumVar(0, 1, 'lambda8_T[%s][%d]' % (i,j))
-            lambda9_T[i][j] = solver.NumVar(0, 1, 'lambda9_T[%s][%d]' % (i,j))
-            lambda10_T[i][j] = solver.NumVar(0, 1, 'lambda10_T[%s][%d]' % (i,j))
-            lambda11_T[i][j] = solver.NumVar(0, 1, 'lambda11_T[%s][%d]' % (i,j))
-            z1_T[i][j] = solver.IntVar(0, 1, 'z1_T[%s][%d]' % (i,j))
-            z2_T[i][j] = solver.IntVar(0, 1, 'z2_T[%s][%d]' % (i,j))
-            z3_T[i][j] = solver.IntVar(0, 1, 'z3_T[%s][%d]' % (i,j))
-            z4_T[i][j] = solver.IntVar(0, 1, 'z4_T[%s][%d]' % (i,j))
-
-            solver.Add(lambda3_T[i][j] + lambda7_T[i][j] + lambda11_T[i][j] <= z1_T[i][j])
-            solver.Add(lambda1_T[i][j] + lambda5_T[i][j] + lambda9_T[i][j] <= 1 - z1_T[i][j])
-            solver.Add(lambda4_T[i][j] + lambda5_T[i][j] + lambda6_T[i][j] <= z2_T[i][j])
-            solver.Add(lambda1_T[i][j] + lambda2_T[i][j] + lambda8_T[i][j]  + 
-                        lambda9_T[i][j] + lambda10_T[i][j] + lambda11_T[i][j] <= 1 - z2_T[i][j])
-            solver.Add(lambda6_T[i][j] + lambda7_T[i][j] + lambda8_T[i][j]  + 
-                        lambda9_T[i][j] + lambda10_T[i][j] + lambda11_T[i][j] <= z3_T[i][j])
-            solver.Add(lambda1_T[i][j] + lambda2_T[i][j] + lambda3_T[i][j]  + 
-                        lambda4_T[i][j] <= 1 - z3_T[i][j])
-            solver.Add(lambda10_T[i][j] + lambda11_T[i][j] <= z4_T[i][j])
-            solver.Add(lambda1_T[i][j] + lambda2_T[i][j] + lambda3_T[i][j]  + 
-                        lambda4_T[i][j] + lambda5_T[i][j] + lambda6_T[i][j]  + 
-                        lambda7_T[i][j] + lambda8_T[i][j]<= 1 - z4_T[i][j])
-            
-            solver.Add(lambda1_T[i][j]+lambda2_T[i][j]+lambda3_T[i][j]+
-                        lambda4_T[i][j]+lambda5_T[i][j]+lambda6_T[i][j]+
-                        lambda7_T[i][j]+lambda8_T[i][j]+lambda9_T[i][j]+
-                        lambda10_T[i][j]+lambda11_T[i][j] == 1)
-            
-            solver.Add(wC[i][j] == lambda1_T[i][j]*bTank_n[0][i]+lambda2_T[i][j]*bTank_n[1][i]+lambda3_T[i][j]*bTank_n[2][i]+
-                                    lambda4_T[i][j]*bTank_n[3][i]+lambda5_T[i][j]*bTank_n[4][i]+lambda6_T[i][j]*bTank_n[5][i]+
-                                    lambda7_T[i][j]*bTank_n[6][i]+lambda8_T[i][j]*bTank_n[7][i]+lambda9_T[i][j]*bTank_n[8][i]+
-                                    lambda10_T[i][j]*bTank_n[9][i]+lambda11_T[i][j]*bTank_n[10][i])
-            
-            solver.Add(T_tmom[i][j] == lambda1_T[i][j]*cTank_n[0][i]+lambda2_T[i][j]*cTank_n[1][i]+lambda3_T[i][j]*cTank_n[2][i]+
-                                        lambda4_T[i][j]*cTank_n[3][i]+lambda5_T[i][j]*cTank_n[4][i]+lambda6_T[i][j]*cTank_n[5][i]+
-                                        lambda7_T[i][j]*cTank_n[6][i]+lambda8_T[i][j]*cTank_n[7][i]+lambda9_T[i][j]*cTank_n[8][i]+
-                                        lambda10_T[i][j]*cTank_n[9][i]+lambda11_T[i][j]*cTank_n[10][i])
-
-    # Constr15c2
-    for i in T1:
-        for j in P_stable:
-            solver.Add(T_tmom[i][j] == wC[i][j]*TCGt[i])    
-            
-    for i in P_stable:
-        # Constr153
+                
         
-        solver.Add(T_mom[i] == (solver.Sum([T_tmom[t][i] for t in T]) + 
-                    solver.Sum([TB_tmom[t][i] for t in TB]) + 
-                    solver.Sum([weightOtherTank.get(t,{}).get(i,0.)*TCGtp.get(t,{}).get(i,0.) for t in OtherTanks]) + 
-                    deadweightConst*TCGdw))
+        # initial ballast condition
+        # Condition114a1, Condition114a2, Condition114a3
+        for j in incTB:
+            solver.Add(initBallast.get(j,0.) <= wB[j][int(firstloadingPort)])
+        for j in decTB:
+            solver.Add(initBallast.get(j,0.) >= wB[j][int(firstloadingPort)])
+        for j in TB:
+            solver.Add(initBallast.get(j,0.) == wB[j][0])
         
-        # Constr154
-        solver.Add(T_mom[i] >= -ListMOM)
-        solver.Add(T_mom[i] <= ListMOM)
+        # decreasing ballast except last loading port
+        # Condition 114b
+        for i in TB:
+            for (u_, v_) in loadingPortNotLast:
+                solver.Add(wB[i][u_] >= wB[i][v_])
+        
+            
+        # decreasing ballast tank
+        # Condition 114c
+        for u_, v_ in loadingPort:
+            solver.Add(solver.Sum([xB[t][u_] for t in TB]) >= solver.Sum([xB[t][v_] for t in TB]))
+            
+        for j in TB:
+            # depart and arrival has to use same tank
+            # Condition 114d1, Condition 114d2
+            for (u, v) in depArrPort1:
+                solver.Add(xB[j][u] == xB[j][v])
+            for (u, v) in depArrPort2:
+                solver.Add(wB[j][u] == wB[j][v])
+            
+            # rotation loading ports
+            # Condition 114e1, Condition 114e2
+            for u_, v_ in rotatingPort:
+                solver.Add((-wB[j][u_] +  wB[j][v_]) <= 1e6*(1-zBa[j]))
+                solver.Add((wB[j][u_] -  wB[j][v_]) <= 1e6*(1-zBb[j]))
+                
+            # Condition 114e3
+            solver.Add((zBa[j] + zBb[j]) == 1)
+            
+            # fixed ballast
+            # Condition 114f1
+            for p in fixBallastPort:
+                if int(p) > 0:
+                    solver.Add(B_locked.get(j,{}).get(int(p),0) == wB[j][int(p)])
+                
+        # deballast amt
+        # Condition 114g1
+        for i in list(set(loadPort).intersection(set(P_stable))):
+            solver.Add(solver.Sum([wB[t][i] for t in TB]) + deballastPercent*loadingPortAmt[i] >= solver.Sum([wB[t][i-1] for t in TB]))
+            
+        # departure of last loading port
+        # Condition114h
+        for i in lastLoadingPortBallastBan:
+            for j in specialBallastPort:
+                solver.Add(xB[i][j] == 0)
+        # arrival of last loading port
+        # Condition114h1
+        for i in TB:
+            for j in zeroBallastPort:
+                solver.Add(xB[i][j] == 0)
+                
+        ## ship stabilty
+        # assume the ship satisfies all the stability conditions when entering the first port, and ballast tank allocation will be refreshed before leaving each port.
+         
+        # Constr 17a
+        for i in T:
+            for j in P:
+                solver.Add(wC[i][j] == onboard.get(i,0.) + solver.Sum([qw2f[k][i][j]/10 for k in C]))
     
-    ## Trim constraint
-    lambda1_LCB = {}
-    lambda2_LCB = {}
-    lambda3_LCB = {}
-    lambda4_LCB = {}
-    lambda5_LCB = {}
-    lambda6_LCB = {}
-    lambda7_LCB = {}
-    lambda8_LCB = {}
-    lambda9_LCB = {}
-    lambda10_LCB = {}
-    lambda11_LCB = {}
-    
-    z1_LCB = {}
-    z2_LCB = {}
-    z3_LCB = {}
-    z4_LCB = {}
-  
-    lambda1_MTC = {}
-    lambda2_MTC = {}
-    lambda3_MTC = {}
-    lambda4_MTC = {}
-    lambda5_MTC = {}
-    lambda6_MTC = {}
-    lambda7_MTC = {}
-    lambda8_MTC = {}
-    lambda9_MTC = {}
-    lambda10_MTC = {}
-    lambda11_MTC = {}
-    
-    z1_MTC = {}
-    z2_MTC = {}
-    z3_MTC = {}
-    z4_MTC = {}
-    
-    for i in P_stable:
+                
+        # draft constraint
+        # displacement
+        # Constr13c1
+        # Constr13c2
+        # loading and unloading port
+        # Constr13
+        for i in P_stable:
+            solver.Add(displacement[i] == (solver.Sum([wC[t][i] for t in T]) + 
+                          solver.Sum([wB[t][i] for t in TB]) + 
+                          solver.Sum([weightOtherTank.get(t,{}).get(i,0.) for t in OtherTanks]) + 
+                          lightWeight + deadweightConst))
+            solver.Add(displacement1[i] == displacement[i]*1.025/densitySeaWater[i])
+            solver.Add(displacement[i] >= (displacementLowLimit[i] + 0.001))
+            solver.Add(displacement[i] <= (displacementLimit[i] - 0.001))
         
-        # Constr161
-        solver.Add(L_mom[i] == (solver.Sum([wC[t][i]*LCGt[t] for t in T]) + 
-                    solver.Sum([wB[t][i]*LCGt[t] for t in TB]) + 
-                    solver.Sum([weightOtherTank.get(t,{}).get(i,0.)*LCGt[t] for t in OtherTanks]) + 
-                    lightWeight*LCGship + deadweightConst*LCGdw))
+        # deadweight constraint
+        # Constr13a
+        for i in P_stable:
+            solver.Add((solver.Sum([wC[t][i] for t in T]) + 
+                        solver.Sum([wB[t][i] for t in TB]) +
+                        solver.Sum([weightOtherTank.get(t,{}).get(i,0.) for t in OtherTanks]) + 
+                        deadweightConst) <= deadweight)
         
-        # Constr163
-        lambda1_LCB[i] = solver.NumVar(0, 1, 'lambda1_LCB[%d]' % (i))
-        lambda2_LCB[i] = solver.NumVar(0, 1, 'lambda2_LCB[%d]' % (i))
-        lambda3_LCB[i] = solver.NumVar(0, 1, 'lambda3_LCB[%d]' % (i))
-        lambda4_LCB[i] = solver.NumVar(0, 1, 'lambda4_LCB[%d]' % (i))
-        lambda5_LCB[i] = solver.NumVar(0, 1, 'lambda5_LCB[%d]' % (i))
-        lambda6_LCB[i] = solver.NumVar(0, 1, 'lambda6_LCB[%d]' % (i))
-        lambda7_LCB[i] = solver.NumVar(0, 1, 'lambda7_LCB[%d]' % (i))
-        lambda8_LCB[i] = solver.NumVar(0, 1, 'lambda8_LCB[%d]' % (i))
-        lambda9_LCB[i] = solver.NumVar(0, 1, 'lambda9_LCB[%d]' % (i))
-        lambda10_LCB[i] = solver.NumVar(0, 1, 'lambda10_LCB[%d]' % (i))
-        lambda11_LCB[i] = solver.NumVar(0, 1, 'lambda11_LCB[%d]' % (i))
-        z1_LCB[i] = solver.IntVar(0, 1, 'z1_LCB[%d]' % (i))
-        z2_LCB[i] = solver.IntVar(0, 1, 'z2_LCB[%d]' % (i))
-        z3_LCB[i] = solver.IntVar(0, 1, 'z3_LCB[%d]' % (i))
-        z4_LCB[i] = solver.IntVar(0, 1, 'z4_LCB[%d]' % (i))
- 
-        solver.Add(lambda3_LCB[i] + lambda7_LCB[i] + lambda11_LCB[i] <= z1_LCB[i])
-        solver.Add(lambda1_LCB[i] + lambda5_LCB[i] + lambda9_LCB[i] <= 1 - z1_LCB[i])
-        solver.Add(lambda4_LCB[i] + lambda5_LCB[i] + lambda6_LCB[i] <= z2_LCB[i])
-        solver.Add(lambda1_LCB[i] + lambda2_LCB[i] + lambda8_LCB[i] + 
-                    lambda9_LCB[i] + lambda10_LCB[i] + lambda11_LCB[i] <= 1 - z2_LCB[i])
-        solver.Add(lambda6_LCB[i] + lambda7_LCB[i] + lambda8_LCB[i] + 
-                    lambda9_LCB[i] + lambda10_LCB[i] + lambda11_LCB[i] <= z3_LCB[i])
-        solver.Add(lambda1_LCB[i] + lambda2_LCB[i] + lambda3_LCB[i] + 
-                    lambda4_LCB[i] <= 1 - z3_LCB[i])
-        solver.Add(lambda10_LCB[i] + lambda11_LCB[i] <= z4_LCB[i])
-        solver.Add(lambda1_LCB[i] + lambda2_LCB[i] + lambda3_LCB[i] + 
-                    lambda4_LCB[i] + lambda5_LCB[i] + lambda6_LCB[i] + 
-                    lambda7_LCB[i] + lambda8_LCB[i]<= 1 - z4_LCB[i])
-        
-        solver.Add(lambda1_LCB[i]+lambda2_LCB[i]+lambda3_LCB[i]+
-                    lambda4_LCB[i]+lambda5_LCB[i]+lambda6_LCB[i]+
-                    lambda7_LCB[i]+lambda8_LCB[i]+lambda9_LCB[i]+
-                    lambda10_LCB[i]+lambda11_LCB[i] == 1)
-        
-        solver.Add(displacement1[i] == lambda1_LCB[i]*bLCB_n[0]+lambda2_LCB[i]*bLCB_n[1]+lambda3_LCB[i]*bLCB_n[2]+
-                                      lambda4_LCB[i]*bLCB_n[3]+lambda5_LCB[i]*bLCB_n[4]+lambda6_LCB[i]*bLCB_n[5]+
-                                      lambda7_LCB[i]*bLCB_n[6]+lambda8_LCB[i]*bLCB_n[7]+lambda9_LCB[i]*bLCB_n[8]+
-                                      lambda10_LCB[i]*bLCB_n[9]+lambda11_LCB[i]*bLCB_n[10])
+        # Constr13b
+        for i in P_last_loading:
+            solver.Add(solver.Sum([wC[t][i] for t in T]) <= cargoweight)
             
+            
+        ## New list constraint
+        # 10 pieces
+        lambda1_TB = {}
+        lambda2_TB = {}
+        lambda3_TB = {}
+        lambda4_TB = {}
+        lambda5_TB = {}
+        lambda6_TB = {}
+        lambda7_TB = {}
+        lambda8_TB = {}
+        lambda9_TB = {}
+        lambda10_TB = {}
+        lambda11_TB = {}
+        
+        z1_TB = {}
+        z2_TB = {}
+        z3_TB = {}
+        z4_TB = {}
+      
+        for i in list(set(TB)-set(TB1)):
+            lambda1_TB[i] = {}
+            lambda2_TB[i] = {}
+            lambda3_TB[i] = {}
+            lambda4_TB[i] = {}
+            lambda5_TB[i] = {}
+            lambda6_TB[i] = {}
+            lambda7_TB[i] = {}
+            lambda8_TB[i] = {}
+            lambda9_TB[i] = {}
+            lambda10_TB[i] = {}
+            lambda11_TB[i] = {}
+            z1_TB[i] = {}
+            z2_TB[i] = {}
+            z3_TB[i] = {}
+            z4_TB[i] = {}
+            
+               
+            for j in P_stable:
+                lambda1_TB[i][j] = solver.NumVar(0, 1, 'lambda1_TB[%s][%d]' % (i,j))
+                lambda2_TB[i][j] = solver.NumVar(0, 1, 'lambda2_TB[%s][%d]' % (i,j))
+                lambda3_TB[i][j] = solver.NumVar(0, 1, 'lambda3_TB[%s][%d]' % (i,j))
+                lambda4_TB[i][j] = solver.NumVar(0, 1, 'lambda4_TB[%s][%d]' % (i,j))
+                lambda5_TB[i][j] = solver.NumVar(0, 1, 'lambda5_TB[%s][%d]' % (i,j))
+                lambda6_TB[i][j] = solver.NumVar(0, 1, 'lambda6_TB[%s][%d]' % (i,j))
+                lambda7_TB[i][j] = solver.NumVar(0, 1, 'lambda7_TB[%s][%d]' % (i,j))
+                lambda8_TB[i][j] = solver.NumVar(0, 1, 'lambda8_TB[%s][%d]' % (i,j))
+                lambda9_TB[i][j] = solver.NumVar(0, 1, 'lambda9_TB[%s][%d]' % (i,j))
+                lambda10_TB[i][j] = solver.NumVar(0, 1, 'lambda10_TB[%s][%d]' % (i,j))
+                lambda11_TB[i][j] = solver.NumVar(0, 1, 'lambda11_TB[%s][%d]' % (i,j))
+                z1_TB[i][j] = solver.IntVar(0, 1, 'z1_TB[%s][%d]' % (i,j))
+                z2_TB[i][j] = solver.IntVar(0, 1, 'z2_TB[%s][%d]' % (i,j))
+                z3_TB[i][j] = solver.IntVar(0, 1, 'z3_TB[%s][%d]' % (i,j))
+                z4_TB[i][j] = solver.IntVar(0, 1, 'z4_TB[%s][%d]' % (i,j))
+      
+                solver.Add(lambda3_TB[i][j] + lambda7_TB[i][j] + lambda11_TB[i][j] <= z1_TB[i][j])
+                solver.Add(lambda1_TB[i][j] + lambda5_TB[i][j] + lambda9_TB[i][j] <= 1 - z1_TB[i][j])
+                solver.Add(lambda4_TB[i][j] + lambda5_TB[i][j] + lambda6_TB[i][j] <= z2_TB[i][j])
+                solver.Add(lambda1_TB[i][j] + lambda2_TB[i][j] + lambda8_TB[i][j]  + 
+                            lambda9_TB[i][j] + lambda10_TB[i][j] + lambda11_TB[i][j] <= 1 - z2_TB[i][j])
+                solver.Add(lambda6_TB[i][j] + lambda7_TB[i][j] + lambda8_TB[i][j]  + 
+                            lambda9_TB[i][j] + lambda10_TB[i][j] + lambda11_TB[i][j] <= z3_TB[i][j])
+                solver.Add(lambda1_TB[i][j] + lambda2_TB[i][j] + lambda3_TB[i][j]  + 
+                            lambda4_TB[i][j] <= 1 - z3_TB[i][j])
+                solver.Add(lambda10_TB[i][j] + lambda11_TB[i][j] <= z4_TB[i][j])
+                solver.Add(lambda1_TB[i][j] + lambda2_TB[i][j] + lambda3_TB[i][j]  + 
+                            lambda4_TB[i][j] + lambda5_TB[i][j] + lambda6_TB[i][j]  + 
+                            lambda7_TB[i][j] + lambda8_TB[i][j]<= 1 - z4_TB[i][j])
+                
+                solver.Add(lambda1_TB[i][j]+lambda2_TB[i][j]+lambda3_TB[i][j]+
+                            lambda4_TB[i][j]+lambda5_TB[i][j]+lambda6_TB[i][j]+
+                            lambda7_TB[i][j]+lambda8_TB[i][j]+lambda9_TB[i][j]+
+                            lambda10_TB[i][j]+lambda11_TB[i][j] == 1)
+    
+                ##?? check on need for seawater density
+                solver.Add(wB[i][j] == lambda1_TB[i][j]*bTank_n[0][i]+lambda2_TB[i][j]*bTank_n[1][i]+lambda3_TB[i][j]*bTank_n[2][i]+
+                                        lambda4_TB[i][j]*bTank_n[3][i]+lambda5_TB[i][j]*bTank_n[4][i]+lambda6_TB[i][j]*bTank_n[5][i]+
+                                        lambda7_TB[i][j]*bTank_n[6][i]+lambda8_TB[i][j]*bTank_n[7][i]+lambda9_TB[i][j]*bTank_n[8][i]+
+                                        lambda10_TB[i][j]*bTank_n[9][i]+lambda11_TB[i][j]*bTank_n[10][i])
+                
+                
+                # Constr15b1
+                solver.Add(TB_tmom[i][j] == (lambda1_TB[i][j]*cTank_n[0][i]+lambda2_TB[i][j]*cTank_n[1][i]+lambda3_TB[i][j]*cTank_n[2][i]+
+                                            lambda4_TB[i][j]*cTank_n[3][i]+lambda5_TB[i][j]*cTank_n[4][i]+lambda6_TB[i][j]*cTank_n[5][i]+
+                                            lambda7_TB[i][j]*cTank_n[6][i]+lambda8_TB[i][j]*cTank_n[7][i]+lambda9_TB[i][j]*cTank_n[8][i]+
+                                            lambda10_TB[i][j]*cTank_n[9][i]+lambda11_TB[i][j]*cTank_n[10][i]))
+                        
+        # Constr15b2
+        for i in TB1:
+            for j in P_stable:
+                # solver.Add(TB_tmom[i][j] == wB[i][j]*TCGt[i])
+                TB_tmom[i][j] = wB[i][j]*TCGt[i]
+                
+                
+        # Constr15c1
+        lambda1_T = {}
+        lambda2_T = {}
+        lambda3_T = {}
+        lambda4_T = {}
+        lambda5_T = {}
+        lambda6_T = {}
+        lambda7_T = {}
+        lambda8_T = {}
+        lambda9_T = {}
+        lambda10_T = {}
+        lambda11_T = {}
+        
+        z1_T = {}
+        z2_T = {}
+        z3_T = {}
+        z4_T = {}
+    
+        for i in list(set(T)-set(T1)):
+            lambda1_T[i] = {}
+            lambda2_T[i] = {}
+            lambda3_T[i] = {}
+            lambda4_T[i] = {}
+            lambda5_T[i] = {}
+            lambda6_T[i] = {}
+            lambda7_T[i] = {}
+            lambda8_T[i] = {}
+            lambda9_T[i] = {}
+            lambda10_T[i] = {}
+            lambda11_T[i] = {}
+            z1_T[i] = {}
+            z2_T[i] = {}
+            z3_T[i] = {}
+            z4_T[i] = {}
+    
+            for j in P_stable:
+                lambda1_T[i][j] = solver.NumVar(0, 1, 'lambda1_T[%s][%d]' % (i,j))
+                lambda2_T[i][j] = solver.NumVar(0, 1, 'lambda2_T[%s][%d]' % (i,j))
+                lambda3_T[i][j] = solver.NumVar(0, 1, 'lambda3_T[%s][%d]' % (i,j))
+                lambda4_T[i][j] = solver.NumVar(0, 1, 'lambda4_T[%s][%d]' % (i,j))
+                lambda5_T[i][j] = solver.NumVar(0, 1, 'lambda5_T[%s][%d]' % (i,j))
+                lambda6_T[i][j] = solver.NumVar(0, 1, 'lambda6_T[%s][%d]' % (i,j))
+                lambda7_T[i][j] = solver.NumVar(0, 1, 'lambda7_T[%s][%d]' % (i,j))
+                lambda8_T[i][j] = solver.NumVar(0, 1, 'lambda8_T[%s][%d]' % (i,j))
+                lambda9_T[i][j] = solver.NumVar(0, 1, 'lambda9_T[%s][%d]' % (i,j))
+                lambda10_T[i][j] = solver.NumVar(0, 1, 'lambda10_T[%s][%d]' % (i,j))
+                lambda11_T[i][j] = solver.NumVar(0, 1, 'lambda11_T[%s][%d]' % (i,j))
+                z1_T[i][j] = solver.IntVar(0, 1, 'z1_T[%s][%d]' % (i,j))
+                z2_T[i][j] = solver.IntVar(0, 1, 'z2_T[%s][%d]' % (i,j))
+                z3_T[i][j] = solver.IntVar(0, 1, 'z3_T[%s][%d]' % (i,j))
+                z4_T[i][j] = solver.IntVar(0, 1, 'z4_T[%s][%d]' % (i,j))
+    
+                solver.Add(lambda3_T[i][j] + lambda7_T[i][j] + lambda11_T[i][j] <= z1_T[i][j])
+                solver.Add(lambda1_T[i][j] + lambda5_T[i][j] + lambda9_T[i][j] <= 1 - z1_T[i][j])
+                solver.Add(lambda4_T[i][j] + lambda5_T[i][j] + lambda6_T[i][j] <= z2_T[i][j])
+                solver.Add(lambda1_T[i][j] + lambda2_T[i][j] + lambda8_T[i][j]  + 
+                            lambda9_T[i][j] + lambda10_T[i][j] + lambda11_T[i][j] <= 1 - z2_T[i][j])
+                solver.Add(lambda6_T[i][j] + lambda7_T[i][j] + lambda8_T[i][j]  + 
+                            lambda9_T[i][j] + lambda10_T[i][j] + lambda11_T[i][j] <= z3_T[i][j])
+                solver.Add(lambda1_T[i][j] + lambda2_T[i][j] + lambda3_T[i][j]  + 
+                            lambda4_T[i][j] <= 1 - z3_T[i][j])
+                solver.Add(lambda10_T[i][j] + lambda11_T[i][j] <= z4_T[i][j])
+                solver.Add(lambda1_T[i][j] + lambda2_T[i][j] + lambda3_T[i][j]  + 
+                            lambda4_T[i][j] + lambda5_T[i][j] + lambda6_T[i][j]  + 
+                            lambda7_T[i][j] + lambda8_T[i][j]<= 1 - z4_T[i][j])
+                
+                solver.Add(lambda1_T[i][j]+lambda2_T[i][j]+lambda3_T[i][j]+
+                            lambda4_T[i][j]+lambda5_T[i][j]+lambda6_T[i][j]+
+                            lambda7_T[i][j]+lambda8_T[i][j]+lambda9_T[i][j]+
+                            lambda10_T[i][j]+lambda11_T[i][j] == 1)
+                
+                solver.Add(wC[i][j] == lambda1_T[i][j]*bTank_n[0][i]+lambda2_T[i][j]*bTank_n[1][i]+lambda3_T[i][j]*bTank_n[2][i]+
+                                        lambda4_T[i][j]*bTank_n[3][i]+lambda5_T[i][j]*bTank_n[4][i]+lambda6_T[i][j]*bTank_n[5][i]+
+                                        lambda7_T[i][j]*bTank_n[6][i]+lambda8_T[i][j]*bTank_n[7][i]+lambda9_T[i][j]*bTank_n[8][i]+
+                                        lambda10_T[i][j]*bTank_n[9][i]+lambda11_T[i][j]*bTank_n[10][i])
+                
+                solver.Add(T_tmom[i][j] == lambda1_T[i][j]*cTank_n[0][i]+lambda2_T[i][j]*cTank_n[1][i]+lambda3_T[i][j]*cTank_n[2][i]+
+                                            lambda4_T[i][j]*cTank_n[3][i]+lambda5_T[i][j]*cTank_n[4][i]+lambda6_T[i][j]*cTank_n[5][i]+
+                                            lambda7_T[i][j]*cTank_n[6][i]+lambda8_T[i][j]*cTank_n[7][i]+lambda9_T[i][j]*cTank_n[8][i]+
+                                            lambda10_T[i][j]*cTank_n[9][i]+lambda11_T[i][j]*cTank_n[10][i])
+    
+        # Constr15c2
+        for i in T1:
+            for j in P_stable:
+                solver.Add(T_tmom[i][j] == wC[i][j]*TCGt[i])    
+                
+        for i in P_stable:
+            # Constr153
+            
+            solver.Add(T_mom[i] == (solver.Sum([T_tmom[t][i] for t in T]) + 
+                        solver.Sum([TB_tmom[t][i] for t in TB]) + 
+                        solver.Sum([weightOtherTank.get(t,{}).get(i,0.)*TCGtp.get(t,{}).get(i,0.) for t in OtherTanks]) + 
+                        deadweightConst*TCGdw))
+            
+            # Constr154
+            solver.Add(T_mom[i] >= -ListMOM)
+            solver.Add(T_mom[i] <= ListMOM)
+        
+        ## Trim constraint
+        lambda1_LCB = {}
+        lambda2_LCB = {}
+        lambda3_LCB = {}
+        lambda4_LCB = {}
+        lambda5_LCB = {}
+        lambda6_LCB = {}
+        lambda7_LCB = {}
+        lambda8_LCB = {}
+        lambda9_LCB = {}
+        lambda10_LCB = {}
+        lambda11_LCB = {}
+        
+        z1_LCB = {}
+        z2_LCB = {}
+        z3_LCB = {}
+        z4_LCB = {}
+      
+        lambda1_MTC = {}
+        lambda2_MTC = {}
+        lambda3_MTC = {}
+        lambda4_MTC = {}
+        lambda5_MTC = {}
+        lambda6_MTC = {}
+        lambda7_MTC = {}
+        lambda8_MTC = {}
+        lambda9_MTC = {}
+        lambda10_MTC = {}
+        lambda11_MTC = {}
+        
+        z1_MTC = {}
+        z2_MTC = {}
+        z3_MTC = {}
+        z4_MTC = {}
+        
+        for i in P_stable:
+            
+            # Constr161
+            solver.Add(L_mom[i] == (solver.Sum([wC[t][i]*LCGt[t] for t in T]) + 
+                        solver.Sum([wB[t][i]*LCGt[t] for t in TB]) + 
+                        solver.Sum([weightOtherTank.get(t,{}).get(i,0.)*LCGt[t] for t in OtherTanks]) + 
+                        lightWeight*LCGship + deadweightConst*LCGdw))
+            
+            # Constr163
+            lambda1_LCB[i] = solver.NumVar(0, 1, 'lambda1_LCB[%d]' % (i))
+            lambda2_LCB[i] = solver.NumVar(0, 1, 'lambda2_LCB[%d]' % (i))
+            lambda3_LCB[i] = solver.NumVar(0, 1, 'lambda3_LCB[%d]' % (i))
+            lambda4_LCB[i] = solver.NumVar(0, 1, 'lambda4_LCB[%d]' % (i))
+            lambda5_LCB[i] = solver.NumVar(0, 1, 'lambda5_LCB[%d]' % (i))
+            lambda6_LCB[i] = solver.NumVar(0, 1, 'lambda6_LCB[%d]' % (i))
+            lambda7_LCB[i] = solver.NumVar(0, 1, 'lambda7_LCB[%d]' % (i))
+            lambda8_LCB[i] = solver.NumVar(0, 1, 'lambda8_LCB[%d]' % (i))
+            lambda9_LCB[i] = solver.NumVar(0, 1, 'lambda9_LCB[%d]' % (i))
+            lambda10_LCB[i] = solver.NumVar(0, 1, 'lambda10_LCB[%d]' % (i))
+            lambda11_LCB[i] = solver.NumVar(0, 1, 'lambda11_LCB[%d]' % (i))
+            z1_LCB[i] = solver.IntVar(0, 1, 'z1_LCB[%d]' % (i))
+            z2_LCB[i] = solver.IntVar(0, 1, 'z2_LCB[%d]' % (i))
+            z3_LCB[i] = solver.IntVar(0, 1, 'z3_LCB[%d]' % (i))
+            z4_LCB[i] = solver.IntVar(0, 1, 'z4_LCB[%d]' % (i))
+     
+            solver.Add(lambda3_LCB[i] + lambda7_LCB[i] + lambda11_LCB[i] <= z1_LCB[i])
+            solver.Add(lambda1_LCB[i] + lambda5_LCB[i] + lambda9_LCB[i] <= 1 - z1_LCB[i])
+            solver.Add(lambda4_LCB[i] + lambda5_LCB[i] + lambda6_LCB[i] <= z2_LCB[i])
+            solver.Add(lambda1_LCB[i] + lambda2_LCB[i] + lambda8_LCB[i] + 
+                        lambda9_LCB[i] + lambda10_LCB[i] + lambda11_LCB[i] <= 1 - z2_LCB[i])
+            solver.Add(lambda6_LCB[i] + lambda7_LCB[i] + lambda8_LCB[i] + 
+                        lambda9_LCB[i] + lambda10_LCB[i] + lambda11_LCB[i] <= z3_LCB[i])
+            solver.Add(lambda1_LCB[i] + lambda2_LCB[i] + lambda3_LCB[i] + 
+                        lambda4_LCB[i] <= 1 - z3_LCB[i])
+            solver.Add(lambda10_LCB[i] + lambda11_LCB[i] <= z4_LCB[i])
+            solver.Add(lambda1_LCB[i] + lambda2_LCB[i] + lambda3_LCB[i] + 
+                        lambda4_LCB[i] + lambda5_LCB[i] + lambda6_LCB[i] + 
+                        lambda7_LCB[i] + lambda8_LCB[i]<= 1 - z4_LCB[i])
+            
+            solver.Add(lambda1_LCB[i]+lambda2_LCB[i]+lambda3_LCB[i]+
+                        lambda4_LCB[i]+lambda5_LCB[i]+lambda6_LCB[i]+
+                        lambda7_LCB[i]+lambda8_LCB[i]+lambda9_LCB[i]+
+                        lambda10_LCB[i]+lambda11_LCB[i] == 1)
+            
+            solver.Add(displacement1[i] == lambda1_LCB[i]*bLCB_n[0]+lambda2_LCB[i]*bLCB_n[1]+lambda3_LCB[i]*bLCB_n[2]+
+                                          lambda4_LCB[i]*bLCB_n[3]+lambda5_LCB[i]*bLCB_n[4]+lambda6_LCB[i]*bLCB_n[5]+
+                                          lambda7_LCB[i]*bLCB_n[6]+lambda8_LCB[i]*bLCB_n[7]+lambda9_LCB[i]*bLCB_n[8]+
+                                          lambda10_LCB[i]*bLCB_n[9]+lambda11_LCB[i]*bLCB_n[10])
+                
+                  
+            solver.Add(LCBp[i] == lambda1_LCB[i]*cLCB_n[0]+lambda2_LCB[i]*cLCB_n[1]+lambda3_LCB[i]*cLCB_n[2]+
+                                  lambda4_LCB[i]*cLCB_n[3]+lambda5_LCB[i]*cLCB_n[4]+lambda6_LCB[i]*cLCB_n[5]+
+                                  lambda7_LCB[i]*cLCB_n[6]+lambda8_LCB[i]*cLCB_n[7]+lambda9_LCB[i]*cLCB_n[8]+
+                                  lambda10_LCB[i]*cLCB_n[9]+lambda11_LCB[i]*cLCB_n[10])
+            
+            # Constr164
+            lambda1_MTC[i] = solver.NumVar(0, 1, 'lambda1_MTC[%d]' % (i))
+            lambda2_MTC[i] = solver.NumVar(0, 1, 'lambda2_MTC[%d]' % (i))
+            lambda3_MTC[i] = solver.NumVar(0, 1, 'lambda3_MTC[%d]' % (i))
+            lambda4_MTC[i] = solver.NumVar(0, 1, 'lambda4_MTC[%d]' % (i))
+            lambda5_MTC[i] = solver.NumVar(0, 1, 'lambda5_MTC[%d]' % (i))
+            lambda6_MTC[i] = solver.NumVar(0, 1, 'lambda6_MTC[%d]' % (i))
+            lambda7_MTC[i] = solver.NumVar(0, 1, 'lambda7_MTC[%d]' % (i))
+            lambda8_MTC[i] = solver.NumVar(0, 1, 'lambda8_MTC[%d]' % (i))
+            lambda9_MTC[i] = solver.NumVar(0, 1, 'lambda9_MTC[%d]' % (i))
+            lambda10_MTC[i] = solver.NumVar(0, 1, 'lambda10_MTC[%d]' % (i))
+            lambda11_MTC[i] = solver.NumVar(0, 1, 'lambda11_MTC[%d]' % (i))
+            z1_MTC[i] = solver.IntVar(0, 1, 'z1_MTC[%d]' % (i))
+            z2_MTC[i] = solver.IntVar(0, 1, 'z2_MTC[%d]' % (i))
+            z3_MTC[i] = solver.IntVar(0, 1, 'z3_MTC[%d]' % (i))
+            z4_MTC[i] = solver.IntVar(0, 1, 'z4_MTC[%d]' % (i))
+            
+            solver.Add(lambda3_MTC[i] + lambda7_MTC[i] + lambda11_MTC[i] <= z1_MTC[i])
+            solver.Add(lambda1_MTC[i] + lambda5_MTC[i] + lambda9_MTC[i] <= 1 - z1_MTC[i])
+            solver.Add(lambda4_MTC[i] + lambda5_MTC[i] + lambda6_MTC[i] <= z2_MTC[i])
+            solver.Add(lambda1_MTC[i] + lambda2_MTC[i] + lambda8_MTC[i] + 
+                        lambda9_MTC[i] + lambda10_MTC[i] + lambda11_MTC[i] <= 1 - z2_MTC[i])
+            solver.Add(lambda6_MTC[i] + lambda7_MTC[i] + lambda8_MTC[i] + 
+                        lambda9_MTC[i] + lambda10_MTC[i] + lambda11_MTC[i] <= z3_MTC[i])
+            solver.Add(lambda1_MTC[i] + lambda2_MTC[i] + lambda3_MTC[i] + 
+                        lambda4_MTC[i] <= 1 - z3_MTC[i])
+            solver.Add(lambda10_MTC[i] + lambda11_MTC[i] <= z4_MTC[i])
+            solver.Add(lambda1_MTC[i] + lambda2_MTC[i] + lambda3_MTC[i] + 
+                        lambda4_MTC[i] + lambda5_MTC[i] + lambda6_MTC[i] + 
+                        lambda7_MTC[i] + lambda8_MTC[i]<= 1 - z4_MTC[i])
+            
+            solver.Add(lambda1_MTC[i]+lambda2_MTC[i]+lambda3_MTC[i]+
+                        lambda4_MTC[i]+lambda5_MTC[i]+lambda6_MTC[i]+
+                        lambda7_MTC[i]+lambda8_MTC[i]+lambda9_MTC[i]+
+                        lambda10_MTC[i]+lambda11_MTC[i] == 1)
+            
+            
+            solver.Add(displacement1[i] == lambda1_MTC[i]*bMTC_n[0]+lambda2_MTC[i]*bMTC_n[1]+lambda3_MTC[i]*bMTC_n[2]+
+                                          lambda4_MTC[i]*bMTC_n[3]+lambda5_MTC[i]*bMTC_n[4]+lambda6_MTC[i]*bMTC_n[5]+
+                                          lambda7_MTC[i]*bMTC_n[6]+lambda8_MTC[i]*bMTC_n[7]+lambda9_MTC[i]*bMTC_n[8]+
+                                          lambda10_MTC[i]*bMTC_n[9]+lambda11_MTC[i]*bMTC_n[10])
+    
+            solver.Add(MTCp[i] == lambda1_MTC[i]*cMTC_n[0]+lambda2_MTC[i]*cMTC_n[1]+lambda3_MTC[i]*cMTC_n[2]+
+                                  lambda4_MTC[i]*cMTC_n[3]+lambda5_MTC[i]*cMTC_n[4]+lambda6_MTC[i]*cMTC_n[5]+
+                                  lambda7_MTC[i]*cMTC_n[6]+lambda8_MTC[i]*cMTC_n[7]+lambda9_MTC[i]*cMTC_n[8]+
+                                  lambda10_MTC[i]*cMTC_n[9]+lambda11_MTC[i]*cMTC_n[10])
+            
+            #Constr16a
+            solver.Add(MTCp[i]*trim_lower.get(i,-0.001)*100 <= (L_mom[i] - LCBp[i]))
+            
+            # Constr16b
+            solver.Add((L_mom[i] - LCBp[i]) <= MTCp[i]*trim_upper.get(i,0.001)*100)
+        
+        ## SF and BM 
+        # wn, mn
+        lambda1_Draft = {}
+        lambda2_Draft = {}
+        lambda3_Draft = {}
+        lambda4_Draft = {}
+        lambda5_Draft = {}
+        lambda6_Draft = {}
+        lambda7_Draft = {}
+        lambda8_Draft = {}
+        lambda9_Draft = {}
+        lambda10_Draft = {}
+        lambda11_Draft = {}
+        
+        z1_Draft = {}
+        z2_Draft = {}
+        z3_Draft = {}
+        z4_Draft = {}
+        
+        for i in P_stable:
+            # Constr18a
+            solver.Add(wn[0][i] == 0)
+            # Constr19a
+            solver.Add(mn[0][i] == 0)
+            
+            # Constr18d
+            lambda1_Draft[i] = solver.NumVar(0, 1, 'lambda1_Draft[%d]' % (i))
+            lambda2_Draft[i] = solver.NumVar(0, 1, 'lambda2_Draft[%d]' % (i))
+            lambda3_Draft[i] = solver.NumVar(0, 1, 'lambda3_Draft[%d]' % (i))
+            lambda4_Draft[i] = solver.NumVar(0, 1, 'lambda4_Draft[%d]' % (i))
+            lambda5_Draft[i] = solver.NumVar(0, 1, 'lambda5_Draft[%d]' % (i))
+            lambda6_Draft[i] = solver.NumVar(0, 1, 'lambda6_Draft[%d]' % (i))
+            lambda7_Draft[i] = solver.NumVar(0, 1, 'lambda7_Draft[%d]' % (i))
+            lambda8_Draft[i] = solver.NumVar(0, 1, 'lambda8_Draft[%d]' % (i))
+            lambda9_Draft[i] = solver.NumVar(0, 1, 'lambda9_Draft[%d]' % (i))
+            lambda10_Draft[i] = solver.NumVar(0, 1, 'lambda10_Draft[%d]' % (i))
+            lambda11_Draft[i] = solver.NumVar(0, 1, 'lambda11_Draft[%d]' % (i))
+            z1_Draft[i] = solver.IntVar(0, 1, 'z1_Draft[%d]' % (i))
+            z2_Draft[i] = solver.IntVar(0, 1, 'z2_Draft[%d]' % (i))
+            z3_Draft[i] = solver.IntVar(0, 1, 'z3_Draft[%d]' % (i))
+            z4_Draft[i] = solver.IntVar(0, 1, 'z4_Draft[%d]' % (i))
+            
+            solver.Add(lambda3_Draft[i] + lambda7_Draft[i] + lambda11_Draft[i] <= z1_Draft[i])
+            solver.Add(lambda1_Draft[i] + lambda5_Draft[i] + lambda9_Draft[i] <= 1 - z1_Draft[i])
+            solver.Add(lambda4_Draft[i] + lambda5_Draft[i] + lambda6_Draft[i] <= z2_Draft[i])
+            solver.Add(lambda1_Draft[i] + lambda2_Draft[i] + lambda8_Draft[i] + 
+                        lambda9_Draft[i] + lambda10_Draft[i] + lambda11_Draft[i] <= 1 - z2_Draft[i])
+            solver.Add(lambda6_Draft[i] + lambda7_Draft[i] + lambda8_Draft[i] + 
+                        lambda9_Draft[i] + lambda10_Draft[i] + lambda11_Draft[i] <= z3_Draft[i])
+            solver.Add(lambda1_Draft[i] + lambda2_Draft[i] + lambda3_Draft[i] + 
+                        lambda4_Draft[i] <= 1 - z3_Draft[i])
+            solver.Add(lambda10_Draft[i] + lambda11_Draft[i] <= z4_Draft[i])
+            solver.Add(lambda1_Draft[i] + lambda2_Draft[i] + lambda3_Draft[i] + 
+                        lambda4_Draft[i] + lambda5_Draft[i] + lambda6_Draft[i] + 
+                        lambda7_Draft[i] + lambda8_Draft[i]<= 1 - z4_Draft[i])
+            
+            solver.Add(lambda1_Draft[i]+lambda2_Draft[i]+lambda3_Draft[i]+
+                        lambda4_Draft[i]+lambda5_Draft[i]+lambda6_Draft[i]+
+                        lambda7_Draft[i]+lambda8_Draft[i]+lambda9_Draft[i]+
+                        lambda10_Draft[i]+lambda11_Draft[i] == 1)
+            
+            solver.Add(displacement[i] == lambda1_Draft[i]*bDraft_n[0]+lambda2_Draft[i]*bDraft_n[1]+lambda3_Draft[i]*bDraft_n[2]+
+                                          lambda4_Draft[i]*bDraft_n[3]+lambda5_Draft[i]*bDraft_n[4]+lambda6_Draft[i]*bDraft_n[5]+
+                                          lambda7_Draft[i]*bDraft_n[6]+lambda8_Draft[i]*bDraft_n[7]+lambda9_Draft[i]*bDraft_n[8]+
+                                          lambda10_Draft[i]*bDraft_n[9]+lambda11_Draft[i]*bDraft_n[10])
+                
+            solver.Add(mean_draft[i] == lambda1_Draft[i]*cDraft_n[0]+lambda2_Draft[i]*cDraft_n[1]+lambda3_Draft[i]*cDraft_n[2]+
+                                        lambda4_Draft[i]*cDraft_n[3]+lambda5_Draft[i]*cDraft_n[4]+lambda6_Draft[i]*cDraft_n[5]+
+                                        lambda7_Draft[i]*cDraft_n[6]+lambda8_Draft[i]*cDraft_n[7]+lambda9_Draft[i]*cDraft_n[8]+
+                                        lambda10_Draft[i]*cDraft_n[9]+lambda11_Draft[i]*cDraft_n[10])
+        
+        for i in range(1,Fr+1):
+            
+            for j in P_stable:
+                
               
-        solver.Add(LCBp[i] == lambda1_LCB[i]*cLCB_n[0]+lambda2_LCB[i]*cLCB_n[1]+lambda3_LCB[i]*cLCB_n[2]+
-                              lambda4_LCB[i]*cLCB_n[3]+lambda5_LCB[i]*cLCB_n[4]+lambda6_LCB[i]*cLCB_n[5]+
-                              lambda7_LCB[i]*cLCB_n[6]+lambda8_LCB[i]*cLCB_n[7]+lambda9_LCB[i]*cLCB_n[8]+
-                              lambda10_LCB[i]*cLCB_n[9]+lambda11_LCB[i]*cLCB_n[10])
-        
-        # Constr164
-        lambda1_MTC[i] = solver.NumVar(0, 1, 'lambda1_MTC[%d]' % (i))
-        lambda2_MTC[i] = solver.NumVar(0, 1, 'lambda2_MTC[%d]' % (i))
-        lambda3_MTC[i] = solver.NumVar(0, 1, 'lambda3_MTC[%d]' % (i))
-        lambda4_MTC[i] = solver.NumVar(0, 1, 'lambda4_MTC[%d]' % (i))
-        lambda5_MTC[i] = solver.NumVar(0, 1, 'lambda5_MTC[%d]' % (i))
-        lambda6_MTC[i] = solver.NumVar(0, 1, 'lambda6_MTC[%d]' % (i))
-        lambda7_MTC[i] = solver.NumVar(0, 1, 'lambda7_MTC[%d]' % (i))
-        lambda8_MTC[i] = solver.NumVar(0, 1, 'lambda8_MTC[%d]' % (i))
-        lambda9_MTC[i] = solver.NumVar(0, 1, 'lambda9_MTC[%d]' % (i))
-        lambda10_MTC[i] = solver.NumVar(0, 1, 'lambda10_MTC[%d]' % (i))
-        lambda11_MTC[i] = solver.NumVar(0, 1, 'lambda11_MTC[%d]' % (i))
-        z1_MTC[i] = solver.IntVar(0, 1, 'z1_MTC[%d]' % (i))
-        z2_MTC[i] = solver.IntVar(0, 1, 'z2_MTC[%d]' % (i))
-        z3_MTC[i] = solver.IntVar(0, 1, 'z3_MTC[%d]' % (i))
-        z4_MTC[i] = solver.IntVar(0, 1, 'z4_MTC[%d]' % (i))
-        
-        solver.Add(lambda3_MTC[i] + lambda7_MTC[i] + lambda11_MTC[i] <= z1_MTC[i])
-        solver.Add(lambda1_MTC[i] + lambda5_MTC[i] + lambda9_MTC[i] <= 1 - z1_MTC[i])
-        solver.Add(lambda4_MTC[i] + lambda5_MTC[i] + lambda6_MTC[i] <= z2_MTC[i])
-        solver.Add(lambda1_MTC[i] + lambda2_MTC[i] + lambda8_MTC[i] + 
-                    lambda9_MTC[i] + lambda10_MTC[i] + lambda11_MTC[i] <= 1 - z2_MTC[i])
-        solver.Add(lambda6_MTC[i] + lambda7_MTC[i] + lambda8_MTC[i] + 
-                    lambda9_MTC[i] + lambda10_MTC[i] + lambda11_MTC[i] <= z3_MTC[i])
-        solver.Add(lambda1_MTC[i] + lambda2_MTC[i] + lambda3_MTC[i] + 
-                    lambda4_MTC[i] <= 1 - z3_MTC[i])
-        solver.Add(lambda10_MTC[i] + lambda11_MTC[i] <= z4_MTC[i])
-        solver.Add(lambda1_MTC[i] + lambda2_MTC[i] + lambda3_MTC[i] + 
-                    lambda4_MTC[i] + lambda5_MTC[i] + lambda6_MTC[i] + 
-                    lambda7_MTC[i] + lambda8_MTC[i]<= 1 - z4_MTC[i])
-        
-        solver.Add(lambda1_MTC[i]+lambda2_MTC[i]+lambda3_MTC[i]+
-                    lambda4_MTC[i]+lambda5_MTC[i]+lambda6_MTC[i]+
-                    lambda7_MTC[i]+lambda8_MTC[i]+lambda9_MTC[i]+
-                    lambda10_MTC[i]+lambda11_MTC[i] == 1)
-        
-        
-        solver.Add(displacement1[i] == lambda1_MTC[i]*bMTC_n[0]+lambda2_MTC[i]*bMTC_n[1]+lambda3_MTC[i]*bMTC_n[2]+
-                                      lambda4_MTC[i]*bMTC_n[3]+lambda5_MTC[i]*bMTC_n[4]+lambda6_MTC[i]*bMTC_n[5]+
-                                      lambda7_MTC[i]*bMTC_n[6]+lambda8_MTC[i]*bMTC_n[7]+lambda9_MTC[i]*bMTC_n[8]+
-                                      lambda10_MTC[i]*bMTC_n[9]+lambda11_MTC[i]*bMTC_n[10])
-
-        solver.Add(MTCp[i] == lambda1_MTC[i]*cMTC_n[0]+lambda2_MTC[i]*cMTC_n[1]+lambda3_MTC[i]*cMTC_n[2]+
-                              lambda4_MTC[i]*cMTC_n[3]+lambda5_MTC[i]*cMTC_n[4]+lambda6_MTC[i]*cMTC_n[5]+
-                              lambda7_MTC[i]*cMTC_n[6]+lambda8_MTC[i]*cMTC_n[7]+lambda9_MTC[i]*cMTC_n[8]+
-                              lambda10_MTC[i]*cMTC_n[9]+lambda11_MTC[i]*cMTC_n[10])
-        
-        #Constr16a
-        solver.Add(MTCp[i]*trim_lower.get(i,-0.001)*100 <= (L_mom[i] - LCBp[i]))
-        
-        # Constr16b
-        solver.Add((L_mom[i] - LCBp[i]) <= MTCp[i]*trim_upper.get(i,0.001)*100)
-    
-    ## SF and BM 
-    # wn, mn
-    lambda1_Draft = {}
-    lambda2_Draft = {}
-    lambda3_Draft = {}
-    lambda4_Draft = {}
-    lambda5_Draft = {}
-    lambda6_Draft = {}
-    lambda7_Draft = {}
-    lambda8_Draft = {}
-    lambda9_Draft = {}
-    lambda10_Draft = {}
-    lambda11_Draft = {}
-    
-    z1_Draft = {}
-    z2_Draft = {}
-    z3_Draft = {}
-    z4_Draft = {}
-    
-    for i in P_stable:
-        # Constr18a
-        solver.Add(wn[0][i] == 0)
-        # Constr19a
-        solver.Add(mn[0][i] == 0)
-        
-        # Constr18d
-        lambda1_Draft[i] = solver.NumVar(0, 1, 'lambda1_Draft[%d]' % (i))
-        lambda2_Draft[i] = solver.NumVar(0, 1, 'lambda2_Draft[%d]' % (i))
-        lambda3_Draft[i] = solver.NumVar(0, 1, 'lambda3_Draft[%d]' % (i))
-        lambda4_Draft[i] = solver.NumVar(0, 1, 'lambda4_Draft[%d]' % (i))
-        lambda5_Draft[i] = solver.NumVar(0, 1, 'lambda5_Draft[%d]' % (i))
-        lambda6_Draft[i] = solver.NumVar(0, 1, 'lambda6_Draft[%d]' % (i))
-        lambda7_Draft[i] = solver.NumVar(0, 1, 'lambda7_Draft[%d]' % (i))
-        lambda8_Draft[i] = solver.NumVar(0, 1, 'lambda8_Draft[%d]' % (i))
-        lambda9_Draft[i] = solver.NumVar(0, 1, 'lambda9_Draft[%d]' % (i))
-        lambda10_Draft[i] = solver.NumVar(0, 1, 'lambda10_Draft[%d]' % (i))
-        lambda11_Draft[i] = solver.NumVar(0, 1, 'lambda11_Draft[%d]' % (i))
-        z1_Draft[i] = solver.IntVar(0, 1, 'z1_Draft[%d]' % (i))
-        z2_Draft[i] = solver.IntVar(0, 1, 'z2_Draft[%d]' % (i))
-        z3_Draft[i] = solver.IntVar(0, 1, 'z3_Draft[%d]' % (i))
-        z4_Draft[i] = solver.IntVar(0, 1, 'z4_Draft[%d]' % (i))
-        
-        solver.Add(lambda3_Draft[i] + lambda7_Draft[i] + lambda11_Draft[i] <= z1_Draft[i])
-        solver.Add(lambda1_Draft[i] + lambda5_Draft[i] + lambda9_Draft[i] <= 1 - z1_Draft[i])
-        solver.Add(lambda4_Draft[i] + lambda5_Draft[i] + lambda6_Draft[i] <= z2_Draft[i])
-        solver.Add(lambda1_Draft[i] + lambda2_Draft[i] + lambda8_Draft[i] + 
-                    lambda9_Draft[i] + lambda10_Draft[i] + lambda11_Draft[i] <= 1 - z2_Draft[i])
-        solver.Add(lambda6_Draft[i] + lambda7_Draft[i] + lambda8_Draft[i] + 
-                    lambda9_Draft[i] + lambda10_Draft[i] + lambda11_Draft[i] <= z3_Draft[i])
-        solver.Add(lambda1_Draft[i] + lambda2_Draft[i] + lambda3_Draft[i] + 
-                    lambda4_Draft[i] <= 1 - z3_Draft[i])
-        solver.Add(lambda10_Draft[i] + lambda11_Draft[i] <= z4_Draft[i])
-        solver.Add(lambda1_Draft[i] + lambda2_Draft[i] + lambda3_Draft[i] + 
-                    lambda4_Draft[i] + lambda5_Draft[i] + lambda6_Draft[i] + 
-                    lambda7_Draft[i] + lambda8_Draft[i]<= 1 - z4_Draft[i])
-        
-        solver.Add(lambda1_Draft[i]+lambda2_Draft[i]+lambda3_Draft[i]+
-                    lambda4_Draft[i]+lambda5_Draft[i]+lambda6_Draft[i]+
-                    lambda7_Draft[i]+lambda8_Draft[i]+lambda9_Draft[i]+
-                    lambda10_Draft[i]+lambda11_Draft[i] == 1)
-        
-        solver.Add(displacement[i] == lambda1_Draft[i]*bDraft_n[0]+lambda2_Draft[i]*bDraft_n[1]+lambda3_Draft[i]*bDraft_n[2]+
-                                      lambda4_Draft[i]*bDraft_n[3]+lambda5_Draft[i]*bDraft_n[4]+lambda6_Draft[i]*bDraft_n[5]+
-                                      lambda7_Draft[i]*bDraft_n[6]+lambda8_Draft[i]*bDraft_n[7]+lambda9_Draft[i]*bDraft_n[8]+
-                                      lambda10_Draft[i]*bDraft_n[9]+lambda11_Draft[i]*bDraft_n[10])
-            
-        solver.Add(mean_draft[i] == lambda1_Draft[i]*cDraft_n[0]+lambda2_Draft[i]*cDraft_n[1]+lambda3_Draft[i]*cDraft_n[2]+
-                                    lambda4_Draft[i]*cDraft_n[3]+lambda5_Draft[i]*cDraft_n[4]+lambda6_Draft[i]*cDraft_n[5]+
-                                    lambda7_Draft[i]*cDraft_n[6]+lambda8_Draft[i]*cDraft_n[7]+lambda9_Draft[i]*cDraft_n[8]+
-                                    lambda10_Draft[i]*cDraft_n[9]+lambda11_Draft[i]*cDraft_n[10])
-    
-    for i in range(1,Fr+1):
-        
-        for j in P_stable:
-            
-          
-            
-            # Constr18b
-            solver.Add(wn[i][j] == wn[i-1][j] + 
-                        solver.Sum([weightRatio_ct.get(i,{}).get(t,0.)*wC[t][j]/1000 for t in T]) + 
-                        solver.Sum([weightRatio_bt.get(i,{}).get(t,0.)*wB[t][j]/1000 for t in TB]) + 
-                        solver.Sum([weightRatio_ot.get(i,{}).get(t,0.)*weightOtherTank.get(t,{}).get(j,0.)/1000 for t in OtherTanks]))
-            
-            # Constr19b
-            solver.Add(mn[i][j] == mn[i-1][j] + 
-                        solver.Sum([LCG_ct.get(i,{}).get(t,0.)*weightRatio_ct.get(i,{}).get(t,0.)*wC[t][j]/1000 for t in T]) + 
-                        solver.Sum([LCG_bt.get(i,{}).get(t,0.)*weightRatio_bt.get(i,{}).get(t,0.)*wB[t][j]/1000 for t in TB]) + 
-                        solver.Sum([LCG_ot.get(i,{}).get(t,0.)*weightRatio_ot.get(i,{}).get(t,0.)*weightOtherTank.get(t,{}).get(j,0.)/1000 for t in OtherTanks]))
-            
-            #Condition20a
-            solver.Add(lowerSFlimit[i] <= BV_SF[i][j] + CD_SF[i][j]*(mean_draft[j]-base_draft[j]) - wn[i][j])
-            
-            # Condition20b
-            solver.Add(BV_SF[i][j] + CD_SF[i][j]*(mean_draft[j]-base_draft[j]) - wn[i][j] <= upperSFlimit[i])
-            
-            # Condition21a
-            solver.Add(lowerBMlimit[i] <= wn[i][j]*LCG_fr[i] +mn[i][j] - (BV_BM[i][j]+CD_BM[i][j]*(mean_draft[j]-base_draft[j])))
-            
-            # Condition21b
-            solver.Add(wn[i][j]*LCG_fr[i] + mn[i][j] - (BV_BM[i][j]+ CD_BM[i][j]*(mean_draft[j]- base_draft[j])) <= upperBMlimit[i])
-            
-            
+                
+                # Constr18b
+                solver.Add(wn[i][j] == wn[i-1][j] + 
+                            solver.Sum([weightRatio_ct.get(i,{}).get(t,0.)*wC[t][j]/1000 for t in T]) + 
+                            solver.Sum([weightRatio_bt.get(i,{}).get(t,0.)*wB[t][j]/1000 for t in TB]) + 
+                            solver.Sum([weightRatio_ot.get(i,{}).get(t,0.)*weightOtherTank.get(t,{}).get(j,0.)/1000 for t in OtherTanks]))
+                
+                # Constr19b
+                solver.Add(mn[i][j] == mn[i-1][j] + 
+                            solver.Sum([LCG_ct.get(i,{}).get(t,0.)*weightRatio_ct.get(i,{}).get(t,0.)*wC[t][j]/1000 for t in T]) + 
+                            solver.Sum([LCG_bt.get(i,{}).get(t,0.)*weightRatio_bt.get(i,{}).get(t,0.)*wB[t][j]/1000 for t in TB]) + 
+                            solver.Sum([LCG_ot.get(i,{}).get(t,0.)*weightRatio_ot.get(i,{}).get(t,0.)*weightOtherTank.get(t,{}).get(j,0.)/1000 for t in OtherTanks]))
+                
+                #Condition20a
+                solver.Add(lowerSFlimit[i] <= BV_SF[i][j] + CD_SF[i][j]*(mean_draft[j]-base_draft[j]) - wn[i][j])
+                
+                # Condition20b
+                solver.Add(BV_SF[i][j] + CD_SF[i][j]*(mean_draft[j]-base_draft[j]) - wn[i][j] <= upperSFlimit[i])
+                
+                # Condition21a
+                solver.Add(lowerBMlimit[i] <= wn[i][j]*LCG_fr[i] +mn[i][j] - (BV_BM[i][j]+CD_BM[i][j]*(mean_draft[j]-base_draft[j])))
+                
+                # Condition21b
+                solver.Add(wn[i][j]*LCG_fr[i] + mn[i][j] - (BV_BM[i][j]+ CD_BM[i][j]*(mean_draft[j]- base_draft[j])) <= upperBMlimit[i])
+                
+                
    
     
     
@@ -1715,6 +1717,7 @@ def vlcc_ortools(inputs):
     print('Number of constraints = %d' % solver.NumConstraints())    
     status = solver.Solve()
     # assert solver.VerifySolution(1e-5, True)
+
     if status in [0, 1]:
         
         
@@ -1823,7 +1826,7 @@ def vlcc_ortools(inputs):
         #         print(wB[i][j].name(), ' = ', wB[i][j].solution_value())
 
     else:
-        print('The problem does not have an feasible solution.')
+        print(status, 'The problem does not have an feasible solution.')
         return {'status': None,
                 'totloaded': [],
                 'cargoloaded': [],
