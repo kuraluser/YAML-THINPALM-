@@ -188,6 +188,8 @@ param deballastPercent default 0.4;
 ## ballast tanks
 set TB; #set of ballast tanks
 set TB1; # set of ballast tanks with no pw tcg details
+set TB2; # set of ballast tanks with no pw lcg details
+
 param densitySeaWater{p in Pbar} default 1.025; # density of water @ high temperature
 param densityBallast{p in Pbar} default 1.025; # density of water @ high temperature
 
@@ -297,102 +299,44 @@ param TCGtp{t in OtherTanks, p in P} default 0;
 param ListMOM default 500; # upper and lower limits of tcg mom
 param TCGdw default 0; # TCG deadweight constant
 
-param pwBallast default 0;
-param mTank1{t in T union TB} default 0; # need update input based on tcg details
-param mTank2{t in T union TB} default 0; # need update input based on tcg details
-param mTank3{t in T union TB} default 0; # need update input based on tcg details
-param mTank4{t in T union TB} default 0; # need update input based on tcg details
-param mTank5{t in T union TB} default 0; # need update input based on tcg details
-param mTank6{t in T union TB} default 0; # need update input based on tcg details
-param mTank7{t in T union TB} default 0; # need update input based on tcg details
-param mTank8{t in T union TB} default 0; # need update input based on tcg details
-param mTank9{t in T union TB} default 0; # need update input based on tcg details
-param mTank10{t in T union TB} default 0; # need update input based on tcg details
-
-param bTank1{t in T union TB} default 0; # need update input based on tcg details
-param bTank2{t in T union TB} default 0; # need update input based on tcg details
-param bTank3{t in T union TB} default 0; # need update input based on tcg details
-param bTank4{t in T union TB} default 0; # need update input based on tcg details
-param bTank5{t in T union TB} default 0; # need update input based on tcg details
-param bTank6{t in T union TB} default 0; # need update input based on tcg details
-param bTank7{t in T union TB} default 0; # need update input based on tcg details
-param bTank8{t in T union TB } default 0; # need update input based on tcg details
-param bTank9{t in T union TB} default 0; # need update input based on tcg details
+param pwTCG default 0;
+param mTankTCG{p in 1..pwTCG,   t in T union TB} default 0; # need update input based on tcg details
+param bTankTCG{p in 1..pwTCG-1, t in T union TB} default 0; # need update input based on tcg details
 
 # stability - trim
 param LCGt{t in AllTanks}; #tank LCG
 param LCGship;
 param LCGdw default 0;
+param LCGtp{t in OtherTanks, p in P} default 0;
+
 #param TrimMOM default 1;
-param trim_upper{p in P} default 0.001;
-param trim_lower{p in P} default -0.001;
+param trim_upper{p in P} default 0.0001;
+param trim_lower{p in P} default -0.0001;
 
-param mLCB1 default 0;
-param mLCB2 default 0;
-param mLCB3 default 0;
-param mLCB4 default 0;
-param mLCB5 default 0;
-param mLCB6 default 0;
-param mLCB7 default 0;
-param mLCB8 default 0;
-param mLCB9 default 0;
-param mLCB10 default 0;
+param pwLCG default 0;
+param mTankLCG{p in 1..pwLCG,   t in T union TB} default 0; # need update input based on tcg details
+param bTankLCG{p in 1..pwLCG-1, t in T union TB} default 0; # need update input based on tcg details
 
-param bLCB1 default 0;
-param bLCB2 default 0;
-param bLCB3 default 0;
-param bLCB4 default 0;
-param bLCB5 default 0;
-param bLCB6 default 0;
-param bLCB7 default 0;
-param bLCB8 default 0;
-param bLCB9 default 0;
 
-param mMTC1 default 0;
-param mMTC2 default 0;
-param mMTC3 default 0;
-param mMTC4 default 0;
-param mMTC5 default 0;
-param mMTC6 default 0;
-param mMTC7 default 0;
-param mMTC8 default 0;
-param mMTC9 default 0;
-param mMTC10 default 0;
+param pwLCB default 0;
+param mLCB{p in 1..pwLCB} default 0;
+param bLCB{p in 1..pwLCB-1}  default 0;
 
-param bMTC1 default 0;
-param bMTC2 default 0;
-param bMTC3 default 0;
-param bMTC4 default 0;
-param bMTC5 default 0;
-param bMTC6 default 0;
-param bMTC7 default 0;
-param bMTC8 default 0;
-param bMTC9 default 0;
+param pwMTC default 0;
+param mMTC{p in 1..pwMTC} default 0;
+param bMTC{p in 1..pwMTC-1}  default 0;
+
+
 
 # stability - Draft 
 param base_draft{p in P} default 0;
 
-param mDraft1 default 0;
-param mDraft2 default 0;
-param mDraft3 default 0;
-param mDraft4 default 0;
-param mDraft5 default 0;
-param mDraft6 default 0;
-param mDraft7 default 0;
-param mDraft8 default 0;
-param mDraft9 default 0;
-param mDraft10 default 0;
+param pwDraft default 0;
+param mDraft{p in 1..pwDraft} default 0;
+param bDraft{p in 1..pwDraft-1}  default 0;
 
-param bDraft1 default 0;
-param bDraft2 default 0;
-param bDraft3 default 0;
-param bDraft4 default 0;
-param bDraft5 default 0;
-param bDraft6 default 0;
-param bDraft7 default 0;
-param bDraft8 default 0;
-param bDraft9 default 0;
 
+param disp0 default 123177.0;
 # stability - SF and BM
 param adjMeanDraft default 0.166895;
 param adjLCB default -13665.8;
@@ -426,7 +370,7 @@ param CD_BM {f in 1..Fr, p in P} default 0;
 param CT_BM {f in 1..Fr, p in P} default 0;
 
 param numSolutions integer default 3;
-param runtimeLimit integer default 60;
+param runtimeLimit integer default 30;
 param seed integer default 0;
 
 param tolerance := 0; # tolerance for rounding
@@ -456,6 +400,7 @@ var zBb2{TB} binary;
 var yB{t in TB,p in P} = wB[t,p]/densityBallast[p]; # volume of water (w.r.t. low density) planned to be added into ballast tank t at port p
 
 var TB_tmom{t in TB, p in P} default 0; # TMom TB
+var TB_lmom{t in TB, p in P} default 0; # TMom TB
 var T_tmom{t in T, p in P} default 0; # TMom T
 var T_mom{p in P} default 0; # TCG Mom
 var L_mom{p in P} default 0; # LCG Mom
