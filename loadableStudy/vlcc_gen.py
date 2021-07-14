@@ -879,7 +879,7 @@ class Generate_plan:
                         info_["minTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][0])
                         info_['slopQuantity'] = str(self.plans['slop_qty'][sol].get(k_,0.))
                         info_['toppingSequence'] = self.plans['topping'][sol][k_]
-                        info_['loadingHrs'] = str(round(self.plans['loading_hrs'][sol][k_][0]+self.plans['loading_hrs'][sol][k_][1], 2))
+                        info_['timeRequiredForLoading'] = str(round(self.plans['loading_hrs'][sol][k_][0]+self.plans['loading_hrs'][sol][k_][1], 2))
                         info_['cargoNominationTemperature'] = str(self.input.loadable.info['parcel'][k_]['loadingTemperature'])
                         
                         plan_.append(info_)
@@ -992,7 +992,7 @@ class Generate_plan:
                     l1_ = self.plans['loading_hrs'][sol][v_[0]['parcel'][0]][0]+self.plans['loading_hrs'][sol][v_[0]['parcel'][0]][1]
                     l2_ = self.plans['loading_hrs'][sol][v_[0]['parcel'][1]][0]+self.plans['loading_hrs'][sol][v_[0]['parcel'][1]][1]
                     
-                    info_['loadingHrs'] = str(round(l1_+l2_, 2))
+                    info_['timeRequiredForLoading'] = str(round(l1_+l2_, 2))
                     
                     loading_order1_ = int(self.plans['cargo_order'][sol]['P'+str(info_['cargo1NominationId'])])
                     loading_order2_ = int(self.plans['cargo_order'][sol]['P'+str(info_['cargo2NominationId'])])
