@@ -476,7 +476,7 @@ def vlcc_ortools(inputs):
     #  curve is broken into 10 pieces: start point b0 and end point b10
     #  b0 is not provided
     #  m1, ... m10 = slopes
-    #  y1, ... y10 = slopes
+    #  y1, ... y10 = intercept
     #  (m1,y1) is the linear curve for b0 - b1
     #  (m2,y2) is the linear curve for b1 - b2
     
@@ -1357,8 +1357,8 @@ def vlcc_ortools(inputs):
         # Constr15b2
         for i in TB1:
             for j in P_stable:
-                # solver.Add(TB_tmom[i][j] == wB[i][j]*TCGt[i])
-                TB_tmom[i][j] = wB[i][j]*TCGt[i]
+                solver.Add(TB_tmom[i][j] == wB[i][j]*TCGt[i])
+                
                 
                 
         # Constr15c1

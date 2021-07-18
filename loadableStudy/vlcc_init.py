@@ -748,6 +748,13 @@ class Process_input(object):
                         ballast_tanks_.append(i_)
                 print(str1+';', file=text_file)
                 
+                str1 = 'param minBallastAmt := '
+                for i_, j_ in self.vessel.info['ullage30cm'].items():
+                    if i_ not in  self.vessel.info['banBallast']:
+                        str1 += i_ + ' ' + "{:.3f}".format(j_) + ' '
+                      
+                print(str1+';', file=text_file)
+                
                 
                 print('# ballast tanks with non-pw tcg details',file=text_file)#  
                 tb_list_ = list(self.vessel.info['tankTCG']['tcg_pw'].keys()) + self.vessel.info['banBallast']

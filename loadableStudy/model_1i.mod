@@ -269,7 +269,7 @@ set rotatingPort2 within 0..NP cross 0..NP;
 set specialBallastPort default {LP-1, LP}; # default LP-1
 set zeroBallastPort default {}; # default LP
 
-param minBallastAmt default 10;
+param minBallastAmt{t in TB} default 10;
 param minCargoAmt default 1000;
 
 ## cargo tank
@@ -583,7 +583,7 @@ subject to Condition112b2 {t in T, c in C, p in P_last_loading}: qw[c,t,p] <= 1e
 #subject to Condition113b {t in TB, p in P}: wB[t,p] <= 1e6*xB[t,p]; # link xB and wB
 #subject to Condition113c {t in TB, p in P}: wB[t,p] <= 1e6*xwB[t,p];
 
-subject to Condition113d1 {t in TB, p in P}: wB[t,p] >= minBallastAmt*xB[t,p]; # loaded min ballast 
+subject to Condition113d1 {t in TB, p in P}: wB[t,p] >= minBallastAmt[t]*xB[t,p]; # loaded min ballast 
 subject to Condition113d2 {t in TB, p in P}: wB[t,p] <= 1e4*xB[t,p]; # loaded min ballast 
 
 # initial ballast condition

@@ -8,7 +8,29 @@ Created on Fri Nov 27 12:05:21 2020
 class Port:
     def __init__(self, inputs):
         
-        last_loading_port_ = max([p_['portOrder'] for p_ in inputs.port_json['portRotation'] if p_["operationId"] in [1,3,4]])
+        ## remove bunkering operation if loading/discharging are done at the same port
+        port_operation_ = {}
+        for p__, p_ in enumerate(inputs.port_json['portRotation']):
+            if p_['portId'] not in port_operation_.keys():
+                port_operation_[p_['portId']] = [p_['operationId']]
+            else:
+                port_operation_[p_['portId']].append(p_['operationId'])
+                
+        for k_, v_ in port_operation_.items():
+            if len(v_) > 1:
+                oper_ = [l_  for l_ in v_ if l_ in [1,2]]
+                port_operation_[k_] = oper_
+             
+        ## assume either loading or discharging but not both
+        port_rotation_, order_ = [], 1
+        for p__, p_ in enumerate(inputs.port_json['portRotation']):
+            if p_['operationId'] in port_operation_[p_['portId']]:
+                port_rotation_.append(p_)
+                port_rotation_[order_-1]['portOrder'] = order_
+                order_ += 1
+                
+        
+        last_loading_port_ = max([p_['portOrder'] for p_ in port_rotation_ if p_["operationId"] in [1,3,4]])
         
         
         ports_info_ = {}
@@ -26,7 +48,7 @@ class Port:
                                        'seaWaterTemperature':p_.get('seaWaterTemperature', 0.),
                                        'ambientTemperature':p_.get('ambientTemperature', 0.)}
            
-        for p__, p_ in enumerate(inputs.port_json['portRotation']):
+        for p__, p_ in enumerate(port_rotation_): #inputs.port_json['portRotation']):
             if p_['portOrder'] <= last_loading_port_ + 1:
                 # print(p_['portId'])
                 detail_ = port_details_[p_['portId']]
@@ -84,7 +106,7 @@ class Port:
             if oper_ in ['2',2]:
                 discharge_port_ = True
                 
-            if oper_ in ['2',2] and int(k_) < len(ports_info_['portOrder']):
+            if oper_ in ['2',2] and int(k_) < ports_info_['lastLoadingPort']:
                 if 'Port Rotation Error' not in inputs.error.keys():
                     inputs.error['Port Rotation Error'] = ['Discharging before loading!!']
                 else:
