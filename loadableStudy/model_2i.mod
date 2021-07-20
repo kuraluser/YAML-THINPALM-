@@ -267,7 +267,7 @@ set rotatingPort2 within 0..NP cross 0..NP;
 set specialBallastPort default {LP-1, LP}; # default LP-1
 set zeroBallastPort default {}; # default LP
 
-param minBallastAmt default 10;
+param minBallastAmt{t in TB} default 10;
 param minCargoAmt default 1000;
 
 ## cargo tank
