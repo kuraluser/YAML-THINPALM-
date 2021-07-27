@@ -100,7 +100,8 @@ class Check_plans:
         ullage_range = data['ullageDepth'].to_numpy()
         if trim < -1 or trim > 6 or ullage < ullage_range[0] or ullage > ullage_range[-1]:
             # print(self.input.vessel.info['tankId'][int(tank)], ullage, trim, ullage_range[0], ullage_range[-1])
-            return None
+            #return None
+            return 0.
         
         a_ = np.where(data['ullageDepth'] <= ullage)[0][-1]     
           # b_ = np.where(data['ullageDepth'] >= ullage)[0][0]
@@ -216,6 +217,7 @@ class Check_plans:
         origin_port_ = self.input.port.info['portOrder'][port_order_]
         tide_ = self.input.port.info['portRotation'][origin_port_]['tideHeight']
         result['airDraft'] = self.input.vessel.info['height'] - da_ + tide_
+        # print(result['airDraft'])
         
         
         #

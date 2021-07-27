@@ -75,9 +75,6 @@ async def get_vessel_details(url, gID):
 #            resp_.raise_for_status()
             if resp_.status_code == httpx.codes.OK:
                 response_json = resp_.json()
-#                with open("vessel_info.json", "w") as outfile:  
-#                    json.dump(response_json, outfile) 
-                
                 
     except httpx.HTTPError as err:
         # print(f"HTTP Exception: {err}")

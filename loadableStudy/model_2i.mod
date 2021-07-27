@@ -126,6 +126,7 @@ set T_loaded within T; # set of loaded tanks (preloaded condition)
 set C; # set of all cargoes
 set C_loaded within C; # set of all loaded cargoes preloaded condition)
 set C_max;
+set C_equal default C;
 
 param I_loaded{c in C_loaded, t in T_loaded} binary default 0; # 1 if cargo c has been loaded in tank t ((preloaded condition)
 
@@ -283,7 +284,7 @@ param deadweightConst default 0; # deadweight constant
 param deadweight > 0 default 1e6; # deadweight
 param cargoweight > 0 default 1e6;
 set firstDisCargo;
-set Cequal;
+
 
 param diffVol default 0.1;
 

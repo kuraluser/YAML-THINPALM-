@@ -128,6 +128,7 @@ set T_loaded within T; # set of loaded tanks (preloaded condition)
 set C; # set of all cargoes
 set C_loaded within C; # set of all loaded cargoes preloaded condition)
 set C_max;
+set C_equal default C;
 
 param I_loaded{c in C_loaded, t in T_loaded} binary default 0; # 1 if cargo c has been loaded in tank t ((preloaded condition)
 
@@ -285,9 +286,8 @@ param deadweightConst default 0; # deadweight constant
 param deadweight > 0 default 1e6; # deadweight
 param cargoweight > 0 default 1e6;
 set firstDisCargo;
-set Cequal;
 
-param diffVol default 0.1;
+param diffVol default 0.05;
 
 # stability - draft
 param displacementLimit{p in P}; # displacement limit derived from maximum permissible draft and hydrostatic table.
@@ -537,10 +537,10 @@ subject to Condition112a1 {(u,v) in symmetricVolTank, p in P_last_loading}: sum{
 subject to Condition112a2 {(u,v) in symmetricVolTank, p in P_last_loading}:     -diffVol <= sum{c in C}qw[c,u,p]/densityCargo_Low[c]/capacityCargoTank[u] - sum{c in C}qw[c,v,p]/densityCargo_Low[c]/capacityCargoTank[v];
 
 # equal weight in 1W, 2W, 4W, 5W
-subject to Condition112d1 {c in C, p in P_last_loading}: qw[c,'1P',p] = qw[c,'1S',p];
-subject to Condition112d2 {c in C, p in P_last_loading}: qw[c,'2P',p] = qw[c,'2S',p];
-subject to Condition112d3 {c in C, p in P_last_loading}: qw[c,'4P',p] = qw[c,'4S',p];
-subject to Condition112d4 {c in C, p in P_last_loading}: qw[c,'5P',p] = qw[c,'5S',p];
+subject to Condition112d1 {c in C_equal, p in P_last_loading}: qw[c,'1P',p] = qw[c,'1S',p];
+subject to Condition112d2 {c in C_equal, p in P_last_loading}: qw[c,'2P',p] = qw[c,'2S',p];
+subject to Condition112d3 {c in C_equal, p in P_last_loading}: qw[c,'4P',p] = qw[c,'4S',p];
+subject to Condition112d4 {c in C_equal, p in P_last_loading}: qw[c,'5P',p] = qw[c,'5S',p];
 
 
 

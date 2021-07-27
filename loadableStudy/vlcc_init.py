@@ -925,10 +925,10 @@ class Process_input(object):
                     print(str1+';', file=text_file) 
                     
                 
-                str1 = 'set Cequal := '  
-                # if len(self.loadable.info['parcel']) == 1:
-                #     str1 += list(self.loadable.info['parcel'].keys())[0]
-                print(str1+';', file=text_file) 
+                # str1 = 'set Cequal := '  
+                # # if len(self.loadable.info['parcel']) == 1:
+                # #     str1 += list(self.loadable.info['parcel'].keys())[0]
+                # print(str1+';', file=text_file) 
                     
                 
                 
