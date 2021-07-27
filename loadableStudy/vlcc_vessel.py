@@ -197,8 +197,8 @@ class Vessel:
         vessel_info_['LPP'] = float(vessel_json['vessel']['lengthBetweenPerpendiculars'])
         
         ## BM and SF
-        vessel_info_['SSTable'] = pd.DataFrame(vessel_json['bmandSF']['shearingForce'], dtype=np.float)
-        vessel_info_['SBTable'] = pd.DataFrame(vessel_json['bmandSF']['bendingMoment'], dtype=np.float)
+        vessel_info_['SSTable'] = pd.DataFrame(vessel_json['bmandSF']['shearingForceType1'], dtype=np.float)
+        vessel_info_['SBTable'] = pd.DataFrame(vessel_json['bmandSF']['bendingMomentType1'], dtype=np.float)
         vessel_info_['frames'] = []
         vessel_info_['tankGroupLCG'], vessel_info_['tankGroup']  = {}, {}
         vessel_info_['SFlimits'], vessel_info_['BMlimits'] = {}, {}

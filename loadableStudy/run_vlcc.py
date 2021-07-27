@@ -176,7 +176,7 @@ fname = 'loadableStudy_8487.json' # "totalQuantity": "287702.5000",
 
 # fname = 'loadableStudy_8520.json'
 # fname = 'loadableStudy_9660.json'
-
+fname = 'loadableStudy_9955.json'
 
 ## to be modified in main.py --------------------------------------------
 data = {}
