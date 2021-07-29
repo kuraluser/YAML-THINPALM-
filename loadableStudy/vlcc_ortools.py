@@ -50,7 +50,7 @@ def vlcc_ortools(inputs):
     # print('run ortools ...')
     
      # Create the mip solver with the SCIP backend.
-    solver = pywraplp.Solver.CreateSolver('CBC') # 'SCIP', 'CBC', 'GLPK'
+    solver = pywraplp.Solver.CreateSolver('SCIP') # 'SCIP', 'CBC', 'GLPK'
     solver.SetTimeLimit(900*1000)
     # solver.SetNumThreads(4)
     
@@ -331,6 +331,10 @@ def vlcc_ortools(inputs):
     # ballast tanks with non-pw tcg details',file=text_file)#  
     tb_list_ = list(inputs.vessel.info['tankTCG']['tcg_pw'].keys()) + inputs.vessel.info['banBallast']
     TB1 = [i_ for i_, j_ in inputs.vessel.info['ballastTanks'].items() if i_ not in tb_list_]
+    
+     # ballast tanks with non-pw tcg details',file=text_file)#  
+    tb_list_ = list(inputs.vessel.info['tankLCG']['lcg_pw'].keys()) + inputs.vessel.info['banBallast']
+    TB2 = [i_ for i_, j_ in inputs.vessel.info['ballastTanks'].items() if i_ not in tb_list_]
            
     # density of seawater
     # density of seawater ',file=text_file)#
@@ -536,8 +540,66 @@ def vlcc_ortools(inputs):
                 for k1_,v1_ in inputs.loadable.info['virtualArrDepPort'].items():
                     if v1_ == k_:
                         TCGtp[i_][int(k1_)] = round(tcg_,3)
-                        
+                
+                
+    ## LCG
+    mTankl = {}
+    for m_ in range(1,inputs.vessel.info['tankLCG']['lcg_pw']['npw']+1):
+        mTankl[m_] = {}
+        for k_, v_ in inputs.vessel.info['tankLCG']['lcg_pw'].items():
+            if k_ not in (['npw']+inputs.vessel.info['banBallast']):
+                mTankl[m_][k_] = round(v_['slopes'][m_-1],8)
+    
+    # print('# breaks of TCG curves for tanks', file=text_file)
+    bTankl =  {}
+    bTankl[0] = {}
+    for m_ in range(1,inputs.vessel.info['tankLCG']['lcg_pw']['npw']+1):
+        bTankl[m_] = {}
+        for k_, v_ in inputs.vessel.info['tankLCG']['lcg_pw'].items():
+            if k_ not in (['npw']+inputs.vessel.info['banBallast']):
+                bTankl[m_][k_] = round(v_['breaks'][m_-1],8)
+    # inital value
+    for k_, v_ in inputs.vessel.info['tankLCG']['lcg_pw'].items():
+        bTankl[0][k_] = 0
         
+        
+    # print('# intercepts of TCG curves for tanks', file=text_file)
+    yTankl =  {}
+    for m_ in range(1,inputs.vessel.info['tankLCG']['lcg_pw']['npw']+1):
+        yTankl[m_] = {}
+        for k_, v_ in inputs.vessel.info['tankLCG']['lcg_pw'].items():
+            if k_ not in (['npw']+inputs.vessel.info['banBallast']):
+                yTankl[m_][k_] = round(v_['intercepts'][m_-1],8)
+    
+    bTankl_n, cTankl_n = {}, {}
+    for i_ in range(len(bTankl)):
+        bTankl_n[i_], cTankl_n[i_] = {}, {}
+         
+        # if i==0:
+        #     for j in bTank[1]:
+        #         bTank_n[i][j] = 0
+        #         cTank_n[i][j] = mTank[1][j]*0+yTank[1][j]
+        # else:
+        k_ = i_+1 if i_ < len(mTankl) else i_
+        # print(i_,k_)
+        for j_ in bTankl[i_]:
+            if j_ not in ['npw']:
+                bTankl_n[i_][j_] = bTankl[i_][j_]
+                cTankl_n[i_][j_] = mTankl[k_][j_]*bTankl_n[i_][j_]+yTankl[k_][j_]
+                        
+   
+    # LCGs for others tanks', file=text_file)
+    LCGtp = {i_:{} for i_, j_ in inputs.vessel.info['onhand'].items()}
+    for i_, j_ in inputs.vessel.info['onhand'].items():
+        for k_, v_ in j_.items():
+            lcg_ = j_[k_]['lcg']
+            if k_ not in ['1A']:
+                for k1_,v1_ in inputs.loadable.info['virtualArrDepPort'].items():
+                    if v1_ == k_:
+                        LCGtp[i_][int(k1_)] = round(lcg_,3)
+        
+   
+    
     # print('# slopes of LCB x Disp curve', file=text_file)
     mLCB = {}
     for m_ in range(1, len(inputs.vessel.info['lcb_mtc']['lcb']['slopes'])+1):
@@ -782,12 +844,12 @@ def vlcc_ortools(inputs):
     zBa = {}
     zBb = {}
     # TMom TB
-    TB_tmom = {}
+    TB_tmom, TB_lmom = {}, {}
     for i in range(len(TB)):
         xB[TB[i]] = {}
         wB[TB[i]] = {}
         # yB[TB[i]] = {}
-        TB_tmom[TB[i]] = {}
+        TB_tmom[TB[i]], TB_lmom[TB[i]] = {}, {}
         zBa[TB[i]] = solver.IntVar(0, 1, 'zBa[%s]' % (TB[i]))
         zBb[TB[i]] = solver.IntVar(0, 1, 'zBb[%s]' % (TB[i]))
         for j in range(len(Pbar)):
@@ -797,6 +859,7 @@ def vlcc_ortools(inputs):
         for j in range(len(P)):
             # yB[TB[i]][P[j]] = wB[TB[i]][P[j]] / densitySeaWater[P[j]]
             TB_tmom[TB[i]][P[j]] = solver.NumVar(-infinity, infinity, 'TB_tmom[%s][%d]' % (TB[i], P[j]))
+            TB_lmom[TB[i]][P[j]] = solver.NumVar(-infinity, infinity, 'TB_lmom[%s][%d]' % (TB[i], P[j]))
            
             
     T_mom = {}
@@ -1035,7 +1098,7 @@ def vlcc_ortools(inputs):
                 solver.Add(qw2f[i][j][k]/10/densityCargo_Low[i] <= upperBoundC[i][j]*capacityCargoTank[j]*x[i][j])
         
                  
-    if inputs.mode in ['Auto']:    
+    if inputs.mode in ['Auto', 'Manual']:    
         # commingled
         # Constr 5b
         for i1, i2 in zip(Cm_1,Cm_2):
@@ -1460,6 +1523,99 @@ def vlcc_ortools(inputs):
             solver.Add(T_mom[i] <= ListMOM)
         
         ## Trim constraint
+        
+        
+        lambda1l_TB = {}
+        lambda2l_TB = {}
+        lambda3l_TB = {}
+        lambda4l_TB = {}
+        lambda5l_TB = {}
+        lambda6l_TB = {}
+        lambda7l_TB = {}
+        lambda8l_TB = {}
+        lambda9l_TB = {}
+        lambda10l_TB = {}
+        lambda11l_TB = {}
+        
+        z1l_TB = {}
+        z2l_TB = {}
+        z3l_TB = {}
+        z4l_TB = {}
+        
+        
+        for i in list(set(TB)-set(TB2)):
+            lambda1l_TB[i] = {}
+            lambda2l_TB[i] = {}
+            lambda3l_TB[i] = {}
+            lambda4l_TB[i] = {}
+            lambda5l_TB[i] = {}
+            lambda6l_TB[i] = {}
+            lambda7l_TB[i] = {}
+            lambda8l_TB[i] = {}
+            lambda9l_TB[i] = {}
+            lambda10l_TB[i] = {}
+            lambda11l_TB[i] = {}
+            z1l_TB[i] = {}
+            z2l_TB[i] = {}
+            z3l_TB[i] = {}
+            z4l_TB[i] = {}
+            
+               
+            for j in P_stable:
+                lambda1l_TB[i][j] = solver.NumVar(0, 1, 'lambda1l_TB[%s][%d]' % (i,j))
+                lambda2l_TB[i][j] = solver.NumVar(0, 1, 'lambda2l_TB[%s][%d]' % (i,j))
+                lambda3l_TB[i][j] = solver.NumVar(0, 1, 'lambda3l_TB[%s][%d]' % (i,j))
+                lambda4l_TB[i][j] = solver.NumVar(0, 1, 'lambda4l_TB[%s][%d]' % (i,j))
+                lambda5l_TB[i][j] = solver.NumVar(0, 1, 'lambda5l_TB[%s][%d]' % (i,j))
+                lambda6l_TB[i][j] = solver.NumVar(0, 1, 'lambda6l_TB[%s][%d]' % (i,j))
+                lambda7l_TB[i][j] = solver.NumVar(0, 1, 'lambda7l_TB[%s][%d]' % (i,j))
+                lambda8l_TB[i][j] = solver.NumVar(0, 1, 'lambda8l_TB[%s][%d]' % (i,j))
+                lambda9l_TB[i][j] = solver.NumVar(0, 1, 'lambda9l_TB[%s][%d]' % (i,j))
+                lambda10l_TB[i][j] = solver.NumVar(0, 1, 'lambda10l_TB[%s][%d]' % (i,j))
+                lambda11l_TB[i][j] = solver.NumVar(0, 1, 'lambda11l_TB[%s][%d]' % (i,j))
+                z1l_TB[i][j] = solver.IntVar(0, 1, 'z1l_TB[%s][%d]' % (i,j))
+                z2l_TB[i][j] = solver.IntVar(0, 1, 'z2l_TB[%s][%d]' % (i,j))
+                z3l_TB[i][j] = solver.IntVar(0, 1, 'z3l_TB[%s][%d]' % (i,j))
+                z4l_TB[i][j] = solver.IntVar(0, 1, 'z4l_TB[%s][%d]' % (i,j))
+      
+                solver.Add(lambda3l_TB[i][j] + lambda7l_TB[i][j] + lambda11l_TB[i][j] <= z1l_TB[i][j])
+                solver.Add(lambda1l_TB[i][j] + lambda5l_TB[i][j] + lambda9l_TB[i][j] <= 1 - z1l_TB[i][j])
+                solver.Add(lambda4l_TB[i][j] + lambda5l_TB[i][j] + lambda6l_TB[i][j] <= z2l_TB[i][j])
+                solver.Add(lambda1l_TB[i][j] + lambda2l_TB[i][j] + lambda8l_TB[i][j]  + 
+                            lambda9l_TB[i][j] + lambda10l_TB[i][j] + lambda11l_TB[i][j] <= 1 - z2l_TB[i][j])
+                solver.Add(lambda6l_TB[i][j] + lambda7l_TB[i][j] + lambda8l_TB[i][j]  + 
+                            lambda9l_TB[i][j] + lambda10l_TB[i][j] + lambda11l_TB[i][j] <= z3l_TB[i][j])
+                solver.Add(lambda1l_TB[i][j] + lambda2l_TB[i][j] + lambda3l_TB[i][j]  + 
+                            lambda4l_TB[i][j] <= 1 - z3l_TB[i][j])
+                solver.Add(lambda10l_TB[i][j] + lambda11l_TB[i][j] <= z4l_TB[i][j])
+                solver.Add(lambda1l_TB[i][j] + lambda2l_TB[i][j] + lambda3l_TB[i][j]  + 
+                            lambda4l_TB[i][j] + lambda5l_TB[i][j] + lambda6l_TB[i][j]  + 
+                            lambda7l_TB[i][j] + lambda8l_TB[i][j]<= 1 - z4l_TB[i][j])
+                
+                solver.Add(lambda1l_TB[i][j]+lambda2l_TB[i][j]+lambda3l_TB[i][j]+
+                            lambda4l_TB[i][j]+lambda5l_TB[i][j]+lambda6l_TB[i][j]+
+                            lambda7l_TB[i][j]+lambda8l_TB[i][j]+lambda9l_TB[i][j]+
+                            lambda10l_TB[i][j]+lambda11l_TB[i][j] == 1)
+    
+                # ##?? check on need for seawater density
+                solver.Add(wB[i][j] == lambda1l_TB[i][j]*bTankl_n[0][i]+lambda2l_TB[i][j]*bTankl_n[1][i]+lambda3l_TB[i][j]*bTankl_n[2][i]+
+                                        lambda4l_TB[i][j]*bTankl_n[3][i]+lambda5l_TB[i][j]*bTankl_n[4][i]+lambda6l_TB[i][j]*bTankl_n[5][i]+
+                                        lambda7l_TB[i][j]*bTankl_n[6][i]+lambda8l_TB[i][j]*bTankl_n[7][i]+lambda9l_TB[i][j]*bTankl_n[8][i]+
+                                        lambda10l_TB[i][j]*bTankl_n[9][i]+lambda11l_TB[i][j]*bTankl_n[10][i])
+                
+                
+                # Constr16b1
+                solver.Add(TB_lmom[i][j] == 1000*(lambda1l_TB[i][j]*cTankl_n[0][i]+lambda2l_TB[i][j]*cTankl_n[1][i]+lambda3l_TB[i][j]*cTankl_n[2][i]+
+                                            lambda4l_TB[i][j]*cTankl_n[3][i]+lambda5l_TB[i][j]*cTankl_n[4][i]+lambda6l_TB[i][j]*cTankl_n[5][i]+
+                                            lambda7l_TB[i][j]*cTankl_n[6][i]+lambda8l_TB[i][j]*cTankl_n[7][i]+lambda9l_TB[i][j]*cTankl_n[8][i]+
+                                            lambda10l_TB[i][j]*cTankl_n[9][i]+lambda11l_TB[i][j]*cTankl_n[10][i]))
+                        
+        # Constr16b2
+        for i in TB2:
+            for j in P_stable:
+                solver.Add(TB_lmom[i][j] == wB[i][j]*LCGt[i])
+                
+        
         lambda1_LCB = {}
         lambda2_LCB = {}
         lambda3_LCB = {}
@@ -1497,10 +1653,17 @@ def vlcc_ortools(inputs):
         for i in P_stable:
             
             # Constr161
+            # solver.Add(L_mom[i] == (solver.Sum([wC[t][i]*LCGt[t] for t in T]) + 
+            #             solver.Sum([wB[t][i]*LCGt[t] for t in TB]) + 
+            #             solver.Sum([weightOtherTank.get(t,{}).get(i,0.)*LCGt[t] for t in OtherTanks]) + 
+            #             lightWeight*LCGship + deadweightConst*LCGdw))
+            
+            
             solver.Add(L_mom[i] == (solver.Sum([wC[t][i]*LCGt[t] for t in T]) + 
-                        solver.Sum([wB[t][i]*LCGt[t] for t in TB]) + 
-                        solver.Sum([weightOtherTank.get(t,{}).get(i,0.)*LCGt[t] for t in OtherTanks]) + 
+                        solver.Sum([TB_lmom[t][i] for t in TB]) + 
+                        solver.Sum([weightOtherTank.get(t,{}).get(i,0.)*LCGtp.get(t,{}).get(i,0.) for t in OtherTanks]) + 
                         lightWeight*LCGship + deadweightConst*LCGdw))
+            
             
             # Constr163
             lambda1_LCB[i] = solver.NumVar(0, 1, 'lambda1_LCB[%d]' % (i))
