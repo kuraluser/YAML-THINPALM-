@@ -52,6 +52,11 @@ class Process_input(object):
         self.loadline_id = data['loadable']['loadlineId']
         self.draft_mark = data['loadable']['draftMark']
         
+        self.module = data['module']
+        
+        print('module:', self.module)
+        
+        
         self.loadOnTop = data['loadable'].get('loadOnTop', False)
         # self.cargoweight = data['loadable'].get("loadableQuantity", {})
         
@@ -95,6 +100,8 @@ class Process_input(object):
         self.feedbackLoop      = data['loadable'].get('feedbackLoop', False)
         self.feedbackLoopCount = data['loadable'].get('feedbackLoopCount', 0)
         self.feedback_sf_bm_frac = data['loadable'].get('feedbackLoopBMSF', 1)
+        
+        
         
         
     def prepare_dat_file(self, ballast_weight=1000):

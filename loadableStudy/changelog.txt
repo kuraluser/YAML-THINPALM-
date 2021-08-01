@@ -1,13 +1,35 @@
-20210630
+20210831
 Python
-- Allow first port for bunkering 
-- Return arrival ballast and ROB of first port
+- 
 
 AMPL
--
+- 
 
 ORTOOLS
--
+- 
+
+20210731
+Python
+- Add loading module to API
+
+AMPL
+- Handle additional loading module constraints
+
+ORTOOLS
+- 
+
+20210630
+Python
+- Minor fixes
+- Add piecewise linear approximation for LCG
+
+AMPL
+- Add piecewise linear approximation for LCG
+- Add min number of cargo tanks used
+
+ORTOOLS
+- Add piecewise linear approximation for LCG
+
 
 20210531
 Python

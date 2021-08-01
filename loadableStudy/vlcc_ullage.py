@@ -29,7 +29,8 @@ def get_correction(tank, ullage, trim, ullageCorr):
         # print(tank, ullage , trim)
         ullage_range = data['ullageDepth'].to_numpy()
         if trim < -1 or trim > 6 or ullage < (ullage_range.min()+0.001) or ullage > (ullage_range.max()-0.001):
-            return {'minRange':ullage_range.min(), 'maxRange':ullage_range.max()}
+            # return {'minRange':ullage_range.min(), 'maxRange':ullage_range.max()}
+            return 0.
         
         a_ = np.where(data['ullageDepth'] <= ullage)[0][-1]     
          # b_ = np.where(data['ullageDepth'] >= ullage)[0][0]

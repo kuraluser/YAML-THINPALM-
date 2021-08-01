@@ -170,13 +170,21 @@ fname = 'loadableStudy_9220.json'
 # fname = 'loadableStudy_9316.json'
 # fname = 'loadableStudy_9220a.json'
 
-fname = 'loadableStudy_8486a.json' # "totalQuantity": "287702.5000",
-fname = 'loadableStudy_8487.json' # "totalQuantity": "287702.5000",
+# fname = 'loadableStudy_8486a.json' # "totalQuantity": "287702.5000",
+# fname = 'loadableStudy_8487.json' # "totalQuantity": "287702.5000",
 
 
 # fname = 'loadableStudy_8520.json'
-# fname = 'loadableStudy_9660.json'
-fname = 'loadableStudy_9955.json'
+fname = 'loadableStudy_9660.json'
+
+# fname = 'pattern_validate_0713.json' # fully manual mode
+
+# fname = 'loadableStudy_9486.json'
+# fname = 'loadableStudy_9450.json'
+# fname = 'loadableStudy_9664.json'
+#fname = 'loadableStudy_9483.json'
+
+#fname = 'loadableStudy_0718.json'
 
 ## to be modified in main.py --------------------------------------------
 data = {}
@@ -197,6 +205,7 @@ with open('vessel_info.json') as f_:
 
 data['processId'] = str(uuid4())
 data['ballastEdited'] = data_.get('ballastEdited',False)
+data['module'] = data_.get('module', 'LOADABLE')
 
 
 

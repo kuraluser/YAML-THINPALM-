@@ -21,8 +21,12 @@ class Check_plans:
     def _check_plans(self, plans, cargo_tank):
         
         if not self.input.error:
-            print(self.input.port.info.get('portOrder',[]))
-            print(self.input.loadable.info.get('seawaterDensity',[]))
+            
+            if self.input.module in ['LOADING']:
+                pass
+            else:
+                print(self.input.port.info.get('portOrder',[]))
+                print(self.input.loadable.info.get('seawaterDensity',[]))
         
             if hasattr(self.input, 'base_draft'):
                 print(self.input.base_draft)
@@ -35,7 +39,15 @@ class Check_plans:
                         print(a_,b_)
                 for k_, v_ in p_.items(): # each port
                     plan_ = {**v_['cargo'], **v_['ballast'], **v_['other']}
-                    result = self._check_plan(plan_, k_, seawater_density=self.input.loadable.info['seawaterDensity'][k_])
+                    
+                    
+                    if hasattr(self.input.loadable, "info"):
+                        seawater_density_ = self.input.loadable.info['seawaterDensity'][k_]
+                    else:
+                        seawater_density_ = 1.025
+                    
+                    
+                    result = self._check_plan(plan_, k_, seawater_density=seawater_density_)
                     
                     print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],5))
                     print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
@@ -162,8 +174,8 @@ class Check_plans:
             v_mom_ += v_[0]['wt']*self.input.vessel.info[type_][k_]['vcg']
             t_mom_ += v_[0]['wt']*v_[0]['tcg']
             
-            #if type_ in ['cargoTanks'] and abs(self.input.vessel.info[type_][k_]['lcg'] - v_[0]['lcg']) > 0.01:
-            #    print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'], v_[0].get('wt',0), v_[0]['fillRatio'])
+            # if type_ in ['cargoTanks'] and abs(self.input.vessel.info[type_][k_]['lcg'] - v_[0]['lcg']) > 0.01:
+            #     print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'], v_[0].get('wt',0), v_[0]['fillRatio'])
             # print(k_, v_[0]['wt'], v_[0]['tcg'], v_[0]['wt']*v_[0]['tcg'])
             # print(k_, v_[0]['wt'], self.input.vessel.info[type_][k_]['lcg'], v_[0]['wt']*self.input.vessel.info[type_][k_]['lcg'])
             
@@ -212,11 +224,15 @@ class Check_plans:
         result['km'] = km_
         result['gm'] = gm_
         
-        # air draft
-        port_order_ =  self.input.loadable.info['virtualArrDepPort'][virtual_port][:-1]
-        origin_port_ = self.input.port.info['portOrder'][port_order_]
-        tide_ = self.input.port.info['portRotation'][origin_port_]['tideHeight']
-        result['airDraft'] = self.input.vessel.info['height'] - da_ + tide_
+        
+        if self.input.module in ['LOADABLE']:
+            # air draft
+            port_order_ =  self.input.loadable.info['virtualArrDepPort'][virtual_port][:-1]
+            origin_port_ = self.input.port.info['portOrder'][port_order_]
+            tide_ = self.input.port.info['portRotation'][origin_port_]['tideHeight']
+            result['airDraft'] = self.input.vessel.info['height'] - da_ + tide_
+        else:
+            result['airDraft'] = 0.0
         # print(result['airDraft'])
         
         

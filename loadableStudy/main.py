@@ -18,6 +18,7 @@ from pydantic import BaseModel, Field
 from typing import List
 import json
 from api_vlcc import gen_allocation, loadicator
+from api_loading import gen_sequence
 from vlcc_ullage import get_correction, cal_density
 import pickle
 import numpy as np
@@ -106,7 +107,11 @@ async def run_in_process(fn, *args):
 
 async def start_cpu_bound_task(uid: str, data: dict) -> None:
 #    print(uid,type(uid))    
-    result = await run_in_process(gen_allocation, data)
+    if data['module'] in ['LOADABLE']:
+        result = await run_in_process(gen_allocation, data)
+    elif data['module'] in ['LOADING']:
+        result = await run_in_process(gen_sequence, data)
+        
     gDate = str(datetime.datetime.now())
     query = users.update().\
         where(users.c.id == uid).\
@@ -117,29 +122,46 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
             )
     await database.execute(query)
     
-    logger.info(uid + ": Allocation completed")
+    
     ## send feedback
     # print('>>>> Update feedback to Thinkpalm')
     
     # print(result.get('validated', None))
     
-    if result.get('validated', None) in [None]:
-        logger.info(uid + ": Update status")
-        status_url_ = config['url']['loadable-study-status'].format(vesselId=data['loadable']['vesselId'],
-                                                                voyageId=data['loadable']['voyageId'],
-                                                                loadableStudyId=data['loadable']['id'])
-        # print(status_url_)
-        await post_response(status_url_, {"processId" : uid, "loadableStudyStatusId" : 5}, uid)
+    if data['module'] in ['LOADABLE']:
+        logger.info(uid + ": Allocation completed")
     
-        result_url_ = config['url']['loadable-patterns'].format(vesselId=data['loadable']['vesselId'],
-                                                                voyageId=data['loadable']['voyageId'],
-                                                                loadableStudyId=data['loadable']['id'])
-    else:
-        result_url_ = config['url']['validate-patterns'].format(vesselId=data['loadable']['vesselId'],
-                                                                voyageId=data['loadable']['voyageId'],
-                                                                loadableStudyId=data['loadable']['id'],
-                                                                loadablePatternId=data['loadable']['loadablePatternId'])
-    print(result_url_)
+        if result.get('validated', None) in [None]:
+            logger.info(uid + ": Update status")
+            status_url_ = config['url']['LOADABLE']['loadable-study-status'].format(vesselId=data['loadable']['vesselId'],
+                                                                    voyageId=data['loadable']['voyageId'],
+                                                                    loadableStudyId=data['loadable']['id'])
+            # print(status_url_)
+            await post_response(status_url_, {"processId" : uid, "loadableStudyStatusId" : 5}, uid)
+        
+            result_url_ = config['url']['LOADABLE']['loadable-patterns'].format(vesselId=data['loadable']['vesselId'],
+                                                                    voyageId=data['loadable']['voyageId'],
+                                                                    loadableStudyId=data['loadable']['id'])
+        else:
+            result_url_ = config['url']['LOADABLE']['validate-patterns'].format(vesselId=data['loadable']['vesselId'],
+                                                                    voyageId=data['loadable']['voyageId'],
+                                                                    loadableStudyId=data['loadable']['id'],
+                                                                    loadablePatternId=data['loadable']['loadablePatternId'])
+    elif data['module'] in ['LOADING']:
+        logger.info(uid + ": Loading sequence completed")
+        
+        status_url_ = config['url']['LOADING']['loading-status'].format(vesselId=data['loading']['vesselId'],
+                                                                    voyageId=data['loading']['voyageId'],
+                                                                    infoId=data['loading']['infoId'])
+        result_url_ = config['url']['LOADING']['loading-patterns'].format(vesselId=data['loading']['vesselId'],
+                                                                    voyageId=data['loading']['voyageId'],
+                                                                    infoId=data['loading']['infoId'])
+        
+        await post_response(status_url_, {"processId" : uid, "loadableStudyStatusId" : 5}, uid)
+        # print(status_url_)
+        # print(result_url_)
+        
+    # print(result_url_)
     logger.info(uid + ": Upload result")
     # print(result)
     await post_response(result_url_, result, uid)
@@ -148,21 +170,31 @@ def get_data(data, gID):
     
     data_ = {}
     
-    if data.get('loadableStudy', []):
-        print('manual/fullManual mode!!!')
-        # manual mode
-        data_['loadable'] = data['loadableStudy']
-        data_['loadablePlanPortWiseDetails'] = data['loadablePlanPortWiseDetails']
-        data_['caseNumber'] = data.get('caseNumber', None)
-        data_['loadable']['loadablePatternId'] = data.get('loadablePatternId',111111)
-        data_['ballastEdited'] = data.get('ballastEdited',False)
-    else:
-        print('auto mode!!!')
-        data_['loadable'] = data
-        
+    data_['module'] = data.get('module', 'LOADABLE')
     
+    if data_['module'] in ['LOADABLE']:
+    
+        if data.get('loadableStudy', []):
+            print('manual/fullManual mode!!!')
+            # manual mode
+            data_['loadable'] = data['loadableStudy']
+            data_['loadablePlanPortWiseDetails'] = data['loadablePlanPortWiseDetails']
+            data_['caseNumber'] = data.get('caseNumber', None)
+            data_['loadable']['loadablePatternId'] = data.get('loadablePatternId',111111)
+            data_['ballastEdited'] = data.get('ballastEdited',False)
+        else:
+            print('auto mode!!!')
+            data_['loadable'] = data
+            
+    elif data_['module'] in ['LOADING']:
+        data_['loading'] = data
+        data_['loading']['infoId'] = data["loadingInformation"]["loadingInfoId"]
+        
     data_['vessel'] = None
     data_['processId'] = gID
+    
+    
+    print('module', data_['module'])
     
     return data_
     
@@ -187,12 +219,25 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
     
     # print('>>>> get vessel API')
     logger.info(gID + ": Get vessel API")
-    vessel_url_ = config['url']['vessel-details'].format(vesselId=data_['loadable']['vesselId'])
+    
+    if data_['module'] in ['LOADABLE']:
+        vesselId_ = data_['loadable']['vesselId']
+    elif data_['module'] in ['LOADING']:
+        vesselId_ = data_['loading']['vesselId']
+        # print('LOADING', vesselId_)
+        
+    vessel_url_ = config['url']['vessel-details'].format(vesselId=vesselId_)
     # print(vessel_url_)
     data_['vessel'] = await get_vessel_details(vessel_url_, gID)
         
     # print('>>>> add new loadable')
-    logger.info(gID + ": Add new loadable")
+    
+    if data_['module'] in ['LOADABLE']:
+        logger.info(gID + ": Add new loadable")
+    else:
+        logger.info(gID + ": Add new loading")
+        # print('No action taken!!', data_['module'])
+        
     background_tasks.add_task(start_cpu_bound_task, gID, data_)
 
     ## send feedback
@@ -237,7 +282,6 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
         loadable_study_data['feedbackLoopBMSF'] = out['sfbmFac']
         
         print('RERUN sfbmFac', out['sfbmFac'])
-        
         
         data_ =  get_data(loadable_study_data, gID)
         

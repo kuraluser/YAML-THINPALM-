@@ -23,7 +23,7 @@ plt.style.use('seaborn-whitegrid')
 
 
 class Vessel:
-    def __init__(self, inputs):
+    def __init__(self, inputs, loading=False):
         
         vessel_json = inputs.vessel_json['vessel']
         
@@ -31,7 +31,10 @@ class Vessel:
         
         vessel_info_['hasLoadicator'] = vessel_json['vessel'].get('hasLoadicator', False)
         vessel_info_['banBallast'] = ['UFPT']   # 'AWBP','AWBS'
-        vessel_info_['banCargo'] = {k_:[] for k_,v_ in inputs.loadable.info['parcel'].items()}
+        if hasattr(inputs, 'loadable'):
+            vessel_info_['banCargo'] = {k_:[] for k_,v_ in inputs.loadable.info['parcel'].items()}
+        else:
+            vessel_info_['banCargo'] = {}
         vessel_info_['slopTank'] = []
         
         
@@ -40,7 +43,8 @@ class Vessel:
         if len(loadingRate_) == 0:
             loadingRate_ = [{'name': 'Manifolds', 'values': [{'type': 1, 'value': '1140.0000'}, {'type': 6, 'value': '6841.0000'}, {'type': 7, 'value': '7981.0000'}, {'type': 12, 'value': '13681.0000'}]}, {'name': 'DropLines', 'values': [{'type': 1, 'value': '1140.0000'}, {'type': 6, 'value': '6841.0000'}, {'type': 7, 'value': '7981.0000'}, {'type': 12, 'value': '13681.0000'}]}, {'name': 'BottomLines', 'values': [{'type': 1, 'value': '1534.0000'}, {'type': 6, 'value': '9205.0000'}, {'type': 7, 'value': '10739.0000'}, {'type': 12, 'value': '18409.0000'}]}, {'name': 'WingTankBranchLine', 'values': [{'type': 1, 'value': '659.0000'}, {'type': 6, 'value': '3950.0000'}, {'type': 7, 'value': '3950.0000'}, {'type': 12, 'value': '3950.0000'}]}, {'name': 'CentreTankBranchLine', 'values': [{'type': 1, 'value': '965.0000'}, {'type': 6, 'value': '5790.0000'}, {'type': 7, 'value': '5790.0000'}, {'type': 12, 'value': '5790.0000'}]}, {'name': 'PVValveWingTank', 'values': [{'type': 1, 'value': '7050.0000'}, {'type': 6, 'value': '7050.0000'}, {'type': 7, 'value': '7050.0000'}, {'type': 12, 'value': '7050.0000'}]}, {'name': 'PVValveCentreTank', 'values': [{'type': 1, 'value': '12000.0000'}, {'type': 6, 'value': '12000.0000'}, {'type': 7, 'value': '12000.0000'}, {'type': 12, 'value': '12000.0000'}]}, {'name': 'SlopTankBranchLine', 'values': [{'type': 1, 'value': '573.0000'}, {'type': 6, 'value': '3435.0000'}, {'type': 7, 'value': '3950.0000'}, {'type': 12, 'value': '3950.0000'}]}]
                
-        vessel_info_['loadingRate'] = {l_['name']: [float(l__['value']) for l__ in l_['values'] if l__['type'] == 6][0]   for l_ in loadingRate_}
+        vessel_info_['loadingRate6'] = {l_['name']: [float(l__['value']) for l__ in l_['values'] if l__['type'] == 6][0]   for l_ in loadingRate_}
+        vessel_info_['loadingRate1'] = {l_['name']: [float(l__['value']) for l__ in l_['values'] if l__['type'] == 1][0]   for l_ in loadingRate_}
         
         ## 
         vessel_info_['name'] = vessel_json['vessel']['name']
@@ -59,10 +63,11 @@ class Vessel:
         vessel_info_['deadweightConst']['tcg'] = vessel_json['vessel']['deadweightConstantTcg'] 
         ##
         vessel_info_['draftCondition'] = {}
-        condition_ = next(i_ for i_ in vessel_json['vesselDraftCondition'] if i_.get("draftConditionId")  == inputs.loadline_id and i_.get("draftExtreme")  == inputs.draft_mark)
-        vessel_info_['draftCondition']['deadweight'] = float(condition_['deadWeight'])
-        vessel_info_['draftCondition']['draftExtreme'] = float(condition_['draftExtreme'])
-        vessel_info_['draftCondition']['displacement'] = float(condition_['displacement'])
+        if not loading:
+            condition_ = next(i_ for i_ in vessel_json['vesselDraftCondition'] if i_.get("draftConditionId")  == inputs.loadline_id and i_.get("draftExtreme")  == inputs.draft_mark)
+            vessel_info_['draftCondition']['deadweight'] = float(condition_['deadWeight'])
+            vessel_info_['draftCondition']['draftExtreme'] = float(condition_['draftExtreme'])
+            vessel_info_['draftCondition']['displacement'] = float(condition_['displacement'])
         
         ##
         vessel_info_['height'] = float(vessel_json['vessel']['keelToMastHeight'])
@@ -115,7 +120,7 @@ class Vessel:
             k1_ = str(vessel_info_['tankName'][k_])
             if k_ not in vessel_info_['banBallast']:
                 vessel_info_['ullage30cm'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](0.3))*1.025,3)
-                
+        
         # self._get_ullage_corr(vessel_info_, vessel_json['ullageTrimCorrections'])
         
         ## 
@@ -299,11 +304,14 @@ class Vessel:
         
         self.info = vessel_info_     
         
-    def _get_onboard(self, inputs): 
+    def _get_onboard(self, inputs, loading = False): 
         onboard_json = inputs.vessel_json['onBoard']
         self.info['onboard'] = {} # leftover
         self.info['onboard']['totalWeight'] = 0. # leftover
-        ave_sg_ = np.mean(inputs.loadable.info['sg'])
+        if hasattr(inputs, 'loadable'):
+            ave_sg_ = np.mean(inputs.loadable.info['sg'])
+        else:
+            ave_sg_ = 1.0
         
         for o__, o_ in enumerate(onboard_json):
             tank_ = self.info['tankId'][o_['tankId']]
@@ -339,45 +347,45 @@ class Vessel:
                     self.info['tankTCG']['tcg_pw'].pop(tank_,None)
                     # self.info['tankTCG']['tcg_pw'].pop('1P',None)
                     
-   
-        ## balllast -------------------------------------------------
-        self.info['initBallast'] = {'wt': {'LFPT':4800,
-                                  'WB1P':9000, 'WB1S':9000,
-                                  'WB2P':9000, 'WB2S':9000,
-                                  'WB3P':9000, 'WB3S':9000,
-                                  'WB4P':8900, 'WB4S':8900,
-                                  'WB5P':7600, 'WB5S':7600},
-                                    'dec':['APT','LFPT','WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S','AWBP','AWBS'],
-                                    'inc':[]}
-        
-        
-        self.info['finalBallast'] = {}
-        ## ballast requirements
-        loading_port_ = [int(inputs.loadable.info['arrDepVirtualPort'][str(i_)+'D']) for i_ in range(1,inputs.port.info['numPort'])]
-        # self.info['loadingNotLast'] = loading_port_[:-1]
-        self.info['loading'] = loading_port_
-        # self.info['depArr'] = loading_port_
-        if len(inputs.loadable.info.get('rotationVirtual',[]))> 0:
-            #self.info['rotationVirtual'] = [inputs.loadable.info['rotationVirtual'][0]-1] + inputs.loadable.info['rotationVirtual']
-            self.info['rotationVirtual'] = [[l_[0]-1]+l_ for l_ in inputs.loadable.info['rotationVirtual']] 
-        else:
-            self.info['rotationVirtual'] = []  
-        ## cargo tank requirements
-        tanks_ = ['SLS', '1P', '1S', '2P', '2S', '4P', '4S', '5P', '3P', '3S', '5S']
-        capacity_ = sum([0.98*v_['capacityCubm']  for k_,v_ in self.info['cargoTanks'].items() if k_ in tanks_])
-        
-        asym_ = True
-        self.info['maxCargo'] = []
-        if len(inputs.loadable.info['toLoadIntend']) > 1 and inputs.mode in ['Auto']:
-            for k_,v_ in inputs.loadable.info['toLoadIntend'].items():
-                vol_need_ = v_/inputs.loadable.info['parcel'][k_]['SG']
-                if (vol_need_ > .99*capacity_):
-                    asym_ = False
-                    self.info['maxCargo'].append(k_)
-        
-        self.info['notSym'] = [('SLS','SLP')]
-        if asym_ and inputs.mode in ['Auto']:
-            self.info['notSym'] += [('1P','1C'), ('2P','2C'), ('3P','3C'), ('4P','4C'), ('5P','5C')]
+        if not loading:
+            ## balllast -------------------------------------------------
+            self.info['initBallast'] = {'wt': {'LFPT':4800,
+                                      'WB1P':9000, 'WB1S':9000,
+                                      'WB2P':9000, 'WB2S':9000,
+                                      'WB3P':9000, 'WB3S':9000,
+                                      'WB4P':8900, 'WB4S':8900,
+                                      'WB5P':7600, 'WB5S':7600},
+                                        'dec':['APT','LFPT','WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S','AWBP','AWBS'],
+                                        'inc':[]}
+            
+            
+            self.info['finalBallast'] = {}
+            ## ballast requirements
+            loading_port_ = [int(inputs.loadable.info['arrDepVirtualPort'][str(i_)+'D']) for i_ in range(1,inputs.port.info['numPort'])]
+            # self.info['loadingNotLast'] = loading_port_[:-1]
+            self.info['loading'] = loading_port_
+            # self.info['depArr'] = loading_port_
+            if len(inputs.loadable.info.get('rotationVirtual',[]))> 0:
+                #self.info['rotationVirtual'] = [inputs.loadable.info['rotationVirtual'][0]-1] + inputs.loadable.info['rotationVirtual']
+                self.info['rotationVirtual'] = [[l_[0]-1]+l_ for l_ in inputs.loadable.info['rotationVirtual']] 
+            else:
+                self.info['rotationVirtual'] = []  
+            ## cargo tank requirements
+            tanks_ = ['SLS', '1P', '1S', '2P', '2S', '4P', '4S', '5P', '3P', '3S', '5S']
+            capacity_ = sum([0.98*v_['capacityCubm']  for k_,v_ in self.info['cargoTanks'].items() if k_ in tanks_])
+            
+            asym_ = True
+            self.info['maxCargo'] = []
+            if len(inputs.loadable.info['toLoadIntend']) > 1 and inputs.mode in ['Auto']:
+                for k_,v_ in inputs.loadable.info['toLoadIntend'].items():
+                    vol_need_ = v_/inputs.loadable.info['parcel'][k_]['SG']
+                    if (vol_need_ > .99*capacity_):
+                        asym_ = False
+                        self.info['maxCargo'].append(k_)
+            
+            self.info['notSym'] = [('SLS','SLP')]
+            if asym_ and inputs.mode in ['Auto']:
+                self.info['notSym'] += [('1P','1C'), ('2P','2C'), ('3P','3C'), ('4P','4C'), ('5P','5C')]
                 
                 
             

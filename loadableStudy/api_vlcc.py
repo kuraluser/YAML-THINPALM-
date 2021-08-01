@@ -25,7 +25,7 @@ def gen_allocation(data):
     if data.get('loadablePlanPortWiseDetails', []):
         out = manual_mode(data)        
     else:
-        print ('Auto Mode --------------------------------------------')
+        print ('Auto Mode LOADABLE --------------------------------------------')
         out = auto_mode(data)
     
     return out
@@ -35,9 +35,9 @@ def gen_allocation(data):
 
 def manual_mode(data):
     if not data.get('ballastEdited', False):
-        print('Manual Mode -------------------------------------------')
+        print('Manual Mode LOADABLE -------------------------------------------')
     else:
-        print('Full Manual Mode -------------------------------------------')
+        print('Full Manual Mode LOADABLE -------------------------------------------')
     
     out = []
     
