@@ -208,7 +208,7 @@ class LoadingOperations(object):
             try:
                 corrLevel_ = self.vessel.info['ullage'][str(tankId_)](vol_).tolist()
             except:
-                print(i_, vol_, ': correctLevel not available!!')
+                print(tankName_, vol_, ': correctLevel not available!!')
                 corrLevel_ = 0.
                         
             plan_[tankName_] = [{'quantityMT': float(wt_), 'cargo':cargo_, 
@@ -498,6 +498,8 @@ class LoadingOperations(object):
         density_ = self.info['density']
         num_port_ = 0
         fixed_ballast_ = []
+        same_ballast_ = []
+        stages_ = []
         ## for single cargo ... 
         for c__,c_ in enumerate(self.info['loading_order']):
             df_ = self.seq[c_]['gantt']
@@ -537,11 +539,16 @@ class LoadingOperations(object):
             for b__,b_ in enumerate(self.seq[c_]['ballast']):
                 if b__ > 0:
                     num_port_ += 1
+                    stages_.append(b_[1]+str(c__+1))
                     wt_ = 0
                     col_ = b_[1] + str(c__+1)
                     ddf_[col_] = None
                     ddf_[col_]['Time'] = b_[0] + self.seq[c_]['startTime']
                     pre_col_ = self.seq[c_]['ballast'][b__-1][1]
+                    
+                    if b_  in self.seq[c_]['ballastStop']:
+                        same_ballast_.append(num_port_)
+                      
                     for h_, (i_,j_) in enumerate(self.seq[c_]['gantt'][b_[1]].iteritems()): 
                         # print(i_, j_)
                         if i_ not in ['Time'] and j_ not in [None]:
@@ -562,10 +569,15 @@ class LoadingOperations(object):
             self.seq[c_]['loadingInfo'] = ddf_  # cargo in m3
             self.seq[c_]['fixBallast'] = fixed_ballast_
             
+            # print(df_.columns)
+            
             
             # self.seq[c_]['gantt'] = df_
         
         self.seq['numPort'] = num_port_
+        self.seq['stages'] = stages_
+        self.seq['sameBallast'] = same_ballast_
+        
             
             
                 

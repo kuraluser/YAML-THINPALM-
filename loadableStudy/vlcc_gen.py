@@ -789,7 +789,7 @@ class Generate_plan:
                 try:
                     corrLevel_ = self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist()
                 except:
-                    print(i_, vol_, ': correctLevel not available!!')
+                    print(k_, vol_, ': correctLevel not available!!')
                     corrLevel_ = 0.
                 info_['corrLevel'] = round(corrLevel_,3)
                 
@@ -944,7 +944,7 @@ class Generate_plan:
             data["events"].append(info_)
             
         
-        data["plans"] = {}
+        data["plans"] = {'arrival':loading_seq.initial_plan, 'departure':loading_seq.final_plan}
         data["stages"] = loading_seq.stages
         
         return data

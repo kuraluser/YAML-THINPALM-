@@ -55,6 +55,9 @@ class Loading_seq:
             
             info['loadablePlanPortWiseDetails'].append(plan_)
             
+            if cargo_order == 1:
+                self.initial_plan = plan_
+            
         elif info['stage'] == 'openSingleTank':
             pass
             # info["deballastingRateM3_Hr"] = {}
@@ -123,6 +126,9 @@ class Loading_seq:
             
                     info['loadablePlanPortWiseDetails'].append(plan_)
                     self.stages.append({a_:b_  for a_, b_ in plan_.items() if a_ in STAGE_INFO})
+                    
+                    if self.plans.input.loading.seq['stages'][-1] == v_:
+                        self.final_plan = plan_
         
         else:
             print(info['stage'])

@@ -23,7 +23,7 @@ class Check_plans:
         if not self.input.error:
             
             if self.input.module in ['LOADING']:
-                pass
+                print(self.input.loading.seq['stages'])
             else:
                 print(self.input.port.info.get('portOrder',[]))
                 print(self.input.loadable.info.get('seawaterDensity',[]))
