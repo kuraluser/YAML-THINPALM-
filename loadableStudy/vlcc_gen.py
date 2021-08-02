@@ -392,7 +392,8 @@ class Generate_plan:
                              'temperature':temp_,
                              'api':api_,
                              'corrUllage': corrUllage_,
-                             'maxTankVolume':capacity_}
+                             'maxTankVolume':capacity_,
+                             'vol': vol_}
                     
                     # print(i_[3],i_[2],info_)
                     
@@ -456,7 +457,8 @@ class Generate_plan:
                                      'wt1':wt1_, 'wt2':wt2_,
                                      'wt1percent':wt1_/(wt1_+wt2_), 'wt2percent':wt2_/(wt1_+wt2_),
                                      'corrUllage':corrUllage_,
-                                     'maxTankVolume':capacity_}
+                                     'maxTankVolume':capacity_,
+                                     'vol':vol_}
                             
                             # print(info_)
                             
@@ -499,7 +501,8 @@ class Generate_plan:
                              'fillRatio': round(v_['vol']/capacity_,DEC_PLACE), 'tcg':tcg_, 'lcg':lcg_, 
                              'temperature':None,
                              'corrUllage': corrUllage_,
-                             'maxTankVolume': capacity_}
+                             'maxTankVolume': capacity_,
+                             'vol':vol_}
                     
                     for k1_, v1_ in ship_status_dep_.items():
                         if not v1_.get(k_, []):
@@ -546,7 +549,7 @@ class Generate_plan:
                                                           'tcg':tcg_, 'lcg':lcg_, 
                                                           'corrLevel':round(corrLevel_,3),
                                                           'maxTankVolume':capacity_,
-                                                          'volume':vol_}]
+                                                          'vol':vol_}]
                 
                 
             
@@ -588,7 +591,7 @@ class Generate_plan:
                                                           'tcg':tcg_, 'lcg':lcg_,
                                                           'corrLevel':round(corrLevel_,3),
                                                           'maxTankVolume':capacity_,
-                                                          'volume':vol_}]
+                                                          'vol':vol_}]
                 
                 
                                
@@ -666,7 +669,7 @@ class Generate_plan:
                 for k_, v_ in j_.items():
                     info_ =  [{'wt': round(v_['wt'],DEC_PLACE), 
                                'SG':round(v_['wt']/max(1.0,v_['vol']),DEC_PLACE),
-                               'tcg':v_['tcg'], 'lcg':v_['lcg']}]
+                               'tcg':v_['tcg'], 'lcg':v_['lcg'], 'vol': v_['vol']}]
             
                     for k1_, v1_ in self.input.loadable.info['virtualArrDepPort'].items():
                         if v1_ == k_:
@@ -771,7 +774,7 @@ class Generate_plan:
                                                 'tcg':tcg_, 'lcg':lcg_,
                                                 'corrLevel':round(corrLevel_,3),
                                                 'maxTankVolume':capacity_,
-                                                'volume':vol_}]
+                                                'vol':vol_}]
             self.initial_ballast_weight = initial_ballast_weight_
             
         else:
@@ -1101,6 +1104,8 @@ class Generate_plan:
                     info_ = {}
                     info_['tankShortName'] = k_
                     info_['quantityMT'] = str(abs(v_[0]['wt']))
+                    info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
+                    
                     
                     info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['abbreviation']
                     info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
@@ -1132,6 +1137,8 @@ class Generate_plan:
                     info_ = {}
                     info_['tankShortName'] = k_
                     info_['quantityMT'] = str(abs(v_[0]['wt']))
+                    info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
+                    
                     info_['cargoAbbreviation'] = None
                     info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
                     
@@ -1165,6 +1172,8 @@ class Generate_plan:
                     
                     info_['tankShortName'] = k_
                     info_['quantity'] = str(abs(v_[0]['wt']))
+                    info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
+                    
                     info_['cargo1Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][0]]['abbreviation']
                     info_['cargo2Abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel'][1]]['abbreviation']
                     info_['priority'] = int(self.input.loadable.info['commingleCargo']['priority'])
@@ -1220,6 +1229,8 @@ class Generate_plan:
                 info_ = {}
                 info_['tankShortName'] = k_
                 info_['quantityMT'] = str(round(abs(v_[0]['wt']),2))
+                info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
+                
                 info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
                 info_['sg'] = str(v_[0]['SG'])
                 
@@ -1236,7 +1247,7 @@ class Generate_plan:
                 info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                 info_['rdgLevel'] = str(v_[0]['rdgLevel'])
                 
-                info_['volume'] = str(round(v_[0]['volume'],2))
+                info_['volume'] = str(round(v_[0]['vol'],2))
                 info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
                 
                 
@@ -1249,6 +1260,8 @@ class Generate_plan:
                 info_ = {}
                 info_['tankShortName'] = k_
                 info_['quantity'] = str(abs(v_[0]['wt']))
+                info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
+                
                 info_['sg'] = str(v_[0]['SG'])
                 info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
              
