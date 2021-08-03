@@ -440,13 +440,17 @@ class Vessel:
                     self.info['onhand1'][port_order_+'D'][tank_] = wt_
                 
           
-        self.info['sameROBseawater'] = []
+        self.info['sameROB'] = []
         for p_ in range(1,inputs.port.info['numPort']):
             p1_, p2_ = str(p_)+'D', str(p_+1)+'A'
             port1_, port2_ = inputs.port.info['portOrder'][p1_[:-1]], inputs.port.info['portOrder'][p2_[:-1]]
-            if (self.info['onhand1'].get(p1_,{}) == self.info['onhand1'].get(p2_,{})) and (inputs.port.info['portRotation'][port1_]['seawaterDensity'] == inputs.port.info['portRotation'][port2_]['seawaterDensity']):
+            wt1_ = sum([v_ for k_,v_ in self.info['onhand1'].get(p1_,{}).items()])
+            wt2_ = sum([v_ for k_,v_ in self.info['onhand1'].get(p2_,{}).items()])
+            
+            if abs(wt1_-wt2_) <= 200:
+            # if (self.info['onhand1'].get(p1_,{}) == self.info['onhand1'].get(p2_,{})) and (inputs.port.info['portRotation'][port1_]['seawaterDensity'] == inputs.port.info['portRotation'][port2_]['seawaterDensity']):
                 print('ROB:', p1_, p2_, inputs.loadable.info['arrDepVirtualPort'][p1_], inputs.loadable.info['arrDepVirtualPort'][p2_])
-                self.info['sameROBseawater'].append((inputs.loadable.info['arrDepVirtualPort'][p1_],inputs.loadable.info['arrDepVirtualPort'][p2_]))
+                self.info['sameROB'].append((inputs.loadable.info['arrDepVirtualPort'][p1_],inputs.loadable.info['arrDepVirtualPort'][p2_]))
             
         # print(self.info['onhand'])      
     

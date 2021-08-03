@@ -198,7 +198,8 @@ param densityBallast{p in Pbar} default 1.025; # density of water @ high tempera
 # locked ballast
 param B_locked{TB,Pbar} default 0;
 set fixBallastPort; 
-set P_stable = 1 .. (NP-1) diff fixBallastPort; # stable port
+set sameBallastPort;
+set P_stable = 1 .. (NP-1) diff fixBallastPort diff sameBallastPort; # stable port
 
 
 param capacityCargoTank{t in T} >= 0; # cargo tank capacity (in m3)

@@ -838,21 +838,35 @@ class Process_input(object):
                         str1 += '('+ str(k_)  + ',' + str(self.vessel.info['loading'][k__+1]) + ') '
                 print(str1+';', file=text_file)
                 
-                print('# departure arrival ports non-empty and empty ROB',file=text_file)#
-                str1 = 'set depArrPort1 := '
-                for k__, k_  in enumerate(self.vessel.info['loading']):
-                    if k__ < len(self.vessel.info['loading'])-1:
-                        if (str(k_), str(k_+1)) not in self.vessel.info['sameROBseawater']:
-                            str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
-                print(str1+';', file=text_file)
-                
+                print('# departure arrival ports non-empty and empty ROB',file=text_file) # same weight
+                depArrPort2, same_ballast = [], []
                 str1 = 'set depArrPort2 := '
-                for k__, k_  in enumerate(self.vessel.info['loading']):
+                for (a_, b_) in self.vessel.info['sameROB']:
+                    if int(b_) < self.loadable.info['lastVirtualPort']-1:
+                        str1 += '('+ str(a_)  + ',' + str(b_) + ') '
+                        depArrPort2.append((a_,b_))
+                        same_ballast.append(b_)
+                print(str1+';', file=text_file)
+                        
+                
+                # for k__, k_  in enumerate(self.vessel.info['loading']):
+                #     if k__ < len(self.vessel.info['loading'])-1:
+                #         if (str(k_), str(k_+1)) not in self.vessel.info['sameROBseawater']:
+                #             str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
+                            
+                # print(str1+';', file=text_file)
+                
+                str1 = 'set depArrPort1 := '
+                for k__, k_  in enumerate(self.vessel.info['loading']): # same tank
                     if k__ < len(self.vessel.info['loading'])-1:
-                        if (str(k_), str(k_+1)) in self.vessel.info['sameROBseawater']:
+                        if (str(k_), str(k_+1)) not in depArrPort2:
                             str1 += '('+ str(k_)  + ',' + str(int(k_)+1) + ') '
                 print(str1+';', file=text_file)
                 
+                str1 = 'set sameBallastPort := '
+                for k__, k_  in  enumerate(same_ballast):
+                    str1 += k_ + ' '
+                print(str1+';', file=text_file)
                 
                 print('# rotating ports ',file=text_file)#
                 str1 = 'set rotatingPort1 := '
@@ -924,7 +938,7 @@ class Process_input(object):
                 
                 
                 print('# cargoweight', file=text_file)
-                str1 = 'param cargoweight := ' + str(self.cargoweight) 
+                str1 = 'param cargoweight := ' + str(int(float(self.cargoweight)*10)/10) 
                 print(str1+';', file=text_file) 
                 
                 if self.mode in ['Manual', 'FullManual']:
