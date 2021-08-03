@@ -171,15 +171,15 @@ class Loading_seq:
             plan["loadablePlanStowageDetails"].append(info_)
             
         for k_, v_ in ballast_.items():
-            #print(k_, v_)
+            # print(k_, v_)
             info_ = {}
             info_['tankName'] = k_
             info_['tankId'] = int(self.plans.input.vessel.info['tankName'][k_])
             info_['quantityMT'] = str(round(abs(v_[0]['wt']),2))
-            info_['quantityM3'] = str(round(abs(v_[0]['volume']),2))
+            info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
             info_['sounding'] = str(round(v_[0]['corrLevel'],3))
             
-            plan["ballastVol"] += v_[0]['volume']
+            plan["ballastVol"] += v_[0]['vol']
             
             plan["loadablePlanBallastDetails"].append(info_)
             

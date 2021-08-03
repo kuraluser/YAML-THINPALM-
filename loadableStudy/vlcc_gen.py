@@ -89,7 +89,7 @@ class Generate_plan:
                 model_ = 'model_1i.mod'
                 dat_file = 'input_load.dat'
             else:
-                model_ = 'model_2i.mod' if self.input.mode in ['FullManual'] else 'model_1i.mod'
+                model_ = 'model_2i.mod' if self.input.mode in ['FullManual'] else 'model_3i.mod'
             
             print(model_)
             ampl = AMPL()
@@ -783,7 +783,7 @@ class Generate_plan:
             for k_, v_ in self.input.loading.info['ballast'][0].items():
                 info_ = {}
                 info_['wt'] = v_[0]['quantityMT']
-                info_['volume'] = v_[0]['quantityM3']
+                info_['vol'] = v_[0]['quantityM3']
                 info_['SG'] = 1.025
                 info_['tcg'] = v_[0]['tcg']
                 info_['lcg'] = v_[0]['lcg']

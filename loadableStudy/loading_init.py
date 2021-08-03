@@ -221,12 +221,12 @@ class Process_input(object):
                             self.loadable['ballastOperation'][k_][str(port_)] = v_[0]['quantityMT']
                         
                 if not last_cargo_ and d_ in [self.loading.seq[c_]['justBeforeTopping'] + str(c__+1)]:
-                    #print(d_,2,0)
+                    print(d_,2,0)
                     self.trim_upper[str(port_)] =  2.0
                     self.trim_lower[str(port_)] =  0.0
                     
                 elif not last_cargo_ and d_ in [self.loading.seq[c_]['lastStage'] + str(c__+1)]:
-                    #print(d_,1,0)
+                    print(d_,1,0)
                     self.trim_upper[str(port_)] =  1.2
                     self.trim_lower[str(port_)] =  1.0
                     
@@ -757,6 +757,12 @@ class Process_input(object):
                 
                 # same weight
                 str1 = 'set depArrPort2 := '
+                # for k__, k_  in enumerate(self.loading.seq['sameBallast']):
+                #     str1 += '('+ str(k_)  + ',' + str(k_+1) + ') '
+                print(str1+';', file=text_file)
+                
+                # same weight
+                str1 = 'set sameBallastPort := '
                 # for k__, k_  in enumerate(self.loading.seq['sameBallast']):
                 #     str1 += '('+ str(k_)  + ',' + str(k_+1) + ') '
                 print(str1+';', file=text_file)
