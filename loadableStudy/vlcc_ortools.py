@@ -50,7 +50,7 @@ def vlcc_ortools(inputs):
     # print('run ortools ...')
     
      # Create the mip solver with the SCIP backend.
-    solver = pywraplp.Solver.CreateSolver('SCIP') # 'SCIP', 'CBC', 'GLPK'
+    solver = pywraplp.Solver.CreateSolver('CBC') # 'SCIP', 'CBC', 'GLPK'
     solver.SetTimeLimit(900*1000)
     # solver.SetNumThreads(4)
     
@@ -792,7 +792,7 @@ def vlcc_ortools(inputs):
     minBallastAmt = 10
     ListMOM = 500
     
-    cargoweight = 1e6
+    cargoweight = float(inputs.cargoweight)
     deballastPercent = 1.0
     
     P_stable = list(set([i for i in range(1, NP)]) - set(fixBallastPort)) # stable port
@@ -1181,10 +1181,12 @@ def vlcc_ortools(inputs):
             solver.Add(x[i]['4P'] == x[i]['4S'])
             solver.Add(x[i]['5P'] == x[i]['5S'])
     
-            # for j in P_last_loading:
-            #     solver.Add(qw2f[i]['1P'][j]/10 == qw2f[i]['1S'][j]/10)
-            #     solver.Add(qw2f[i]['2P'][j]/10 == qw2f[i]['2S'][j]/10)            
-               
+            for j in P_last_loading:
+                solver.Add(qw2f[i]['1P'][j]/10 == qw2f[i]['1S'][j]/10)
+                solver.Add(qw2f[i]['2P'][j]/10 == qw2f[i]['2S'][j]/10)    
+                solver.Add(qw2f[i]['4P'][j]/10 == qw2f[i]['4S'][j]/10)
+                solver.Add(qw2f[i]['5P'][j]/10 == qw2f[i]['5S'][j]/10)  
+                               
         # Condition112a1, 112a2 
         for u, v in symmetricVolTank:
             for p in P_last_loading:
