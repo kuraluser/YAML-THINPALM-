@@ -129,6 +129,7 @@ set C; # set of all cargoes
 set C_loaded within C; # set of all loaded cargoes preloaded condition)
 set C_max;
 set C_equal default C;
+set C_slop default C;
 
 param I_loaded{c in C_loaded, t in T_loaded} binary default 0; # 1 if cargo c has been loaded in tank t ((preloaded condition)
 
@@ -556,8 +557,8 @@ subject to Condition112d4 {c in C_equal, p in P_last_loading}: qw[c,'5P',p] = qw
 subject to Condition112f {c in C, (u,v) in cargoTankNonSym}: x[c,u] + x[c,v] <= diffSlop;
 
 # slop tanks have to be used
-subject to Condition112g1 : sum{c in C} x[c,'SLS'] = 1;
-subject to Condition112g2 : sum{c in C} x[c,'SLP'] = 1;
+subject to Condition112g1 : sum{c in C_slop} x[c,'SLS'] = 1;
+subject to Condition112g2 : sum{c in C_slop} x[c,'SLP'] = 1;
 
 # each row must have a the cargo for C_max, empty when only 1 cargo is loaded
 subject to Condition112h1 {c in C_max}: x[c,'1P'] + x[c,'1C'] >= 1;

@@ -86,7 +86,7 @@ class Generate_plan:
             # model_3i.mod : min tank 
             
             if self.input.module in ['LOADING']:
-                model_ = 'model_1i.mod'
+                model_ = 'model_1iloading.mod'
                 dat_file = 'input_load.dat'
             else:
                 model_ = 'model_2i.mod' if self.input.mode in ['FullManual'] else 'model_3i.mod'
@@ -514,8 +514,12 @@ class Generate_plan:
             # ballast status: departure/arrive for loading/discharging port       
             if hasattr(self.input.loadable, "info"):
                 ballast_weight_ = {str(pp_):{} for pp_ in range(0,self.input.loadable.info['lastVirtualPort']+1)} 
+                tot_ballast_vol_ = {str(pp_):0. for pp_ in range(0,self.input.loadable.info['lastVirtualPort']+1)} 
+                
             else:
                 ballast_weight_ = {str(pp_):{} for pp_ in range(0,self.input.loadable['lastVirtualPort']+1)}
+                tot_ballast_vol_ = {str(pp_):0. for pp_ in range(0,self.input.loadable['lastVirtualPort']+1)} 
+                
             
             if hasattr(self.input, "mode") and self.input.mode in ['FullManual']:
                 
@@ -592,10 +596,7 @@ class Generate_plan:
                                                           'corrLevel':round(corrLevel_,3),
                                                           'maxTankVolume':capacity_,
                                                           'vol':vol_}]
-                
-                
-                               
-                                
+                                 
                         # if k_ not in [str(self.input.port.info['numPort'])+'D']:
                         #     ship_status_[k_]['other'][i_]  = [{'wt': round(v_['wt'],DEC_PLACE), 
                         #                                   'SG':round(v_['wt']/max(1.0,v_['vol']),DEC_PLACE),

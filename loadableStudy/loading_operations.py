@@ -276,6 +276,7 @@ class LoadingOperations(object):
             # open first tank
             first_tank_ = [t_ for t_ in OPEN_TANKS if t_ in self.info['cargo_tank'][cargo_to_load_]][0] ### fixed
             
+            self.seq[cargo_to_load_]['firstTank'] = first_tank_     
             # copy self.load_param
             load_param = deepcopy(self.load_param)
                 
@@ -289,6 +290,7 @@ class LoadingOperations(object):
             loading_rate_ = self._cal_max_rate(load_param)
             
             print('initial rate: ', loading_rate_) # m3/hr
+            self.seq[cargo_to_load_]['initialRate'] = loading_rate_     
             
             # Open one tank
             df_['Open'] =  df_['Initial']  
@@ -357,11 +359,17 @@ class LoadingOperations(object):
             
             param_ = deepcopy(self.staggering_param)
             
+            self.seq[cargo_to_load_]['maxShoreRate'] = param_['maxShoreRate']
+            
             for t_ in INDEX:
                 if t_ in self.info['cargo_tank'][cargo_to_load_]:
                     param_['toppingSeq'].append([t_])
                         
             staggering_rate_ = self._cal_staggering_rate(param_)
+            
+            
+            self.seq[cargo_to_load_]['staggerRate'] = deepcopy(staggering_rate_) 
+            
             num_staggering_ = len(staggering_rate_.columns)
             
             staggering_rate_['TotalVol'] = None
@@ -480,7 +488,7 @@ class LoadingOperations(object):
             self.seq[cargo_to_load_]['startTime'] = start_time_ # time duration for each stage
             self.seq[cargo_to_load_]['ballastStop'] = list(ballast_stop_) # need to get ballast for these stages
             self.seq[cargo_to_load_]['lastStage'] = ss_
-            
+            self.seq[cargo_to_load_]['loadingRateM3Min'] = staggering_rate_['LoadingRateM3Min'] 
             
             
             start_time_ = df_[ss_]['Time']
@@ -583,7 +591,7 @@ class LoadingOperations(object):
                 
         
                     
-    def _cal_staggering_rate(self, param):
+    def _cal_staggering_rate(self, param, reduce = 1000):
     
         stages_ = {}
         for t__, t_ in enumerate(param['toppingSeq']):

@@ -13,6 +13,8 @@ data.input.loadable['stages']
  
 """
 
+import numpy as np
+
 STAGE_INFO = ['time', 'foreDraft', 'meanDraft', 'afterDraft', 'trim', 'heel', 'airDraft', 'bendinMoment', 'shearForce' ]
 
 class Loading_seq:
@@ -38,6 +40,7 @@ class Loading_seq:
         info["cargoValves"] = []
         info["ballastValves"] = []
         
+        info["ballastRateM3_Hr"] = {}
         info["deballastingRateM3_Hr"] = {}
         info["cargoLoadingRatePerTankM3_Hr"] = {}
         info["cargoLoadingRateM3_Hr"] = {}
@@ -59,27 +62,73 @@ class Loading_seq:
                 self.initial_plan = plan_
             
         elif info['stage'] == 'openSingleTank':
+            
             pass
-            # info["deballastingRateM3_Hr"] = {}
+            
+                
+            # c"deballastingRateM3_Hr"] = {}
             # info["ballast"] = {}
             
             # info["cargoValves"] = []
             # info["ballastValves"] = []
             
         elif info['stage'] == "initialRate":
-            pass
-            # info["deballastingRateM3_Hr"] = {}
-            # info["cargoLoadingRatePerTankM3_Hr"] = {}
-            # info["cargoLoadingRateM3_Hr"] = {}
+            
+            info["cargoLoadingRateM3_Hr"] = {0:str(self.plans.input.loading.seq[cargo]['initialRate'])}
+            
+            
+            if self.plans.input.loading.seq[cargo]['firstTank'] in self.plans.input.vessel.info['tankName']:
+                tankId_ = self.plans.input.vessel.info['tankName'][self.plans.input.loading.seq[cargo]['firstTank']]
+                info["cargoLoadingRatePerTankM3_Hr"] = {tankId_: str(self.plans.input.loading.seq[cargo]['initialRate'])}
+            else:
+                tank1_, tank2_ = self.plans.input.loading.seq[cargo]['firstTank'][:-1]+'P', self.plans.input.loading.seq[cargo]['firstTank'][:-1]+'S'
+                tank1Id_ = self.plans.input.vessel.info['tankName'][tank1_]
+                tank2Id_ = self.plans.input.vessel.info['tankName'][tank2_]
+                
+                info["cargoLoadingRatePerTankM3_Hr"] = {tank1Id_: str(self.plans.input.loading.seq[cargo]['initialRate']/2),
+                                                        tank2Id_: str(self.plans.input.loading.seq[cargo]['initialRate']/2)}
+            
+            
             # info["ballast"] = {}
+            # info["deballastingRateM3_Hr"] = {}
             
         elif info['stage'] == "openAllTanks":
-           pass
+            info["cargoLoadingRateM3_Hr"] = {0:str(self.plans.input.loading.seq[cargo]['initialRate'])}
+           
+            tot_num_ = len(self.plans.input.loadable['toLoadCargoTank'][cargo])
+            rate_ = round(self.plans.input.loading.seq[cargo]['initialRate']/tot_num_,2)
+            info["cargoLoadingRatePerTankM3_Hr"] = {self.plans.input.vessel.info['tankName'][k_]:str(rate_) for k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items()}
        
         elif info['stage'] == "increaseToMaxRate":
-           pass
+           
+            info["cargoLoadingRateM3_Hr"] = {0:str(self.plans.input.loading.seq[cargo]['initialRate'])}
+           
+            tot_num_ = len(self.plans.input.loadable['toLoadCargoTank'][cargo])
+            rate_ = round(self.plans.input.loading.seq[cargo]['initialRate']/tot_num_,2)
+            info["cargoLoadingRatePerTankM3_Hr"] = {self.plans.input.vessel.info['tankName'][k_]:str(rate_) for k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items()}
+       
         
         elif info['stage'] == "loadingAtMaxRate":
+                        
+            
+            info["cargoLoadingRateM3_Hr"] = {0:str(self.plans.input.loading.seq[cargo]['maxShoreRate'])}
+            
+            tot_num_ = len(self.plans.input.loadable['toLoadCargoTank'][cargo])
+            rate_ = round(self.plans.input.loading.seq[cargo]['initialRate']/tot_num_,2)
+            info["cargoLoadingRatePerTankM3_Hr"] = {}
+            for  k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items():
+                if v_ > 0:
+                    if k_[-1] in ['C'] or k_ in ['SLS', 'SLP']:
+                        rate_ = self.plans.input.loading.seq[cargo]['loadingRateM3Min'][k_]*60
+                    else:
+                        k1_ = k_[:-1]+'W'
+                        rate_ = self.plans.input.loading.seq[cargo]['loadingRateM3Min'][k1_]*60/2
+                        
+                    info["cargoLoadingRatePerTankM3_Hr"][self.plans.input.vessel.info['tankName'][k_]] = str(round(rate_,2))
+            
+            
+        
+        
             info["toLoadicator"] = True
             
             for k_, v_ in self.plans.input.loadable['stages'].items():
@@ -102,6 +151,32 @@ class Loading_seq:
                     
         
         elif info['stage'] == "topping":
+            
+            
+            
+            info["cargoLoadingRatePerTankM3_Hr"] = {}
+            
+            for  k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items():
+                if v_ > 0:
+                    if k_[-1] in ['C'] or k_ in ['SLS', 'SLP']:
+                        rate_ = self.plans.input.loading.seq[cargo]['staggerRate'].loc[k_,:].to_list()
+                        r1_ = [r_  for r_ in rate_ if r_ not in [None]] # every 15min
+                        rate_ = np.mean(r1_) 
+                        
+                    else:
+                        k1_ = k_[:-1]+'W'
+                        rate_ = self.plans.input.loading.seq[cargo]['staggerRate'].loc[k1_,:].to_list()
+                        r1_ = [r_  for r_ in rate_ if r_ not in [None]] # every 15min
+                        rate_ = np.mean(r1_)/2
+                        
+                    info["cargoLoadingRatePerTankM3_Hr"][self.plans.input.vessel.info['tankName'][k_]] = str(round(rate_,2))
+            
+            
+            # last item of last row
+            reduce_rate_ = self.plans.input.loading.seq[cargo]['staggerRate'].iloc[-1,:].to_list()[-1]
+            info["cargoLoadingRateM3_Hr"] = {0:str(self.plans.input.loading.seq[cargo]['maxShoreRate']),
+                                             1:str(reduce_rate_) }
+            
             
             info["toLoadicator"] = True
             
