@@ -38,7 +38,7 @@ class Loadable:
             
                         
             if c_['api'] > 90:
-                message_ = 'API > 90 for cargoNomination ' + cargo_id_[1:] + '!!'
+                message_ = 'API > 90 for cargo ' + c_['abbreviation'] + '!!'
                 if 'API Error' not in inputs.error.keys():
                     inputs.error['API Error'] = [message_]
                 else:
@@ -380,6 +380,11 @@ class Loadable:
             cargos_info_['stablePorts'] = [str(i_)  for i_ in range(1,cargos_info_['lastVirtualPort']) if str(i_) not in  cargos_info_['fixedBallastPort']]    
         
         self.info = {**self.info, **cargos_info_}     
+        
+        ## infeasible check
+        min_cargo_ = sum([v_ for k_, v_ in cargos_info_['toLoadMin'].items()])
+        if float(inputs.cargoweight) < min_cargo_:
+            inputs.error['Min Tolerance Error'] = ['Min cargo tolerance is more than loadable quantity!!']
         
     def _create_man_operations(self,inputs):
         
