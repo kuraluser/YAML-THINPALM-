@@ -63,7 +63,7 @@ class LoadingOperations(object):
         # for d_ in data.loadable_json['planDetails']['departureCondition']['loadablePlanBallastDetails']:
         #     type_, tank_, wt_ = 'Ballast', d_['tankId'], d_['quantityMT']
         #     tankName_ = data.vessel.info['tankId'][tank_]
-        #     if wt_ not in [None, 0.]:
+        #     if wt_ not in [None, 0., 'null']:
         #         cargo_info_['finalBallast'][(type_,tankName_)] = wt_
             
         cargo_info_['loading_order'] = ['P'+str(d_['cargoNominationId']) for d_ in data.loading_info_json['loadingSequences']['loadingDelays'] if d_['cargoNominationId'] not in [0]]
@@ -150,7 +150,7 @@ class LoadingOperations(object):
         for d_ in ballast:
             tank_, wt_ = d_['tankId'], d_['quantityMT']
             tankName_ = self.vessel.info['tankId'][tank_]
-            if wt_ not in [None, '0']:
+            if wt_ not in [None, '0', 'null']:
                vol_ = float(wt_)/density_
                
                tcg_data_ = self.vessel.info['tankTCG']['tcg'][tankName_] # tcg_data
