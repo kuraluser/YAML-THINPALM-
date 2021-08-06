@@ -89,7 +89,7 @@ class Generate_plan:
                 model_ = 'model_1iloading.mod'
                 dat_file = 'input_load.dat'
             else:
-                model_ = 'model_2i.mod' if self.input.mode in ['FullManual'] else 'model_3i.mod'
+                model_ = 'model_2i.mod' if self.input.mode in ['FullManual'] else 'model_1i.mod'
             
             print(model_)
             ampl = AMPL()
