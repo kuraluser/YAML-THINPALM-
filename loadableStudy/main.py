@@ -18,7 +18,7 @@ from pydantic import BaseModel, Field
 from typing import List
 import json
 from api_vlcc import gen_allocation, loadicator
-from api_loading import gen_sequence
+from api_loading import gen_sequence, loadicator1
 from vlcc_ullage import get_correction, cal_density
 import pickle
 import numpy as np
@@ -157,7 +157,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
                                                                     voyageId=data['loading']['voyageId'],
                                                                     infoId=data['loading']['infoId'])
         
-        await post_response(status_url_, {"processId" : uid, "loadableStudyStatusId" : 5}, uid)
+        await post_response(status_url_, {"processId" : uid, "loadingInfoStatusId" : 4}, uid)
         # print(status_url_)
         # print(result_url_)
         
@@ -268,30 +268,39 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
     
     #print(result['message'])
     limits = result['message']
-    out = loadicator(data, limits)
-    # # print('>>>Send loadicator results')
-    # logger.info(data["processId"] + ": Upload loadicator result")
     
-    if out.get('feedbackLoop', True):
-        print('feedbackloop started!!')
-        gID = data['processId']
-        # print(gID)
-        loadable_study_data = data["loadableStudy"]
-        loadable_study_data['feedbackLoopCount'] = out['feedbackLoopCount']
-        loadable_study_data['feedbackLoop'] = out['feedbackLoop']
-        loadable_study_data['feedbackLoopBMSF'] = out['sfbmFac']
+    module_ = data.get('module', 'LOADABLE')
+    
+    print(module_)
+    
+    if module_ in ['LOADABLE']:    
+        out = loadicator(data, limits)
+        # # print('>>>Send loadicator results')
+        # logger.info(data["processId"] + ": Upload loadicator result")
         
-        print('RERUN sfbmFac', out['sfbmFac'])
-        
-        data_ =  get_data(loadable_study_data, gID)
-        
-        logger.info(gID + ": Get vessel API")
-        vessel_url_ = config['url']['vessel-details'].format(vesselId=data_['loadable']['vesselId'])
-        data_['vessel'] = await get_vessel_details(vessel_url_, gID)
+        if out.get('feedbackLoop', True):
+            print('feedbackloop started!!')
+            gID = data['processId']
+            # print(gID)
+            loadable_study_data = data["loadableStudy"]
+            loadable_study_data['feedbackLoopCount'] = out['feedbackLoopCount']
+            loadable_study_data['feedbackLoop'] = out['feedbackLoop']
+            loadable_study_data['feedbackLoopBMSF'] = out['sfbmFac']
             
-        # print('>>>> add new loadable')
-        logger.info(gID + ": Add feedbackloadable")
-        background_tasks.add_task(start_cpu_bound_task, gID, data_)
+            print('RERUN sfbmFac', out['sfbmFac'])
+            
+            data_ =  get_data(loadable_study_data, gID)
+            
+            logger.info(gID + ": Get vessel API")
+            vessel_url_ = config['url']['vessel-details'].format(vesselId=data_['loadable']['vesselId'])
+            data_['vessel'] = await get_vessel_details(vessel_url_, gID)
+                
+            # print('>>>> add new loadable')
+            logger.info(gID + ": Add feedbackloadable")
+            background_tasks.add_task(start_cpu_bound_task, gID, data_)
+            
+    elif module_ in ['LOADING']:    
+        out = loadicator1(data, limits)
         
     return out
 

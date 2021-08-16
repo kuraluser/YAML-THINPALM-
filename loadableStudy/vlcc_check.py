@@ -25,9 +25,9 @@ class Check_plans:
             if self.input.module in ['LOADING']:
                 print(self.input.loading.seq['stages'])
             else:
-                print(self.input.port.info.get('portOrder',[]))
-                print(self.input.loadable.info.get('seawaterDensity',[]))
-                print(self.input.vessel.info['sameROB'])
+                print('port:', self.input.port.info.get('portOrder',[]))
+                print('sea density', self.input.loadable.info.get('seawaterDensity',[]))
+                print('same ROB', self.input.vessel.info['sameROB'])
         
             if hasattr(self.input, 'base_draft'):
                 print(self.input.base_draft)
@@ -177,7 +177,7 @@ class Check_plans:
             t_mom_ += v_[0]['wt']*v_[0]['tcg']
             
             # if type_ in ['cargoTanks'] and abs(self.input.vessel.info[type_][k_]['lcg'] - v_[0]['lcg']) > 0.01:
-            #      print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'], v_[0].get('wt',0), v_[0]['fillRatio'])
+            #       print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'], v_[0].get('wt',0), v_[0]['fillRatio'])
             # print(k_, v_[0]['wt'], v_[0]['tcg'], v_[0]['wt']*v_[0]['tcg'])
             # print(k_, v_[0]['wt'], self.input.vessel.info[type_][k_]['lcg'], v_[0]['wt']*self.input.vessel.info[type_][k_]['lcg'])
             

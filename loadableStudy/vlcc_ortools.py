@@ -45,158 +45,148 @@ Created on Wed Mar 24 12:37:49 2021
 import numpy as np
 from ortools.linear_solver import pywraplp
 
+RUN_TIME = 900 # in sec
+
 def vlcc_ortools(inputs):
     
     # print('run ortools ...')
-    
+
      # Create the mip solver with the SCIP backend.
-    solver = pywraplp.Solver.CreateSolver('CBC') # 'SCIP', 'CBC', 'GLPK'
-    solver.SetTimeLimit(900*1000)
+    solver = pywraplp.Solver.CreateSolver('SCIP')   # 'SCIP', 'CBC'
+    solver.SetTimeLimit(RUN_TIME*1000)
     # solver.SetNumThreads(4)
     
     infinity = solver.infinity()
     
+    ##############################
     # Parameter initialization
-    ## ------------------------------------------------------------------
-    # set of all cargo tanks'
-    # cargo_tanks_ = []
-    T = [i_ for i_,j_ in inputs.vessel.info['cargoTanks'].items()]
-    # cargo tanks with non-pw tcg details
-    T1 = [i_ for i_, j_ in inputs.vessel.info['cargoTanks'].items() if i_ not in inputs.vessel.info['tankTCG']['tcg_pw']]
-    # set of all cargoes
-    C = [i_ for i_,j_ in inputs.loadable.info['parcel'].items()]
+    ##############################
+
+    # set of all cargo tanks
+    T = [t for t in inputs.vessel.info['cargoTanks'].keys()]
+
+    # set of cargo tanks without pw tcg details
+    T1 = [t for t in inputs.vessel.info['cargoTanks'].keys() if t not in inputs.vessel.info['tankTCG']['tcg_pw']]
+
+    # set of all cargos
+    C = [c for c in inputs.loadable.info['parcel'].keys()]
     
     # set of tanks compatible with cargo c (consider tank coating, cargo history, tank heating)
     Tc = {}
-    # print('# set of tanks compatible with cargo c',file=text_file)
-    for i_,j_ in inputs.loadable.info['parcel'].items():
-         Tc[i_] = [j_ for j_ in T if j_ not in inputs.vessel.info['banCargo'][i_]]
+    for c, t in inputs.loadable.info['parcel'].items():
+         Tc[c] = [t for t in T if t not in inputs.vessel.info['banCargo'][c]]
          
     # set of tanks compatible with cargo c (consider tank coating, cargo history, tank heating)
     Ct = {}
-    for i in T:
-        Ct[i] = [j for j in C if i in Tc[j]]
-    
-    # set of all loaded cargoes (partial loading condition)
-    # set of loaded tanks (partial loading condition
+    for t in T:
+        Ct[t] = [c for c in C if t in Tc[c]]
+
+    # list of tanks: before arrival at the first loading port, tank has been loaded with cargo
     T_loaded = []
-    C_loaded = []        
+    # list of cargos preloaded before arriving at the first loading port
+    C_loaded = []
+    # 1 if cargo c has been loaded in tank t (preloaded condition)
     I_loaded = {}
-    W_loaded = {}     
+    # weight of preloaded cargo to be moved from tank t at port p
+    W_loaded = {}
+    # volume of preloaded cargo to be moved from tank t at port p
     V_loaded = {}
+    # weight of cargo c remained in tank t at initial state (before ship entering the first port)
     W0 = {}
+    # volume of cargo c remained in tank t at initial state (before ship entering the first port)
     Q0 = {}           
               
-    # total number of ports in the booking list
+    # total number of ports in the booking list (including virtual ports)
     NP = int(inputs.loadable.info['lastVirtualPort'])
     # the last loading port
     LP = int(inputs.loadable.info['lastVirtualPort']-1)
     
     # set of ports
-    P = list(range(1,NP+1))
+    P = list(range(1, NP+1))
     # a virtual port before the first port
     P_org = [0]
     # union P and P_org
     Pbar = P + P_org
     # set of loading ports
-    P_load = list(range(1,LP+1))
+    P_load = list(range(1, LP+1))
     # set of discharging ports
-    P_dis = list(range(LP+1,NP+1))
+    P_dis = list(range(LP+1, NP+1))
     # the last loading port
     P_last_loading = [LP]
-    
-        
+
     # cargo density @ low temperature (in t/m3)
-    densityCargo_High = {str(i_): round(j_['mintempSG'],4) for i_,j_ in inputs.loadable.info['parcel'].items()}
+    densityCargo_High = {str(c): round(v['mintempSG'], 4) for c, v in inputs.loadable.info['parcel'].items()}
     # cargo density @ high temperature (in t/m3) 
-    densityCargo_Low = {str(i_): round(j_['maxtempSG'],4) for i_,j_ in inputs.loadable.info['parcel'].items()}
-    density_ = [j_['maxtempSG'] for i_,j_ in inputs.loadable.info['parcel'].items()]
-    # ave cargo density
-    aveCargoDensity = round(np.mean(density_), 4)
+    densityCargo_Low = {str(c): round(v['maxtempSG'], 4) for c, v in inputs.loadable.info['parcel'].items()}
+    # density of cargo (under average temperature)
+    density = [v['maxtempSG'] for v in inputs.loadable.info['parcel'].values()]
+    aveCargoDensity = round(np.mean(density), 4)
     
     # density used for the upper loading bound, default dcLow[c] (density at high temp)
     density_up = densityCargo_Low
     # density used for the lower loading bound, default dcHigh[c] (density at low temp)
     density_low = densityCargo_High
-    
+
     # cargo with higher priority will be loaded as close to the intended quantity as possible
     priority = {}
-    for i in range(len(C)):
-        priority[C[i]] = 100
+    for c in C:
+        priority[c] = 100
         
-    cargoPriority = [] # input
+    cargoPriority = []  # input
     if inputs.mode in ['Auto']:
-        for i_ in range(inputs.loadable.info['maxPriority'],1,-1):
-            # print(i_)
-            for l1_ in inputs.loadable.info['priority'][i_]:
-                # print(l1_)
-                for j_ in range(i_-1,0,-1):
-                    # print(j_)
-                    for l2_ in inputs.loadable.info['priority'][j_]:
-                        # print(l2_) # higher priority
-                        cargoPriority.append((l2_ , l1_))
-                       
-    #weight (in metric tone) of cargo to be moved at port p
-    Wcp = {str(i_):{}  for i_, j_ in inputs.loadable.info['operation'].items()}
-    for i_, j_ in inputs.loadable.info['operation'].items(): 
-        for k_,v_ in j_.items():
-            if int(k_) > 0:
-                Wcp[str(i_)][int(k_)] = round(v_,3)
-                
-    # volume (in t/m3) to be moved at port p based on low density.
+        for i in range(inputs.loadable.info['maxPriority'], 1, -1):
+            for p1 in inputs.loadable.info['priority'][i]:
+                for j in range(i-1, 0, -1):
+                    for p2 in inputs.loadable.info['priority'][j]:
+                        # p2 has higher priority than p1
+                        cargoPriority.append((p2, p1))
+
+    # weight (in metric tone) of cargo to be moved at port p.
+    # positive -> to be loaded; negative -> to be discharged; zero -> no action is required.
+    Wcp = {str(c): {} for c in inputs.loadable.info['operation'].keys()}
+    for c, pw in inputs.loadable.info['operation'].items():
+        for p, w in pw.items():
+            if int(p) > 0:
+                Wcp[str(c)][int(p)] = round(w, 1)
+
+    # volume (in t/m3) of cargo to be moved at port p based on low density.
     Vcp = {}
-    for i in range(len(C)):
-        Vcp[C[i]] = {}
-        for j in range(len(P)):
-            Vcp[C[i]][P[j]] = Wcp.get(C[i], {}).get(P[j],0.) / densityCargo_Low[C[i]]
-            
+    for c in C:
+        Vcp[c] = {}
+        for p in P:
+            Vcp[c][p] = Wcp.get(c, {}).get(p, 0.) / densityCargo_Low[c]
+
     # loading ports     
-    loadPort   = [i_ for i_, j_ in inputs.loadable.info['toLoadPort1'].items()]
+    loadPort = [p for p in inputs.loadable.info['toLoadPort1'].keys()]
     
-    # loadingPortAmt 
-    loadingPortAmt = {i_:round(j_,3) for i_, j_ in inputs.loadable.info['toLoadPort1'].items()}
+    # loadingPortAmt: amount of all the cargos to be loaded at port p
+    loadingPortAmt = {p: round(w, 1) for p, w in inputs.loadable.info['toLoadPort1'].items()}
     
-    # min cargo to must be loaded
-    minCargoLoad = {i_:round(j_,3) for i_, j_ in inputs.loadable.info['toLoadMin'].items()}  
-    
-    toLoad = inputs.loadable.info['toLoad'] # input
-    
+    # min amount of all the cargos to be loaded
+    minCargoLoad = {c: round(w, 1) for c, w in inputs.loadable.info['toLoadMin'].items()}
+
+    # intended cargo to load
+    toLoad = inputs.loadable.info['toLoad']     # input
+
+    # multiple cargos, set to 1, cannot be in both tanks
     diffSlop = 10 if inputs.loadable.info['numParcel'] == 1 else 1
-      
-    # # Commingle cargos
-    # print('# Commingle cargos',file=text_file)#  
-    Cm_1 = [] 
+
+    ## Commingle cargos
+    Cm_1 = []   # Commingle cargos
+    Cm_2 = []   # Commingle cargos
+    Tm = []     # Possible commingled tanks
+    density_Cm = {} # Density commingled cargo
     if inputs.loadable.info['commingleCargo']:
         Cm_1 = [inputs.loadable.info['commingleCargo']['parcel1']]
-    
-    Cm_2 = []
-    if inputs.loadable.info['commingleCargo']:
         Cm_2 = [inputs.loadable.info['commingleCargo']['parcel2']]
-    
-    # print('# Possible commingled tanks',file=text_file)#
-    # str1 = 'set Tm := '
-    Tm = []
-    if inputs.loadable.info['commingleCargo']:
-        
-        if inputs.loadable.info['commingleCargo'].get('tank',[]):
-            Tm = [inputs.vessel.info['tankId'][int(t_)] for t_ in inputs.loadable.info['commingleCargo']['tank']]
-        else:
-            Tm = ['2C', '3C','4C','SLS','SLP']
-    # print(str1+';', file=text_file)
-    
-    # print('# Density commingled cargo',file=text_file)#
-    density_Cm = {}
-    if inputs.loadable.info['commingleCargo']:
         density_Cm[inputs.loadable.info['commingleCargo']['parcel1']] = inputs.loadable.info['commingleCargo']['SG1']
         density_Cm[inputs.loadable.info['commingleCargo']['parcel2']] = inputs.loadable.info['commingleCargo']['SG2']
-        
-    #     str1 += self.loadable.info['commingleCargo']['parcel1'] + ' ' + "{:.4f}".format(self.loadable.info['commingleCargo']['SG1'])+ ' '
-    #     str1 += self.loadable.info['commingleCargo']['parcel2'] + ' ' + "{:.4f}".format(self.loadable.info['commingleCargo']['SG2'])+ ' '
-        
-    # print(str1+';', file=text_file)
-    
-    
-    if inputs.loadable.info['commingleCargo'].get('mode','0') == '2':
+        if inputs.loadable.info['commingleCargo'].get('tank', []):
+            Tm = [inputs.vessel.info['tankId'][int(t)] for t in inputs.loadable.info['commingleCargo']['tank']]
+        else:
+            Tm = ['2C', '3C', '4C', 'SLS', 'SLP']
+
+    if inputs.loadable.info['commingleCargo'].get('mode', '0') == '2':
         Qm_1 = inputs.loadable.info['commingleCargo']['wt1']
         Qm_2 = inputs.loadable.info['commingleCargo']['wt2']
         Mm = 0.
@@ -204,930 +194,845 @@ def vlcc_ortools(inputs):
         Qm_1 = 0.
         Qm_2 = 0.
         Mm = 1e5
-    
-    
+
     # cargo tank capacity (in m3)
     capacityCargoTank = {}
-    for i_, j_ in inputs.vessel.info['cargoTanks'].items():
-        o_ = inputs.vessel.info['onboard'].get(i_,{}).get('vol',0.)
-        if o_ > 0:
-            print(i_,j_['capacityCubm'],round(o_,3))
-        capacityCargoTank[i_] = round(j_['capacityCubm']-o_,3)
-            
-    # upper loading bound for each tank
+    for t, v in inputs.vessel.info['cargoTanks'].items():
+        vol = inputs.vessel.info['onboard'].get(t, {}).get('vol', 0.)
+        if vol > 0:
+            print(t, v['capacityCubm'], round(vol, 3))
+        capacityCargoTank[t] = round(v['capacityCubm']-vol/0.98, 3)
+
+    # upper loading bound for each tank: 0.98 for tank capacity more than 0.5 km^3,
+    # and 1 for the other cargo tanks.
+    # lower loading bound for each tank, e.g. 0.6 upperBound = {}
     upperBound = {}
-    # lower loading bound for each tank
     lowerBound = {}
-    for i in range(len(T)):
-#        capacityCargoTank[T[i]] = capacityCargoTank_d[i]
-#        densityCargoTank[T[i]] = 1.3
-        upperBound[T[i]] = 0.98
-        lowerBound[T[i]] = 0.60
-    
+    for t in T:
+        upperBound[t] = 0.98
+        lowerBound[t] = 0.60
+
+    # for each cargo c, the upper loading bound for each tank
     upperBoundC = {}
-    for i in range(len(C)):
-        upperBoundC[C[i]] = {}
-        for j in range(len(T)):
-            upperBoundC[C[i]][T[j]] = upperBound[T[j]]
+    for c in C:
+        upperBoundC[c] = {}
+        for t in T:
+            upperBoundC[c][t] = upperBound[t]
             
-    # onboard cargo tank (in mt)',file=text_file)#  
-    onboard = {i_: round(j_['wt'],3) for i_, j_ in inputs.vessel.info['onboard'].items() if i_ not in ['totalWeight']}
-    
-    # locked tank',file=text_file)#   
-    # locked_tank_ = []
+    # onboard qty (in mt): there are some residuals in the tank
+    onboard = {t: round(qty['wt'], 3) for t, qty in inputs.vessel.info['onboard'].items()
+               if t not in ['totalWeight']}
+
+    # locked tank: pre-define the cargo allocation to tank, used for manual
     T_locked = []
-    for k_, v_ in inputs.loadable.info['manualOperation'].items():
-        for k1_, v1_ in v_.items():
-            for v2_ in v1_:
-                if 'tankId' in v2_.keys():
-                    tank_ = inputs.vessel.info['tankId'][int(v2_['tankId'])]
+    for v in inputs.loadable.info['manualOperation'].values():
+        for v1 in v.values():
+            for v2 in v1:
+                if 'tankId' in v2.keys():
+                    tank = inputs.vessel.info['tankId'][int(v2['tankId'])]
                 else:
-                    tank_ = v2_['tank']
-                if tank_ not in T_locked:
-                    T_locked.append(tank_) 
-                    
-    #            
-    # locked cargo',file=text_file)#  
+                    tank = v2['tank']
+                if tank not in T_locked:
+                    T_locked.append(tank)
+
+    # locked cargo: same as above
     C_locked = []
-    for k_, v_ in inputs.loadable.info['manualOperation'].items():
-        if k_ not in C_locked:
-            C_locked.append(k_)
-                
-    # 1 if tank t is locked for cargo c',file=text_file)#  
-    A_locked = {c_:{} for c_ in C_locked} 
-    for k_, v_ in inputs.loadable.info['manualOperation'].items():
-        tank_ = []
-        for k1_, v1_ in v_.items():
-            for v2_ in v1_:
-                
-                if 'tankId' in v2_.keys():
-                    tank__ = inputs.vessel.info['tankId'][int(v2_['tankId'])]
+    for c in inputs.loadable.info['manualOperation'].keys():
+        if c not in C_locked:
+            C_locked.append(c)
+
+    # 1 if tank t is locked for cargo c
+    A_locked = {c: {} for c in C_locked}
+    for c, v in inputs.loadable.info['manualOperation'].items():
+        tanks = []
+        for v1 in v.values():
+            for v2 in v1:
+                if 'tankId' in v2.keys():
+                    t = inputs.vessel.info['tankId'][int(v2['tankId'])]
                 else:
-                    tank__ = v2_['tank']
-                
-                
-                if tank__  not in tank_:
-                    A_locked[k_][tank__] = 1
-                    tank_.append(tank__)
-                    
-    W_locked  = {c_:{} for c_ in C_locked}     
-    V_locked = {c_:{} for c_ in C_locked}
-    for k_, v_ in inputs.loadable.info['manualOperation'].items():
-        for k1_, v1_ in v_.items():
-            for v2_ in v1_:
-                
-                
-                if 'tankId' in v2_.keys():
-                    tank_ = inputs.vessel.info['tankId'][int(v2_['tankId'])]
+                    t = v2['tank']
+                if t not in tanks:
+                    A_locked[c][t] = 1
+                    tanks.append(t)
+
+    # the amount (weight) of cargo locked to put/unload into/from tank t at port p
+    W_locked = {c: {} for c in C_locked}
+    # volumn of cargo locked to load/unload into/from tank t at port p
+    V_locked = {c: {} for c in C_locked}
+    for c, v in inputs.loadable.info['manualOperation'].items():
+        for p, v1 in v.items():
+            for v2 in v1:
+                if 'tankId' in v2.keys():
+                    tank = inputs.vessel.info['tankId'][int(v2['tankId'])]
                 else:
-                    tank_ = v2_['tank']
-                
-                if tank_ not in W_locked[k_].keys():
-                    W_locked[k_][tank_] = {}
-                    V_locked[k_][tank_] = {}
-                    
-                W_locked[k_][tank_][k1_] = round(v2_['qty'],3)
-                V_locked[k_][tank_][k1_] = W_locked[k_][tank_][k1_]/densityCargo_Low[k_]
-                
+                    tank = v2['tank']
+
+                if tank not in W_locked[c].keys():
+                    W_locked[c][tank] = {}
+                    V_locked[c][tank] = {}
+
+                W_locked[c][tank][p] = round(v2['qty'], 1)
+                V_locked[c][tank][p] = W_locked[c][tank][p] / densityCargo_Low[c]
+
+    # locked ballast: algo should not change the allocation of water in ballast tanks
     B_locked = {}
     if inputs.mode in ['Auto']:
-        for k_, v_ in inputs.loadable.info['ballastOperation'].items():
-            tank_ = k_
-            B_locked[tank_] = {}
-            for v__ in v_:
-                if v__['order'] != '0':
-                    B_locked[tank_][v__['order'] ] = round(v__['qty'],3)
-                
-            
-        
-                        
-    fixBallastPort = [k_ for k_ in inputs.loadable.info['fixedBallastPort'] if k_ not in [0]]
+        for t, v in inputs.loadable.info['ballastOperation'].items():
+            B_locked[t] = {}
+            for v1 in v:
+                if v1['order'] != '0':
+                    B_locked[t][v1['order']] = round(v1['qty'], 3)
+
+    # at these ports, you cannot change the water ballast
+    fixBallastPort = [p for p in inputs.loadable.info['fixedBallastPort'] if p not in ['0']]
     
-    # upper trim
-    trim_upper = {int(k_):v_  for k_,v_ in inputs.trim_upper.items()} # default 0.0001 for others
-    # lower trim
-    trim_lower  = {int(k_):v_  for k_,v_ in inputs.trim_lower.items()} # default -0.0001  for others
-                    
-                
-    # set of other tanks, e.g. fuel tanks, water tanks,
-    other_tanks_ = {**inputs.vessel.info['fuelTanks'], **inputs.vessel.info['dieselTanks'], **inputs.vessel.info['freshWaterTanks'] }
-    OtherTanks = [i_ for i_, j_ in other_tanks_.items()]
-    
+    # upper trim, default 0.001
+    trim_upper = {int(p): v for p, v in inputs.trim_upper.items()}
+    # lower trim, default -0.001
+    trim_lower = {int(p): v for p, v in inputs.trim_lower.items()}
+
+    # set of other tanks, non-cargo non-ballast tanks, e.g. fuel tanks, water tanks
+    other_tanks = {**inputs.vessel.info['fuelTanks'],
+                   **inputs.vessel.info['dieselTanks'],
+                   **inputs.vessel.info['freshWaterTanks']}
+    OtherTanks = [t for t in other_tanks.keys()]
+
     # weight of each tank
-    weightOtherTank = {i_:{} for i_, j_ in inputs.vessel.info['onhand'].items()}
-    for i_, j_ in inputs.vessel.info['onhand'].items():
-        for k_, v_ in j_.items():
-            if k_ not in ['1A']:
-                for k1_, v1_ in inputs.loadable.info['virtualArrDepPort'].items():
-                    if v1_ == k_:
-                        wt_ = j_[k_]['wt']
-                        weightOtherTank[i_][int(k1_)] = round(wt_,3)
-                        
-                        
+    weightOtherTank = {t: {} for t in inputs.vessel.info['onhand'].keys()}
+    for t, v in inputs.vessel.info['onhand'].items():
+        for k in v.keys():
+            if k not in ['1A']:
+                for p, v1 in inputs.loadable.info['virtualArrDepPort'].items():
+                    if v1 == k:
+                        wt = v[k]['wt']
+                        weightOtherTank[t][int(p)] = round(wt, 3)
+
+    # set of ballast tanks
+    TB = [t for t in inputs.vessel.info['ballastTanks'].keys() if t not in inputs.vessel.info['banBallast']]
     
-    # ballast tanks ',file=text_file)#  
-    TB = [i_ for i_, j_ in inputs.vessel.info['ballastTanks'].items() if i_ not in  inputs.vessel.info['banBallast']]
+    # ballast tanks with non-pw tcg details (for list constraint)
+    tb_list = list(inputs.vessel.info['tankTCG']['tcg_pw'].keys()) + inputs.vessel.info['banBallast']
+    TB1 = [t for t in inputs.vessel.info['ballastTanks'].keys() if t not in tb_list]
     
-    # ballast tanks with non-pw tcg details',file=text_file)#  
-    tb_list_ = list(inputs.vessel.info['tankTCG']['tcg_pw'].keys()) + inputs.vessel.info['banBallast']
-    TB1 = [i_ for i_, j_ in inputs.vessel.info['ballastTanks'].items() if i_ not in tb_list_]
+    minBallastAmt = {i_:j_ for i_, j_ in inputs.vessel.info['ullage30cm'].items() if  i_ not in  inputs.vessel.info['banBallast']}
     
-     # ballast tanks with non-pw tcg details',file=text_file)#  
-    tb_list_ = list(inputs.vessel.info['tankLCG']['lcg_pw'].keys()) + inputs.vessel.info['banBallast']
-    TB2 = [i_ for i_, j_ in inputs.vessel.info['ballastTanks'].items() if i_ not in tb_list_]
-           
-    # density of seawater
-    # density of seawater ',file=text_file)#
+
+    # set of ballast tanks with no pw lcg details (lcg is for trim calculation)
+    tb_list = list(inputs.vessel.info['tankLCG']['lcg_pw'].keys()) + inputs.vessel.info['banBallast']
+    TB2 = [t for t in inputs.vessel.info['ballastTanks'].keys() if t not in tb_list]
+
+    # density of seawater for different port
     densitySeaWater = {}
-    # str1 = 'param densitySeaWater := '
-    for p_ in range(1,inputs.loadable.info['lastVirtualPort']+1):
-        port_ = inputs.loadable.info['virtualArrDepPort'][str(p_)][:-1]
-        portName_ = inputs.port.info['portOrder'][port_] # convert virtual port to exact port
-        density_ = inputs.port.info['portRotation'][portName_]['seawaterDensity']
-        densitySeaWater[int(p_)] = round(density_,4)
-   
+    for p in range(1, inputs.loadable.info['lastVirtualPort']+1):
+        port = inputs.loadable.info['virtualArrDepPort'][str(p)][:-1]
+        portName = inputs.port.info['portOrder'][port]    # convert virtual port to exact port
+        density = inputs.port.info['portRotation'][portName]['seawaterDensity']
+        densitySeaWater[int(p)] = round(density, 4)
+
+    # density of ballast water
     densityBallast = 1.025
     
-    # cargo tanks restrictions 
-    cargoTankNonSym  = inputs.vessel.info['notSym']
+    # cargo tank restrictions: non-symmetrical cargo tanks
+    cargoTankNonSym = inputs.vessel.info['notSym']
     
-    # symmetricVolTank 
-    symmetricVolTank = [('1P','1S'), ('2P','2S'),('SLS','SLP'), ('3P','3S'), ('4P','4S'), ('5P','5S')]
-    
-    
-    # cargo with highest load
+    # cargo tank restrictions: symmetrical cargo tanks
+    symmetricVolTank = [('1P', '1S'), ('2P', '2S'), ('SLS', 'SLP'), ('3P', '3S'), ('4P', '4S'), ('5P', '5S')]
+
+    # single value: weight of the cargo with highest load
     C_max = inputs.vessel.info['maxCargo']
                 
-    # print('# initial ballast ',file=text_file)#
-    initBallast = {k_:v_ for k_, v_ in inputs.vessel.info['initBallast']['wt'].items()}
+    # initial weight of ballast water before arrival at the first port
+    initBallast = {t: wt for t, wt in inputs.vessel.info['initBallast']['wt'].items()}
     
-    # print('# inc initial ballast ',file=text_file)#
-    incTB  = inputs.vessel.info['initBallast']['inc']
+    # ballast tank to increase water
+    incTB = inputs.vessel.info['initBallast']['inc']
     
-    # print('# dec initial ballast ',file=text_file)#
+    # ballast tank to decrease water
     decTB = inputs.vessel.info['initBallast']['dec']
-    
-    # print('# loading ports ',file=text_file)#
+
+    # loading ports
     loadingPort = []
-    for k__, k_  in enumerate(inputs.vessel.info['loading']):
-        if k__ < len(inputs.vessel.info['loading'])-1:
-            loadingPort.append((k_,inputs.vessel.info['loading'][k__+1]))
-            
-    
-    # print('# loading ports not last ',file=text_file)#
+    for p_id, p in enumerate(inputs.vessel.info['loading']):
+        if p_id < len(inputs.vessel.info['loading'])-1:
+            # (loading port, next loading port)
+            loadingPort.append((p, inputs.vessel.info['loading'][p_id+1]))
+
+    # loading port except the last
     loadingPortNotLast = list(loadingPort[:-1])
+
+
+
+    # departure arrival ports with empty ROB
+    depArrPort2, same_ballast = [], []
+    for (a_, b_) in inputs.vessel.info['sameROB']:
+        if int(b_) < inputs.loadable.info['lastVirtualPort']-1:
+            depArrPort2.append((int(a_),int(b_)))
+            same_ballast.append(int(b_))
     
-    # print('# departure arrival ports ',file=text_file)#
+    # departure arrival ports with non-empty ROB
     depArrPort1 = []
-    if inputs.vessel.info['onhand'] : # non-empty ROB
-        for k__, k_  in enumerate(inputs.vessel.info['loading']):
-            if k__ < len(inputs.vessel.info['loading']):
+    for k__, k_  in enumerate(inputs.vessel.info['loading']): # same tank
+        if k__ < len(inputs.vessel.info['loading'])-1:
+            if (k_, k_+1) not in depArrPort2:
                 depArrPort1.append((k_, k_+1))
    
     
-    depArrPort2 = []
-    if not inputs.vessel.info['onhand'] : # empty ROB
-        for k__, k_  in enumerate(inputs.vessel.info['loading']):
-            if k__ < len(inputs.vessel.info['loading']):
-                depArrPort2.append((k_, k_+1))
-                
     
-    rotatingPort  = []
-    for k__, k_  in enumerate(inputs.vessel.info['rotationVirtual']):
-        if k__ < len(inputs.vessel.info['rotationVirtual'])-1:
-            rotatingPort.append((k_, inputs.vessel.info['rotationVirtual'][k__+1]))
+    # depArrPort1 = []
+    # if inputs.vessel.info['onhand']:
+    #     for p_id, p in enumerate(inputs.vessel.info['loading']):
+    #         if p_id < len(inputs.vessel.info['loading']) - 1:
+    #             if (str(p), str(p+1)) not in inputs.vessel.info['sameROBseawater']:
+    #                 depArrPort1.append((p, p+1))
+                    
             
-    # lastLoadingPortBallastBan
-    lastLoadingPortBallastBan = ['WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S']
+
     
-    # first loading Port
+    
+    # if not inputs.vessel.info['onhand']:
+    #     for p_id, p in enumerate(inputs.vessel.info['loading']):
+    #         if p_id < len(inputs.vessel.info['loading']) - 1:
+    #             if (str(p), str(p+1)) in inputs.vessel.info['sameROBseawater']:
+    #                 depArrPort2.append((p, p+1))
+
+    # rotatingPort = []
+    # for p_id, p in enumerate(inputs.vessel.info['rotationVirtual']):
+    #     if p_id < len(inputs.vessel.info['rotationVirtual']) - 1:
+    #         rotatingPort.append((p, inputs.vessel.info['rotationVirtual'][p_id+1]))
+    
+    sameBallastPort  = same_ballast
+
+    rotatingPort1 = []
+    if len(inputs.vessel.info['rotationVirtual']) >= 1:
+        for p_id, p in enumerate(inputs.vessel.info['rotationVirtual'][0]):
+            if p_id < len(inputs.vessel.info['rotationVirtual'][0]) - 1:
+                rotatingPort1.append((p, inputs.vessel.info['rotationVirtual'][0][p_id+1]))
+
+    rotatingPort2 = []
+    if len(inputs.vessel.info['rotationVirtual']) >= 2:
+        for p_id, p in enumerate(inputs.vessel.info['rotationVirtual'][1]):
+            if p_id < len(inputs.vessel.info['rotationVirtual'][1]) - 1:
+                rotatingPort2.append((p, inputs.vessel.info['rotationVirtual'][1][p_id+1]))
+
+    # list of tanks that cannot contain water at last loading port
+    lastLoadingPortBallastBan = ['WB1P', 'WB1S', 'WB2P', 'WB2S', 'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S']
+    
+    # first loading Port, default 1
     firstloadingPort = inputs.loadable.info['arrDepVirtualPort']['1D']
     
-    # specialBallastPort
-    specialBallastPort = [LP-1, LP] # default LP-1
+    # certain port can only use special ballast tank (restriction), default LP-1 (original)
+    specialBallastPort = [LP-1, LP]
     
-    # zeroBallastPort
-    zeroBallastPort = [] # default LP
+    # at these ports, no ballast in the tank when departing, default LP
+    zeroBallastPort = []
     
-    # capacity of ballast tanks', file=text_file)
-    capacityBallastTank = {i_: round(j_['capacityCubm'],3) for i_, j_ in inputs.vessel.info['ballastTanks'].items() if i_ not in inputs.vessel.info['banBallast']}
-    
-    #upper loading bound for each ballast tank    
+    # capacity of each ballast tanks
+    capacityBallastTank = {t: round(v['capacityCubm'], 3) for t, v in inputs.vessel.info['ballastTanks'].items()
+                           if t not in inputs.vessel.info['banBallast']}
+
+    # upper and lower loading bound for each ballast tank
     upperBoundB1 = {}
-    #lower loading bound for each ballast tank
     lowerBoundB1 = {}
-    for i in range(len(TB)):
-        upperBoundB1[TB[i]] = 0.99
-        # upperBoundB2[TB[i]] = 0.0
-        lowerBoundB1[TB[i]] = 0.0
-        # lowerBoundB2[TB[i]] = 0.0
-    
-    
-    # light weight of ship', file=text_file)
+    for t in TB:
+        upperBoundB1[t] = 0.99
+        lowerBoundB1[t] = 0.0
+
+    # light weight of the ship
     lightWeight = inputs.vessel.info['lightweight']['weight']
     
-    # LCG of ship', file=text_file)
+    # LCG of ship
     LCGship = inputs.vessel.info['lightweight']['lcg']
     
-    # deadweight constant', file=text_file)
+    # deadweight constant
     deadweightConst = inputs.vessel.info['deadweightConst']['weight']
                 
-    # LCG of deadweight constant', file=text_file)
+    # LCG of deadweight constant
     LCGdw = float(inputs.vessel.info['deadweightConst']['lcg'])
     
-    # TCG of deadweight constant', file=text_file)
-    TCGdw  =  float(inputs.vessel.info['deadweightConst']['tcg'])
+    # TCG of deadweight constant
+    TCGdw = float(inputs.vessel.info['deadweightConst']['tcg'])
     
-    # max num tanks', file=text_file)
+    # max num tanks, default 100, to limit the number of tanks allocated
     maxTankUsed = inputs.maxTankUsed if inputs.maxTankUsed else 100
     
-    # load all cargo -> intended <1
-    intended  = 1e6
-        
     
-    # print('# random seed for Gurobi', file=text_file)
-    # str1 = 'param seed   := ' + str(np.random.randint(0,1000)) 
-    # # str1 = 'param seed   := 11' 
-    # print(str1+';', file=text_file)
+
+    firstDisCargo = []
+    if inputs.firstDisCargo not in ['None'] and 'P' + inputs.firstDisCargo not in ['P']:
+        firstDisCargo.append('P' + inputs.firstDisCargo)
+    
+    cargoweight = float(inputs.cargoweight)
     
     
-    tanks_ = {**inputs.vessel.info['cargoTanks'], **inputs.vessel.info['ballastTanks'], 
-              **inputs.vessel.info['fuelTanks'], **inputs.vessel.info['dieselTanks'], **inputs.vessel.info['freshWaterTanks']}
-    # LCGs of tanks', file=text_file)
-    LCGt = {i_:round(j_['lcg'],3) for i_, j_ in tanks_.items() if i_ not in  inputs.vessel.info['banBallast']}
-   
-    # self.vessel.info['TCGt'] = {}
-    # TCGs of tanks', file=text_file)
+    # mismatch between the weight of cargo planned to move at port and the actual amount moved
+    intended = 1e6
+
+    tanks = {**inputs.vessel.info['cargoTanks'], **inputs.vessel.info['ballastTanks'],
+             **inputs.vessel.info['fuelTanks'], **inputs.vessel.info['dieselTanks'],
+             **inputs.vessel.info['freshWaterTanks']}
+
+    # LCGs of tanks
+    LCGt = {t: round(v['lcg'], 3) for t, v in tanks.items() if t not in inputs.vessel.info['banBallast']}
+
+    # TCGs of tanks
     TCGt = {}
-    # TCGs of tanks', file=text_file)
-    for i_, j_ in tanks_.items():
-        if i_ not in inputs.vessel.info['banBallast']:
-            tcg_ = inputs.vessel.info['tankTCG']['tcg'].get(i_,{}).get('tcg',[0.,0.,0.,0.])[-3] # FPTU missing
-            TCGt[i_] = round(tcg_,3)
-            
-                
-    
-    
-    # print('# num of pw TCG curves for ballast tank', file=text_file)
-    # str1 = 'param pwBallast := ' +  str(self.vessel.info['tankTCG']['tcg_pw']['npw'])
-    # print(str1+';', file=text_file)
-    
-    # print('# slopes of TCG curves for tanks', file=text_file)
+    for t in tanks.keys():
+        if t not in inputs.vessel.info['banBallast']:
+            tcg = inputs.vessel.info['tankTCG']['tcg'].get(t, {}).get('tcg', [0., 0., 0., 0.])[-3] # FPTU missing
+            TCGt[t] = round(tcg, 3)
+
+    # # num of pw TCG curves for ballast tank
+    # slopes of TCG curves for tanks
     #   (m1,y1)  (m2,y2)
     #  |-------|---------|----|----| ... ----|----|
     # b0      b1         b2   b3   b4         b9   b10
     # 
     #  curve is broken into 10 pieces: start point b0 and end point b10
     #  b0 is not provided
+    #  b1, ... b10 = breaks
     #  m1, ... m10 = slopes
-    #  y1, ... y10 = intercept
+    #  y1, ... y10 = intercepts
     #  (m1,y1) is the linear curve for b0 - b1
     #  (m2,y2) is the linear curve for b1 - b2
-    
-    mTank = {}
-    for m_ in range(1,inputs.vessel.info['tankTCG']['tcg_pw']['npw']+1):
-        mTank[m_] = {}
-        for k_, v_ in inputs.vessel.info['tankTCG']['tcg_pw'].items():
-            if k_ not in (['npw']+inputs.vessel.info['banBallast']):
-                mTank[m_][k_] = round(v_['slopes'][m_-1],8)
-    
-    # print('# breaks of TCG curves for tanks', file=text_file)
-    bTank =  {}
+
+    # TCG: for list constraint
+    # slopes/breaks/intercepts of TCG curve
+    mTank, bTank, yTank = {}, {}, {}
     bTank[0] = {}
-    for m_ in range(1,inputs.vessel.info['tankTCG']['tcg_pw']['npw']+1):
-        bTank[m_] = {}
-        for k_, v_ in inputs.vessel.info['tankTCG']['tcg_pw'].items():
-            if k_ not in (['npw']+inputs.vessel.info['banBallast']):
-                bTank[m_][k_] = round(v_['breaks'][m_-1],8)
+    for m in range(1, inputs.vessel.info['tankTCG']['tcg_pw']['npw']+1):
+        mTank[m] = {}
+        bTank[m] = {}
+        yTank[m] = {}
+        for k, v in inputs.vessel.info['tankTCG']['tcg_pw'].items():
+            if k not in (['npw']+inputs.vessel.info['banBallast']):
+                mTank[m][k] = round(v['slopes'][m-1], 8)
+                bTank[m][k] = round(v['breaks'][m-1], 8)
+                yTank[m][k] = round(v['intercepts'][m-1], 8)
+
     # inital value
-    for k_, v_ in inputs.vessel.info['tankTCG']['tcg_pw'].items():
-        bTank[0][k_] = 0
-        
-        
-    # print('# intercepts of TCG curves for tanks', file=text_file)
-    yTank =  {}
-    for m_ in range(1,inputs.vessel.info['tankTCG']['tcg_pw']['npw']+1):
-        yTank[m_] = {}
-        for k_, v_ in inputs.vessel.info['tankTCG']['tcg_pw'].items():
-            if k_ not in (['npw']+inputs.vessel.info['banBallast']):
-                yTank[m_][k_] = round(v_['intercepts'][m_-1],8)
+    for k in inputs.vessel.info['tankTCG']['tcg_pw'].keys():
+        bTank[0][k] = 0
     
     bTank_n, cTank_n = {}, {}
-    for i_ in range(len(bTank)):
-        bTank_n[i_], cTank_n[i_] = {}, {}
-         
-        # if i==0:
-        #     for j in bTank[1]:
-        #         bTank_n[i][j] = 0
-        #         cTank_n[i][j] = mTank[1][j]*0+yTank[1][j]
-        # else:
-        k_ = i_+1 if i_ < len(mTank) else i_
-        # print(i_,k_)
-        for j_ in bTank[i_]:
-            if j_ not in ['npw']:
-                bTank_n[i_][j_] = bTank[i_][j_]
-                cTank_n[i_][j_] = mTank[k_][j_]*bTank_n[i_][j_]+yTank[k_][j_]
+    for i in range(len(bTank)):
+        bTank_n[i], cTank_n[i] = {}, {}
+        k = i+1 if i < len(mTank) else i
+        for j in bTank[i]:
+            if j not in ['npw']:
+                bTank_n[i][j] = bTank[i][j]
+                cTank_n[i][j] = mTank[k][j]*bTank_n[i][j]+yTank[k][j]
 
-    
-   
-        
-    # TCGs for others tanks', file=text_file)
-    TCGtp = {i_:{} for i_, j_ in inputs.vessel.info['onhand'].items()}
-    for i_, j_ in inputs.vessel.info['onhand'].items():
-        for k_, v_ in j_.items():
-            tcg_ = j_[k_]['tcg']
-            if k_ not in ['1A']:
-                for k1_,v1_ in inputs.loadable.info['virtualArrDepPort'].items():
-                    if v1_ == k_:
-                        TCGtp[i_][int(k1_)] = round(tcg_,3)
-                
-                
-    ## LCG
-    mTankl = {}
-    for m_ in range(1,inputs.vessel.info['tankLCG']['lcg_pw']['npw']+1):
-        mTankl[m_] = {}
-        for k_, v_ in inputs.vessel.info['tankLCG']['lcg_pw'].items():
-            if k_ not in (['npw']+inputs.vessel.info['banBallast']):
-                mTankl[m_][k_] = round(v_['slopes'][m_-1],8)
-    
-    # print('# breaks of TCG curves for tanks', file=text_file)
-    bTankl =  {}
+    # TCGs for others tanks
+    TCGtp = {k: {} for k in inputs.vessel.info['onhand'].keys()}
+    for i, j in inputs.vessel.info['onhand'].items():
+        for k, v in j.items():
+            tcg = j[k]['tcg']
+            if k not in ['1A']:
+                for k1, v1 in inputs.loadable.info['virtualArrDepPort'].items():
+                    if v1 == k:
+                        TCGtp[i][int(k1)] = round(tcg, 3)
+
+    ## LCG: for trim constraint
+    # slopes/breaks/intercepts of LCG curve
+    mTankl, bTankl, yTankl = {}, {}, {}
     bTankl[0] = {}
-    for m_ in range(1,inputs.vessel.info['tankLCG']['lcg_pw']['npw']+1):
-        bTankl[m_] = {}
-        for k_, v_ in inputs.vessel.info['tankLCG']['lcg_pw'].items():
-            if k_ not in (['npw']+inputs.vessel.info['banBallast']):
-                bTankl[m_][k_] = round(v_['breaks'][m_-1],8)
-    # inital value
-    for k_, v_ in inputs.vessel.info['tankLCG']['lcg_pw'].items():
-        bTankl[0][k_] = 0
-        
-        
-    # print('# intercepts of TCG curves for tanks', file=text_file)
-    yTankl =  {}
-    for m_ in range(1,inputs.vessel.info['tankLCG']['lcg_pw']['npw']+1):
-        yTankl[m_] = {}
-        for k_, v_ in inputs.vessel.info['tankLCG']['lcg_pw'].items():
-            if k_ not in (['npw']+inputs.vessel.info['banBallast']):
-                yTankl[m_][k_] = round(v_['intercepts'][m_-1],8)
-    
+    for m in range(1, inputs.vessel.info['tankLCG']['lcg_pw']['npw']+1):
+        mTankl[m] = {}
+        bTankl[m] = {}
+        yTankl[m] = {}
+        for k, v in inputs.vessel.info['tankLCG']['lcg_pw'].items():
+            if k not in (['npw']+inputs.vessel.info['banBallast']):
+                mTankl[m][k] = round(v['slopes'][m-1], 8)
+                bTankl[m][k] = round(v['breaks'][m-1], 8)
+                yTankl[m][k] = round(v['intercepts'][m-1], 8)
+
+    # initial value
+    for k in inputs.vessel.info['tankLCG']['lcg_pw'].keys():
+        bTankl[0][k] = 0
+
     bTankl_n, cTankl_n = {}, {}
-    for i_ in range(len(bTankl)):
-        bTankl_n[i_], cTankl_n[i_] = {}, {}
-         
-        # if i==0:
-        #     for j in bTank[1]:
-        #         bTank_n[i][j] = 0
-        #         cTank_n[i][j] = mTank[1][j]*0+yTank[1][j]
-        # else:
-        k_ = i_+1 if i_ < len(mTankl) else i_
-        # print(i_,k_)
-        for j_ in bTankl[i_]:
-            if j_ not in ['npw']:
-                bTankl_n[i_][j_] = bTankl[i_][j_]
-                cTankl_n[i_][j_] = mTankl[k_][j_]*bTankl_n[i_][j_]+yTankl[k_][j_]
-                        
-   
-    # LCGs for others tanks', file=text_file)
-    LCGtp = {i_:{} for i_, j_ in inputs.vessel.info['onhand'].items()}
-    for i_, j_ in inputs.vessel.info['onhand'].items():
-        for k_, v_ in j_.items():
-            lcg_ = j_[k_]['lcg']
-            if k_ not in ['1A']:
-                for k1_,v1_ in inputs.loadable.info['virtualArrDepPort'].items():
-                    if v1_ == k_:
-                        LCGtp[i_][int(k1_)] = round(lcg_,3)
-        
-   
-    
-    # print('# slopes of LCB x Disp curve', file=text_file)
-    mLCB = {}
-    for m_ in range(1, len(inputs.vessel.info['lcb_mtc']['lcb']['slopes'])+1):
-        mLCB[m_] = round(inputs.vessel.info['lcb_mtc']['lcb']['slopes'][m_-1],8)
-        
-    # print('# breaks of LCB x Disp curve', file=text_file)
-    bLCB = {}
+    for i in range(len(bTankl)):
+        bTankl_n[i], cTankl_n[i] = {}, {}
+        k = i+1 if i < len(mTankl) else i
+        for j in bTankl[i]:
+            if j not in ['npw']:
+                bTankl_n[i][j] = bTankl[i][j]
+                cTankl_n[i][j] = mTankl[k][j]*bTankl_n[i][j]+yTankl[k][j]
+
+    # LCGs for others tanks
+    LCGtp = {k: {} for k in inputs.vessel.info['onhand'].keys()}
+    for i, j in inputs.vessel.info['onhand'].items():
+        for k, v in j.items():
+            lcg = j[k]['lcg']
+            if k not in ['1A']:
+                for k1, v1 in inputs.loadable.info['virtualArrDepPort'].items():
+                    if v1 == k:
+                        LCGtp[i][int(k1)] = round(lcg, 3)
+
+    # slopes/breaks/intercepts of LCB x Disp curve
+    mLCB, bLCB, yLCB = {}, {}, {}
     bLCB[0] = inputs.vessel.info['hydrostatic']['displacement'][0]
-    for m_ in range(1,len(inputs.vessel.info['lcb_mtc']['lcb']['slopes'])+1):
-        bLCB[m_] = round(inputs.vessel.info['lcb_mtc']['lcb']['breaks'][m_-1],8)
-        
-    # print('# intercepts of LCB x Disp curve', file=text_file)
-    yLCB = {}
-    for m_ in range(1,len(inputs.vessel.info['lcb_mtc']['lcb']['slopes'])+1):
-        yLCB[m_] = round(inputs.vessel.info['lcb_mtc']['lcb']['intercepts'][m_-1],8)
-    
+    for m in range(1, len(inputs.vessel.info['lcb_mtc']['lcb']['slopes'])+1):
+        mLCB[m] = round(inputs.vessel.info['lcb_mtc']['lcb']['slopes'][m-1], 8)
+        bLCB[m] = round(inputs.vessel.info['lcb_mtc']['lcb']['breaks'][m-1], 8)
+        yLCB[m] = round(inputs.vessel.info['lcb_mtc']['lcb']['intercepts'][m-1], 8)
+
     bLCB_n, cLCB_n = {}, {}
-    for i_ in range(len(bLCB)):
-        # if i==0:
-        #     bLCB_n[i] = 0
-        #     cLCB_n[i] = mLCB[1]*0+yLCB[1]
-        # else:
-        k_ = i_+1 if i_ < len(mLCB) else i_
-        # print(i_,k_)
-        bLCB_n[i_] = bLCB[i_] 
-        cLCB_n[i_] = mLCB[k_]*bLCB_n[i_]+yLCB[k_]
-        
-    # print('# slopes of MTC curve', file=text_file)
-    mMTC = {}
-    for m_ in range(1, len(inputs.vessel.info['lcb_mtc']['mtc']['slopes'])+1): 
-        mMTC[m_] = round(inputs.vessel.info['lcb_mtc']['mtc']['slopes'][m_-1],10)
-        
-    # print('# breaks of MTC curve', file=text_file)    
-    bMTC = {}
+    for i in range(len(bLCB)):
+        k = i+1 if i < len(mLCB) else i
+        bLCB_n[i] = bLCB[i]
+        cLCB_n[i] = mLCB[k]*bLCB_n[i]+yLCB[k]
+
+    # slopes/breaks/intercepts of MTC curve
+    mMTC, bMTC, yMTC = {}, {}, {}
     bMTC[0] = inputs.vessel.info['hydrostatic']['displacement'][0]
-    for m_ in range(1,len(inputs.vessel.info['lcb_mtc']['mtc']['slopes'])+1):
-        bMTC[m_] = round(inputs.vessel.info['lcb_mtc']['mtc']['breaks'][m_-1],10)
-    
-    # print('# breaks of MTC curve', file=text_file)    
-    yMTC = {}
-    for m_ in range(1,len(inputs.vessel.info['lcb_mtc']['mtc']['slopes'])+1):
-        yMTC[m_] = round(inputs.vessel.info['lcb_mtc']['mtc']['intercepts'][m_-1],10)
-    
-    bMTC_n, cMTC_n  = {}, {}
-    for i_ in range(len(bMTC)):
-        # if i==0:
-        #     bMTC_n[i] = 0
-        #     cMTC_n[i] = mMTC[1]*0+yMTC[1]
-        # else:
-        k_ = i_+1 if i_ < len(mMTC) else i_
-        # print(i_,k_)
-        bMTC_n[i_] = bMTC[i_] 
-        cMTC_n[i_] = mMTC[k_]*bMTC_n[i_]+yMTC[k_]
-       
-    # upper limit on displacement', file=text_file)
+    for m in range(1, len(inputs.vessel.info['lcb_mtc']['mtc']['slopes'])+1):
+        mMTC[m] = round(inputs.vessel.info['lcb_mtc']['mtc']['slopes'][m-1], 10)
+        bMTC[m] = round(inputs.vessel.info['lcb_mtc']['mtc']['breaks'][m-1], 10)
+        yMTC[m] = round(inputs.vessel.info['lcb_mtc']['mtc']['intercepts'][m-1], 10)
+
+    bMTC_n, cMTC_n = {}, {}
+    for i in range(len(bMTC)):
+        k = i+1 if i < len(mMTC) else i
+        bMTC_n[i] = bMTC[i]
+        cMTC_n[i] = mMTC[k]*bMTC_n[i]+yMTC[k]
+
     # stability - draft
-    displacementLimit = {int(i_):round(j_,5) for i_, j_ in inputs.displacement_upper.items()}
+    # upper limit on displacement derived from maximum permissible draft and hydrostatic table
+    displacementLimit = {int(p): round(v, 5) for p, v in inputs.displacement_upper.items()}
     
-    # lower limit on displacement', file=text_file)
-    displacementLowLimit = {int(i_):round(j_,5) for i_, j_ in inputs.displacement_lower.items()}
+    # lower limit on displacement
+    displacementLowLimit = {int(p): round(v, 5) for p, v in inputs.displacement_lower.items()}
     
-    # deadweight constraint', file=text_file)
-    deadweight  = inputs.vessel.info['draftCondition']['deadweight'] 
+    # deadweight constraint
+    deadweight = inputs.vessel.info['draftCondition']['deadweight']
     
-    # base draft', file=text_file)
-    base_draft = {int(i_): round(j_,2) for i_, j_ in inputs.base_draft.items()}
-   
-    # print('# slopes of draft curve', file=text_file)
-    mDraft = {}
-    for m_ in range(1, len(inputs.vessel.info['lcb_mtc']['draft']['slopes'])+1):
-        mDraft[m_] = round(inputs.vessel.info['lcb_mtc']['draft']['slopes'][m_-1],10)
-        
-    # print('# breaks of draft curve', file=text_file)
-    bDraft = {}
+    # base draft
+    base_draft = {int(p): round(v, 2) for p, v in inputs.base_draft.items()}
+
+    # slopes/breaks/intercepts of draft curve
+    mDraft, bDraft, yDraft = {}, {}, {}
     bDraft[0] = inputs.vessel.info['hydrostatic']['displacement'][0]
-    for m_ in range(1,len(inputs.vessel.info['lcb_mtc']['draft']['slopes'])+1):
-        bDraft[m_] = round(inputs.vessel.info['lcb_mtc']['draft']['breaks'][m_-1],8)
-        
-    yDraft = {}
-    for m_ in range(1,len(inputs.vessel.info['lcb_mtc']['draft']['slopes'])+1):
-        yDraft[m_] = round(inputs.vessel.info['lcb_mtc']['draft']['intercepts'][m_-1],10)
-        
-        
-    bDraft_n, cDraft_n  = {}, {}
-    for i_ in range(len(bDraft)):
-        
-        k_ = i_+1 if i_ < len(mDraft) else i_
-        # print(i_,k_)
-        bDraft_n[i_] = bDraft[i_] 
-        cDraft_n[i_] = mDraft[k_]*bDraft_n[i_]+yDraft[k_]
-    
-    # print('# number of frames ',file=text_file)#
+    for m in range(1, len(inputs.vessel.info['lcb_mtc']['draft']['slopes'])+1):
+        mDraft[m] = round(inputs.vessel.info['lcb_mtc']['draft']['slopes'][m-1], 10)
+        bDraft[m] = round(inputs.vessel.info['lcb_mtc']['draft']['breaks'][m-1], 8)
+        yDraft[m] = round(inputs.vessel.info['lcb_mtc']['draft']['intercepts'][m-1], 10)
+
+    bDraft_n, cDraft_n = {}, {}
+    for i in range(len(bDraft)):
+        k = i+1 if i < len(mDraft) else i
+        bDraft_n[i] = bDraft[i]
+        cDraft_n[i] = mDraft[k]*bDraft_n[i]+yDraft[k]
+
+    # number of frames
     Fr = len(inputs.vessel.info['frames'])
-  
-    
-    # print('# weight ratio for SF and BM',file=text_file)#
-    weightRatio_ct = {}
-    for i_, j_ in inputs.vessel.info['tankGroup'].items():
-        weightRatio_ct[int(i_)] = {}
-        for u_, v_ in j_.items():
-            if u_ in inputs.vessel.info['cargoTanks'].keys():
-                weightRatio_ct[int(i_)][u_] = round(v_['wr'],4)
-                
-    weightRatio_bt  = {}
-    for i_, j_ in inputs.vessel.info['tankGroup'].items():
-        weightRatio_bt[int(i_)] = {}
-        for u_, v_ in j_.items():
-            if u_ in TB:
-                weightRatio_bt[int(i_)][u_] = round(v_['wr'],4)
-            
-        
-        
-    weightRatio_ot = {}
-    
-    
-    # print('# LCG for SF and BM ',file=text_file)#
-    LCG_ct = {} 
-    for i_, j_ in inputs.vessel.info['tankGroup'].items():
-        LCG_ct[int(i_)] = {}
-        for u_, v_ in j_.items():
-            if u_ in inputs.vessel.info['cargoTanks'].keys():
-                LCG_ct[int(i_)][u_] = round(v_['lcg'],4)
-                
-            
-    LCG_bt = {}
-    for i_, j_ in inputs.vessel.info['tankGroup'].items():
-        LCG_bt[int(i_)] = {}
-        for u_, v_ in j_.items():
-            if u_ in TB:
-                LCG_bt[int(i_)][u_] = round(v_['lcg'],4)
-        
-    LCG_ot = {}
-  
+
+    # weight ratio for SF and BM
+    weightRatio_ct, weightRatio_bt, weightRatio_ot = {}, {}, {}
+    for fr, v in inputs.vessel.info['tankGroup'].items():
+        weightRatio_ct[int(fr)] = {}
+        weightRatio_bt[int(fr)] = {}
+        for t, v_ in v.items():
+            if t in inputs.vessel.info['cargoTanks'].keys():
+                weightRatio_ct[int(fr)][t] = round(v_['wr'], 4)
+            if t in TB:
+                weightRatio_bt[int(fr)][t] = round(v_['wr'], 4)
+
+    # LCG for SF and BM
+    LCG_ct, LCG_bt, LCG_ot = {}, {}, {}
+    for fr, v in inputs.vessel.info['tankGroup'].items():
+        LCG_ct[int(fr)] = {}
+        LCG_bt[int(fr)] = {}
+        for t, v_ in v.items():
+            if t in inputs.vessel.info['cargoTanks'].keys():
+                LCG_ct[int(fr)][t] = round(v_['lcg'], 4)
+            if t in TB:
+                LCG_bt[int(fr)][t] = round(v_['lcg'], 4)
+            if t in other_tanks:
+                LCG_ot[int(fr)][t] = round(v_['lcg'], 4)
+
     LCG_fr = {}
-    for i_, j_ in inputs.vessel.info['tankGroupLCG'].items():
-        LCG_fr[int(i_)] = round(j_,3)
-     
-   
-    # print('# lower limit SF ',file=text_file)#
-    lowerSFlimit  = {}
-    for i_, j_ in enumerate(inputs.vessel.info['frames']):
-        lowerSFlimit[i_+1] = round(float(inputs.vessel.info['SFlimits'][j_][0])/1000*inputs.sf_bm_frac,5)
-        
-        
-    # print('# upper limit SF ',file=text_file)#
-    upperSFlimit = {}
-    for i_, j_ in enumerate(inputs.vessel.info['frames']):
-        upperSFlimit[i_+1] = round(float(inputs.vessel.info['SFlimits'][j_][1])/1000*inputs.sf_bm_frac,5)
-        
-    BV_SF = {}
-    for i_, j_ in inputs.vessel.info['tankGroup'].items():
-        BV_SF[int(i_)] = {}
-        for k_, v_ in inputs.sf_base_value.items():
-            BV_SF[int(i_)][int(k_)] = round(v_[int(i_)-1],5)
-            
-    
-    CD_SF = {}
-    for i_, j_ in inputs.vessel.info['tankGroup'].items():
-        CD_SF[int(i_)] = {}
-        for k_, v_ in inputs.sf_draft_corr.items():
-            CD_SF[int(i_)][int(k_)] = round(v_[int(i_)-1],5)
-            
-    # print('# lower limit BM ',file=text_file)#
-    lowerBMlimit = {}
-    for i_, j_ in enumerate(inputs.vessel.info['frames']):
-        lowerBMlimit[i_+1] = round(float(inputs.vessel.info['BMlimits'][j_][0])/1000*inputs.sf_bm_frac,5)
-        
-   
-    # print('# upper limit BM ',file=text_file)#
-    upperBMlimit = {}
-    for i_, j_ in enumerate(inputs.vessel.info['frames']):
-        upperBMlimit[i_+1] = round(float(inputs.vessel.info['BMlimits'][j_][1])/1000*inputs.sf_bm_frac,5)
-    
-    BV_BM = {}
-    for i_, j_ in inputs.vessel.info['tankGroup'].items():
-        BV_BM[int(i_)] = {}
-        for k_, v_ in inputs.bm_base_value.items():
-            BV_BM[int(i_)][int(k_)] = round(v_[int(i_)-1],5)
-   
-    
-    CD_BM = {}
-    for i_, j_ in inputs.vessel.info['tankGroup'].items():
-        CD_BM[int(i_)] = {}
-        for k_, v_ in inputs.bm_draft_corr.items():
-            CD_BM[int(i_)][int(k_)] = round(v_[int(i_)-1],5)
-            
-       
-    
-    minCargoAmt = 1000
-    minBallastAmt = 10
-    ListMOM = 500
-    
-    cargoweight = float(inputs.cargoweight)
-    deballastPercent = 1.0
-    
-    P_stable = list(set([i for i in range(1, NP)]) - set(fixBallastPort)) # stable port
+    for fr, v in inputs.vessel.info['tankGroupLCG'].items():
+        LCG_fr[int(fr)] = round(v, 3)
+
+    # lower/upper limit for SF
+    lowerSFlimit, upperSFlimit = {}, {}
+    for fr, v in enumerate(inputs.vessel.info['frames']):
+        lowerSFlimit[fr+1] = round(float(inputs.vessel.info['SFlimits'][v][0])/1000*inputs.sf_bm_frac, 5)
+        upperSFlimit[fr+1] = round(float(inputs.vessel.info['SFlimits'][v][1])/1000*inputs.sf_bm_frac, 5)
+
+    BV_SF, CD_SF, CT_SF = {}, {}, {}
+    for fr in inputs.vessel.info['tankGroup'].keys():
+        BV_SF[int(fr)] = {}
+        CD_SF[int(fr)] = {}
+        CT_SF[int(fr)] = {}
+        for p, v in inputs.sf_base_value.items():
+            BV_SF[int(fr)][int(p)] = round(v[int(fr)-1], 5)
+        for p, v in inputs.sf_draft_corr.items():
+            CD_SF[int(fr)][int(p)] = round(v[int(fr)-1], 5)
+        for p, v in inputs.sf_trim_corr.items():
+            CT_SF[int(fr)][int(p)] = round(v[int(fr)-1], 5)
+
+    # lower/upper limit for BM
+    lowerBMlimit, upperBMlimit = {}, {}
+    for fr, v in enumerate(inputs.vessel.info['frames']):
+        lowerBMlimit[fr+1] = round(float(inputs.vessel.info['BMlimits'][v][0])/1000*inputs.sf_bm_frac, 5)
+        upperBMlimit[fr+1] = round(float(inputs.vessel.info['BMlimits'][v][1])/1000*inputs.sf_bm_frac, 5)
+
+    BV_BM, CD_BM, CT_BM = {}, {}, {}
+    for fr in inputs.vessel.info['tankGroup'].keys():
+        BV_BM[int(fr)] = {}
+        CD_BM[int(fr)] = {}
+        CT_BM[int(fr)] = {}
+        for p, v in inputs.bm_base_value.items():
+            BV_BM[int(fr)][int(p)] = round(v[int(fr)-1], 5)
+        for p, v in inputs.bm_draft_corr.items():
+            CD_BM[int(fr)][int(p)] = round(v[int(fr)-1], 5)
+        for p, v in inputs.bm_trim_corr.items():
+            CT_BM[int(fr)][int(p)] = round(v[int(fr)-1], 5)
     
     
-    # Decision variables
-    ## --------------------------------------------------
-        
+    
+    
+    ###
+    ## default in AMPL
+    minCargoAmt = 1000  # for each cargo
+    ListMOM = 500   # upper and lower limits of tcg moment
+    C_equal = C
+    C_slop = C
+    minTB = [] # for loading module
+    
+    
+    
+    # ratio of ballast water that could be de-ballasted when loading cargoes
+    # deballastPercent = 1.0
+    deballastPercent = round(inputs.deballast_percent, 4)
+
+    # stable port: at these port, you must consider stability
+    P_stable = list(set([i for i in range(1, NP)]) - set(fixBallastPort) - set(sameBallastPort))
+
+    ##########################
+    ##  Decision Variables  ##
+    ##########################
     x = {}
     w = {}
     qw2f = {}
     
-    for i in range(len(C)):
-        x[C[i]] = {}
-        w[C[i]] = {}
-        qw2f[C[i]] = {}
+    for c in C:
+        x[c] = {}
+        w[c] = {}
+        qw2f[c] = {}
         
-        for j in range(len(T)):
+        for t in T:
             # 1 if cargo c is allocated into tank t for capacity
-            x[C[i]][T[j]] = solver.IntVar(0, 1, 'x[%s][%s]' % (C[i], T[j])) 
-            w[C[i]][T[j]] = {}
-            qw2f[C[i]][T[j]] =  {}
+            x[c][t] = solver.IntVar(0, 1, 'x[%s][%s]' % (c, t))
+            w[c][t] = {}
+            qw2f[c][t] = {}
 
-            for k in range(len(P)):
+            for p in P:
                 # weight of cargo (w.r.t. low density) planned to be serviced from/to tank t at port p. 
                 # positive -> load; zero -> no action; negative -> unload.
-                w[C[i]][T[j]][P[k]] = solver.NumVar(-infinity, infinity, 'w[%s][%s][%d]' % (C[i], T[j], P[k]))
+                w[c][t][p] = solver.NumVar(-infinity, infinity, 'w[%s][%s][%d]' % (c, t, p))
                 
-            for k in range(len(Pbar)):
-                qw2f[C[i]][T[j]][Pbar[k]] = solver.IntVar(0, infinity, 'qw2f[%s][%s][%d]' % (C[i], T[j], Pbar[k]))
+            for p in Pbar:
+                qw2f[c][t][p] = solver.IntVar(0, infinity, 'qw2f[%s][%s][%d]' % (c, t, p))
     
     # TMom TB 
     T_tmom = {}
-    for i in range(len(T)):
-        T_tmom[T[i]] = {}
-        for j in range(len(P)):
-            T_tmom[T[i]][P[j]] = solver.NumVar(-infinity, infinity, 'T_tmom[%s][%d]' % (T[i], P[j]))
+    for t in T:
+        T_tmom[t] = {}
+        for p in P:
+            T_tmom[t][p] = solver.NumVar(-infinity, infinity, 'T_tmom[%s][%d]' % (t, p))
     
     xt = {}
-    for i in range(len(T)):
-        xt[T[i]] = solver.IntVar(0, 1, 'xt[%s]' % (T[i]))
-        
-    # 1 if ballast tank t is filled with water at port p
-    xB = {}
-    # weight of water in ballast tank t at port p
-    wB = {}
-    # volume of water (w.r.t. low density) planned to be added into ballast tank t at port p
-    # yB = {}
-    zBa = {}
-    zBb = {}
-    # TMom TB
+    for t in T:
+        # 1 if tank t is allocated
+        xt[t] = solver.IntVar(0, 1, 'xt[%s]' % t)
+
+    xB = {}     # 1 if ballast tank t is filled with water at port p
+    wB = {}     # weight of water in ballast tank t at port p
+    # yB = {}     # volume of water (w.r.t. low density) planned to be added into ballast tank t at port p
+    zBa1, zBb1 = {}, {}
+    zBa2, zBb2 = {}, {}
+    # t-moment/l-moment of ballast tank
     TB_tmom, TB_lmom = {}, {}
-    for i in range(len(TB)):
-        xB[TB[i]] = {}
-        wB[TB[i]] = {}
+    for t in TB:
+        xB[t] = {}
+        wB[t] = {}
         # yB[TB[i]] = {}
-        TB_tmom[TB[i]], TB_lmom[TB[i]] = {}, {}
-        zBa[TB[i]] = solver.IntVar(0, 1, 'zBa[%s]' % (TB[i]))
-        zBb[TB[i]] = solver.IntVar(0, 1, 'zBb[%s]' % (TB[i]))
-        for j in range(len(Pbar)):
-            xB[TB[i]][Pbar[j]] = solver.IntVar(0, 1, 'xB[%s][%d]' % (TB[i], Pbar[j]))
-            wB[TB[i]][Pbar[j]] = solver.NumVar(0, infinity, 'wB[%s][%d]' % (TB[i], Pbar[j]))
+        TB_tmom[t], TB_lmom[t] = {}, {}
+        zBa1[t] = solver.IntVar(0, 1, 'zBa1[%s]' % t)
+        zBb1[t] = solver.IntVar(0, 1, 'zBb1[%s]' % t)
+        zBa2[t] = solver.IntVar(0, 1, 'zBa2[%s]' % t)
+        zBb2[t] = solver.IntVar(0, 1, 'zBb2[%s]' % t)
+        for p in Pbar:
+            xB[t][p] = solver.IntVar(0, 1, 'xB[%s][%d]' % (t, p))
+            wB[t][p] = solver.NumVar(0, infinity, 'wB[%s][%d]' % (t, p))
             
-        for j in range(len(P)):
+        for p in P:
             # yB[TB[i]][P[j]] = wB[TB[i]][P[j]] / densitySeaWater[P[j]]
-            TB_tmom[TB[i]][P[j]] = solver.NumVar(-infinity, infinity, 'TB_tmom[%s][%d]' % (TB[i], P[j]))
-            TB_lmom[TB[i]][P[j]] = solver.NumVar(-infinity, infinity, 'TB_lmom[%s][%d]' % (TB[i], P[j]))
-           
-            
-    T_mom = {}
-    L_mom = {}
+            TB_tmom[t][p] = solver.NumVar(-infinity, infinity, 'TB_tmom[%s][%d]' % (t, p))
+            TB_lmom[t][p] = solver.NumVar(-infinity, infinity, 'TB_lmom[%s][%d]' % (t, p))
+
+    T_mom = {}  # tcg moment
+    L_mom = {}  # lcg moment
     LCBp = {}
     MTCp = {}
-    for i in range(len(P)):
-        T_mom[P[i]] = solver.NumVar(-infinity, infinity, 'T_mom[%d]' % (P[i]))
-        L_mom[P[i]] = solver.NumVar(-infinity, infinity, 'L_mom[%d]' % (P[i]))
-        LCBp[P[i]] = solver.NumVar(-infinity, infinity, 'LCBp[%d]' % (P[i]))
-        MTCp[P[i]] =  solver.NumVar(-infinity, infinity, 'MTCp[%d]' % (P[i]))
+    for p in P:
+        T_mom[p] = solver.NumVar(-infinity, infinity, 'T_mom[%d]' % p)
+        L_mom[p] = solver.NumVar(-infinity, infinity, 'L_mom[%d]' % p)
+        LCBp[p] = solver.NumVar(-infinity, infinity, 'LCBp[%d]' % p)
+        MTCp[p] = solver.NumVar(-infinity, infinity, 'MTCp[%d]' % p)
     
     delta = {}
-    for i in C:
-        delta[i] = {}
-        for j in range(len(P_dis)):
-            delta[i][P_dis[j]] = solver.IntVar(0, 1, 'delta[%s][%d]' % (i, P_dis[j]))        
-            
-            
+    for c in C:
+        delta[c] = {}
+        for p in P_dis:
+            delta[c][p] = solver.IntVar(0, 1, 'delta[%s][%d]' % (c, p))
+
     zz = {}
-    for i in C:
-        zz[i] = {}
-        for j in list(set(C)-set([i])):
-            zz[i][j] = {}
-            for k in Tm:
-                zz[i][j][k] = solver.IntVar(0, 1, 'zz[%s][%s][%s]' % (i, j, k))
+    for c in C:
+        zz[c] = {}
+        for c_ in list(set(C)-set([c])):
+            zz[c][c_] = {}
+            for t in Tm:    # Tm: tank for commingle cargo
+                zz[c][c_][t] = solver.IntVar(0, 1, 'zz[%s][%s][%s]' % (c, c_, t))
             
     # BM and SF
 
-    # displacement
-    displacement = {}
-    # displacement corrected for seawater density
-    displacement1 = {}
-    
+    displacement = {}   # displacement
+    displacement1 = {}  # displacement corrected for seawater density
     mean_draft = {}
-    for i in range(len(P)):
-        displacement[P[i]] = solver.NumVar(0, infinity, 'displacement[%d]' % (P[i]))
-        displacement1[P[i]] = solver.NumVar(0, infinity, 'displacement1[%d]' % (P[i]))
-        mean_draft[P[i]] = solver.NumVar(0, infinity, 'mean_draft[%d]' % (P[i]))
+    for p in P:
+        displacement[p] = solver.NumVar(0, infinity, 'displacement[%d]' % p)
+        displacement1[p] = solver.NumVar(0, infinity, 'displacement1[%d]' % p)
+        mean_draft[p] = solver.NumVar(0, infinity, 'mean_draft[%d]' % p)
     
-    wn = {}
-    mn = {}
-    Frames = range(0,Fr+1)
-    for i in Frames:
-        wn[i] = {}
-        mn[i] = {}
-        for j in P:
-            wn[i][j] = solver.NumVar(0, infinity, 'wn[%d][%d]' % (i, j))
-            mn[i][j] = solver.NumVar(-infinity, infinity, 'mn[%d][%d]' % (i, j))
-            
+    wn, mn = {}, {}
+    SS, SB = {}, {}
+    for fr in range(0, Fr+1):
+        wn[fr] = {}
+        mn[fr] = {}
+        SS[fr] = {}
+        SB[fr] = {}
+        for p in P:
+            wn[fr][p] = solver.NumVar(0, infinity, 'wn[%d][%d]' % (fr, p))
+            mn[fr][p] = solver.NumVar(-infinity, infinity, 'mn[%d][%d]' % (fr, p))
+            SS[fr][p] = solver.NumVar(-infinity, infinity, 'SS[%d][%d]' % (fr, p))
+            SB[fr][p] = solver.NumVar(-infinity, infinity, 'SB[%d][%d]' % (fr, p))
+
+    est_trim = {}
+    for p in P:
+        est_trim[p] = solver.NumVar(0, infinity, 'est_trim[%d]' % p)
+
     wC = {}
-    for i in range(len(T)):
-        wC[T[i]] = {}
-        for j in range(len(P)):
-            wC[T[i]][P[j]] = solver.NumVar(0, infinity, 'wC[%s][%d]' % (T[i], P[j]))
-    
-    ## -----------------------------------------------------------
-    Action_Amount = solver.Sum([priority[c]*(solver.Sum([qw2f[c][t][p]/10 for p in P_last_loading]) - 
-                                              solver.Sum([w[c][t][p] for p in P_dis])) for c in C for t in Tc[c]]) - 1*solver.Sum([wB[t][p] for t in TB for p in P])
+    for t in T:
+        wC[t] = {}
+        for p in P:
+            wC[t][p] = solver.NumVar(0, infinity, 'wC[%s][%d]' % (t, p))
+
+    ##########################
+    ##  Objective Function  ##
+    ##########################
+    Action_Amount = solver.Sum([priority[c] * (solver.Sum([qw2f[c][t][p]/10 for p in P_last_loading]) -
+                                               solver.Sum([w[c][t][p] for p in P_dis])) for c in C for t in Tc[c]]) - \
+                    1 * solver.Sum([wB[t][p] for t in TB for p in P])
     solver.Maximize(Action_Amount)
     
-    
-    # Constraints
-    ## -----------------------------------------------------------
-    # Condition 0
-    for i in list(set(C)-set(C_loaded)-set(C_locked)):
-        # cargo c is not allocated to tank t if t is not compatible with cargo c
-        solver.Add(solver.Sum([x[i][j] for j in list(set(T)-set(Tc[i]))]) == 0)
+    ###################
+    ##  Constraints  ##
+    ###################
+
+    ## basic conditions
+
+    # Condition0: cargo c is not allocated to tank t if t is not compatible with cargo c
+    for c in list(set(C)-set(C_loaded)-set(C_locked)):
+        solver.Add(solver.Sum([x[c][t] for t in list(set(T)-set(Tc[c]))]) == 0)
         
-    # Condition 01
-    for i in list(set(T)-set(Tm)):
-        # one tank can only take in one cargo
-        solver.Add(solver.Sum([x[j][i] for j in C]) <= 1)
+    # Condition01: one tank can only take in one cargo
+    for t in list(set(T)-set(Tm)):
+        solver.Add(solver.Sum([x[c][t] for c in C]) <= 1)
     
     # commingled cargo
-    # Condition 01a 01b 01c
-    for i in Tm:
-        # Condition 01a
-        # a cargo is loaded to at least one tank
-        solver.Add(solver.Sum([x[j][i] for j in list(set(C)-set(Cm_1))]) <= 1)
-        # Condition 01b
-        # one tank can only take in one cargo
-        solver.Add(solver.Sum([x[j][i] for j in list(set(C)-set(Cm_2))]) <= 1)
+    # Condition01a, 01b, 01c
+    for t in Tm:
+        # Condition01a: one tank can take at most 1 cargo
+        solver.Add(solver.Sum([x[c][t] for c in list(set(C)-set(Cm_1))]) <= 1)
+        # Condition01b: one tank can take at most 1 cargo
+        solver.Add(solver.Sum([x[c][t] for c in list(set(C)-set(Cm_2))]) <= 1)
         
-        for j in Cm_1:
-            for k in Cm_2:
-                # Condition 01c
-                # one tank can only take in two cargo
-                solver.Add(x[j][i] + x[k][i] <= 2)
+        for c1 in Cm_1:
+            for c2 in Cm_2:
+                # Condition01c: one tank for commingled cargo can take at most 2 cargos
+                solver.Add(x[c1][t] + x[c2][t] <= 2)
         
-    # Condition01z
-    for i in list(set(C)-set(C_loaded)-set(C_locked)):
-        for k in P_last_loading:
-            # a cargo is loaded to at min amt at last loading port
-            solver.Add(solver.Sum([qw2f[i][j][k]/10 for j in Tc[i]]) >= minCargoLoad[i])
+    # Condition01z: at last loading port, each cargo must be loaded at least min amt
+    for c in list(set(C)-set(C_loaded)-set(C_locked)):
+        for p in P_last_loading:
+            solver.Add(solver.Sum([qw2f[c][t][p]/10 for t in Tc[c]]) >= minCargoLoad[c])
     
-    # Condition 020 Condition 021
-    for i in C:
-        for j in list(set(T)-set(Tc[i])):
-            for k in P:
-                # Condition 020  cargo c is not allocated to tank t if t is not compatible with cargo c
-                solver.Add(w[i][j][k]/densityCargo_Low[i] == x[i][j])
-                # Condition 021  cargo c is not allocated to tank t if t is not compatible with cargo c
-                solver.Add(qw2f[i][j][k]/10/densityCargo_Low[i] == x[i][j])
+    # Condition020, 021
+    for c in C:
+        for t in list(set(T)-set(Tc[c])):
+            # Condition020: cargo c is not allocated to tank t if t is not compatible with cargo c
+            solver.Add(x[c][t] == 0)
+            for p in P:
+                # Condition020
+                solver.Add(w[c][t][p] == 0)
+                # Condition021: cargo c is not allocated to tank t if t is not compatible with cargo c
+                solver.Add(qw2f[c][t][p] == 0)
                 
-    # Condition 03 Condition 04
-    for i in list(set(C)-set(C_loaded)-set(C_locked)):
-        # total loaded >= total discharged
-        solver.Add((solver.Sum([Q0.get(i,{}).get(j,0.) for j in Tc[i]]) + 
-                    solver.Sum([w[i][j][k]/densityCargo_Low[i] for j in Tc[i] for k in P_load])) >= 
-                    -solver.Sum([w[i][j][k]/densityCargo_Low[i] for j in Tc[i] for k in P_dis]))
-
-        for j in P_load:
-            if Vcp[i][j] <= 0:
+    # Condition03, 04 (for loading)
+    for c in list(set(C)-set(C_loaded)-set(C_locked)):
+        # Condition03: total loaded >= total discharged
+        solver.Add(solver.Sum([Q0.get(c, {}).get(t, 0.) for t in Tc[c]]) +
+                   solver.Sum([w[c][t][p]/densityCargo_Low[c] for t in Tc[c] for p in P_load]) >=
+                   -solver.Sum([w[c][t][p]/densityCargo_Low[c] for t in Tc[c] for p in P_dis]))
+        for p in P_load:
+            if Vcp[c][p] <= 0:
                 continue
-            # Condition 04
-            # amount of cargo to be loaded <= amount available at the port.
-            solver.Add(solver.Sum([w[i][k][j]/densityCargo_Low[i] for k in Tc[i]]) >= 0)
-            solver.Add(solver.Sum([w[i][k][j]/densityCargo_Low[i] for k in Tc[i]]) <= Vcp[i][j])
+            # Condition04: 0<= amount of cargo to be loaded <= amount of cargo available at the port
+            solver.Add(solver.Sum([w[c][t][p]/densityCargo_Low[c] for t in Tc[c]]) >= 0)
+            solver.Add(solver.Sum([w[c][t][p]/densityCargo_Low[c] for t in Tc[c]]) <= Vcp[c][p])
         
-    # Condition 041
-    for i in C:
-        for j in Tc[i]:
-            for k in P_load:
-                solver.Add(w[i][j][k]/densityCargo_Low[i] >= 0)
-            
-            
-    # Condition 05, 050, 050a, 050b, 050b1, 050c, 050c1
-    for i in list(set(C)-set(C_loaded)-set(C_locked)):
-        for j in P_dis:
-            if Vcp[i][j] >= 0:
+    # Condition041: amount of cargo to be loaded at each loading port >= 0
+    for c in C:
+        for t in Tc[c]:
+            for p in P_load:
+                solver.Add(w[c][t][p]/densityCargo_Low[c] >= 0)
+
+    # Condition05, 050, 050a, 050b, 050b1, 050c, 050c1
+    for c in list(set(C)-set(C_loaded)-set(C_locked)):
+        for p in P_dis:
+            if Vcp[c][p] >= 0:
                 continue
-            # Condition 05, 050, 050a, 050b, 050b1, 050c, 050c1
-            # amount of cargo to be discharged is not more than the amount needed at the port.
-            solver.Add(solver.Sum([w[i][k][j]/densityCargo_Low[i] for k in Tc[i]]) <= 0)
-            solver.Add(solver.Sum([w[i][k][j]/densityCargo_Low[i] for k in Tc[i]]) >= Vcp[i][j])
-            
-            solver.Add(solver.Sum([qw2f[i][k][j-1]/10/densityCargo_Low[i] for k in Tc[i]]) >= -Vcp[i][j]-1e6*(1-delta[i][j]))
-            
-            solver.Add(solver.Sum([qw2f[i][k][j-1]/10/densityCargo_Low[i] for k in Tc[i]]) <= -Vcp[i][j]+1e6*(delta[i][j]))
-
-            solver.Add(-Vcp[i][j]-1e6*(1-delta[i][j]) <= -solver.Sum([w[i][k][j] / densityCargo_Low[i] for k in Tc[i]]))
-
-            solver.Add(-solver.Sum([w[i][k][j]/densityCargo_Low[i] for k in Tc[i]]) <= -Vcp[i][j]+1e6*(1-delta[i][j]))
-            
-            solver.Add(-1e6*delta[i][j] <= -solver.Sum([qw2f[i][k][j]/10/densityCargo_Low[i] for k in Tc[i]]))
-
-            solver.Add(-solver.Sum([qw2f[i][k][j]/10/densityCargo_Low[i] for k in Tc[i]]) <= 1e6*delta[i][j])
+            # Condition05: 0 <= amount of cargo to be unloaded <= amount of cargo required to be unloaded at port p
+            # w has negative value for unloading
+            solver.Add(solver.Sum([w[c][t][p]/densityCargo_Low[c] for t in Tc[c]]) <= 0)
+            solver.Add(solver.Sum([w[c][t][p]/densityCargo_Low[c] for t in Tc[c]]) >= Vcp[c][p])
+            # Condition050
+            solver.Add(solver.Sum([qw2f[c][t][p-1]/10/densityCargo_Low[c] for t in Tc[c]]) >=
+                       -Vcp[c][p]-1e6*(1-delta[c][p]))
+            # Condition050a: (big MN formulation for MIP: to form if-else constraint)
+            solver.Add(solver.Sum([qw2f[c][t][p-1]/10/densityCargo_Low[c] for t in Tc[c]]) <=
+                       -Vcp[c][p]+1e6*(delta[c][p]))
+            # Condition050b
+            solver.Add(-solver.Sum([w[c][t][p]/densityCargo_Low[c] for t in Tc[c]]) >=
+                       -Vcp[c][p]-1e6*(1-delta[c][p]))
+            # Condition050b1
+            solver.Add(-solver.Sum([w[c][t][p]/densityCargo_Low[c] for t in Tc[c]]) <=
+                       -Vcp[c][p]+1e6*(1-delta[c][p]))
+            # Condition050c
+            solver.Add(-solver.Sum([qw2f[c][t][p]/10/densityCargo_Low[c] for t in Tc[c]]) >=
+                       -1e6*delta[c][p])
+            # Condition050c1
+            solver.Add(-solver.Sum([qw2f[c][t][p]/10/densityCargo_Low[c] for t in Tc[c]]) <=
+                       1e6*delta[c][p])
                 
-    # Condition 051 
-    for i in C:
-        for j in Tc[i]:
-            for k in P_dis:
-                solver.Add(w[i][j][k]/densityCargo_Low[i] <= 0)
+    # Condition051: amount of cargo to be unloaded from any tank at any discharging port >= 0
+    for c in C:
+        for t in Tc[c]:
+            for p in P_dis:
+                solver.Add(w[c][t][p]/densityCargo_Low[c] <= 0)
     
-    # Condition 052    
-    for i in list(set(C)-set(C_loaded)-set(C_locked)):
-        for j in Tc[i]:
-            for k in P:
-                if Vcp[i][k] != 0:
+    # Condition052
+    for c in list(set(C)-set(C_loaded)-set(C_locked)):
+        for t in Tc[c]:
+            for p in P:
+                if Vcp[c][p] != 0:
                     continue
-                # Condition 052
-                solver.Add(w[i][j][k]/densityCargo_Low[i] == 0)
+                solver.Add(w[c][t][p]/densityCargo_Low[c] == 0)
     
-    # Condition 06
-    for i in C:
-        for j in Tc[i]:
-            for k in list(set(Pbar)-set([NP])):
-                # amount of cargo c left in tank when leaving port p for port p+1 is equal to the amount of cargo c moved from/to tank t at port p.
-                solver.Add((qw2f[i][j][k]/10/densityCargo_Low[i] + w[i][j][k+1]/densityCargo_Low[i]) == qw2f[i][j][k+1]/10/densityCargo_Low[i])
-    
-       
-        
-        
+    # Condition06: amount of cargo c left in tank when leaving port p for port p+1 is equal to the amount of cargo c
+    # moved from/to tank t at port p.
+    for c in C:
+        for t in Tc[c]:
+            for p in list(set(Pbar)-set([NP])):
+                solver.Add(qw2f[c][t][p]/10/densityCargo_Low[c] + w[c][t][p+1]/densityCargo_Low[c] ==
+                           qw2f[c][t][p+1]/10/densityCargo_Low[c])
+
     ## preloaded condition
-    # condition22, condition 23, # condition 23a, 23b, condition 24, 24a
-    for i in C_loaded:
-        for j in T_loaded:
-            # condition 22
-            # follow the existing stowage of preloaded cargoes
-            solver.Add(x[i][j] == I_loaded[i][j])
+    # Condition22, 23, 23a, 23b, 24, 24a
+    for c in C_loaded:
+        for t in T_loaded:
+            # Condition22: follow the existing stowage of preloaded cargoes
+            solver.Add(x[c][t] == I_loaded[c][t])
             
-            for k in P:
-                  # condition 24a
-                # follow the existing stowage of preloaded cargoes
-                solver.Add(w[i][j][k]/densityCargo_Low[i] == V_loaded[i][j][k])
+            for p in P:
+                # Condition24a: follow the existing stowage of preloaded cargoes
+                solver.Add(w[c][t][p]/densityCargo_Low[c] == V_loaded[c][t][p])
             
-        for j in list(set(T)-set(T_loaded)):
-            # condition 23
-            # preloaded cargo can only be loaded to its corresponding preloaded tanks
-            solver.Add(x[i][j] == 0)
+        for t in list(set(T)-set(T_loaded)):
+            # Condition23: preloaded cargo can only be loaded to its corresponding preloaded tanks
+            solver.Add(x[c][t] == 0)
             
-            for k in P:
-                # condition 23a, 23b
-                solver.Add(w[i][j][k]/densityCargo_Low[i] == x[i][j])
-                solver.Add(qw2f[i][j][k]/10/densityCargo_Low[i] == x[i][j])
-                
-    for i in C:
-        for j in T:
-            # condition 24
-            # follow the existing stowage of preloaded cargoes
-            solver.Add(qw2f[i][j][0]/10/densityCargo_Low[i] == Q0.get(i, {}).get(j,0))
-        
-    
-        
-        
+            for p in P:
+                # Condition23a, 23b
+                solver.Add(w[c][t][p] == 0)
+                solver.Add(qw2f[c][t][p] == 0)
+
+    # Condition24: follow the existing stowage of preloaded cargos
+    for c in C:
+        for t in T:
+            solver.Add(qw2f[c][t][0]/10/densityCargo_Low[c] == Q0.get(c, {}).get(t, 0))
+
     ## locked tank / pre-allocated condition
-    # condition 25, condition 26, condition 26a, 26b, condition 27
-    for i in C_locked:
-        for j in T_locked:
-            # condition 25
-            # follow the existing stowage of locked cargoes
-            solver.Add(x[i][j] == A_locked.get(i,{}).get(j, 0))
-        
-        for j in list(set(T)-set(T_locked)):
-            # condition 26
-            # locked cargo can only be loaded to its corresponding locked tanks
-            solver.Add(x[i][j] == 0)
-            
-            for k in P:
-                # condition 26a, 26b
-                # locked cargo can only be loaded to its corresponding locked tanks
-                solver.Add(w[i][j][k]/densityCargo_Low[i] == x[i][j])
-                solver.Add(qw2f[i][j][k]/10/densityCargo_Low[i] == x[i][j])
-                
-        for j in T_locked:
-            for k in P:
-                # condition 27
-                # follow the existing stowage of locked cargoes
-                solver.Add(w[i][j][k]/densityCargo_Low[i] == V_locked.get(i,{}).get(j,{}).get(str(k),0))
-                
-    # Constr5a,  
-    for i in list(set(C)-set(C_loaded)-set(C_locked)):
-        for j in Tc[i]:
-            for k in P_last_loading:
-                solver.Add(qw2f[i][j][k]/10/densityCargo_Low[i] <= upperBoundC[i][j]*capacityCargoTank[j]*x[i][j])
-        
-                 
+    # Condition25, 26, 26a, 26b, 27
+    for c in C_locked:
+        for t in T_locked:
+            # Condition25: follow the existing stowage of locked cargos
+            solver.Add(x[c][t] == A_locked.get(c, {}).get(t, 0))
+
+            # Condition27: follow the existing stowage of locked cargos
+            for p in P:
+                solver.Add(w[c][t][p] / densityCargo_Low[c] == V_locked.get(c, {}).get(t, {}).get(str(p), 0))
+
+        # Condition26: locked cargo can only be loaded to its corresponding locked tanks
+        for t in list(set(T)-set(T_locked)):
+            solver.Add(x[c][t] == 0)
+
+            # Condition26a, Condition26b: locked cargo can only be loaded to its corresponding locked tanks
+            for p in P:
+                solver.Add(w[c][t][p] == 0)
+                solver.Add(qw2f[c][t][p] == 0)
+
+    ## capacity constraint 98% rule
+    for c in list(set(C)-set(C_loaded)-set(C_locked)):
+        for t in Tc[c]:
+            for p in P_last_loading:
+                # Constr5a
+                solver.Add(qw2f[c][t][p]/10/densityCargo_Low[c] <= upperBoundC[c][t]*capacityCargoTank[t]*x[c][t])
+
     if inputs.mode in ['Auto', 'Manual']:    
         # commingled
-        # Constr 5b
-        for i1, i2 in zip(Cm_1,Cm_2):
-            for j in T:
-                for k in P_last_loading:
-                    solver.Add((qw2f[i1][j][k]/10/densityCargo_Low[i1]*densityCargo_Low[i1]/density_Cm[i1] + qw2f[i2][j][k]/10/densityCargo_Low[i2]*densityCargo_Low[i2]/density_Cm[i2]) <= upperBound[j]*capacityCargoTank[j])
-        # Constr 5c    
-        # for i1, i2 in zip(Cm_1,Cm_2):
-        #       solver.Add(solver.Sum([x[i1][j]*x[i2][j]  for j in Tm]) <= 1)
-        for i1, i2 in zip(Cm_1,Cm_2):
-            solver.Add(solver.Sum([zz[i1][i2][j]  for j in Tm]) <= 1) # zz = x1*x2
-            for j in Tm:
-                solver.Add(zz[i1][i2][j] <= x[i1][j])  # zz <= x1
-                solver.Add(zz[i1][i2][j] <= x[i2][j])  # zz <= x2
-                solver.Add(zz[i1][i2][j] >= x[i1][j]+x[i2][j]-1)  # zz >= x1+x2-1
+        # Constr5b
+        for c1, c2 in zip(Cm_1, Cm_2):
+            for t in T:
+                for p in P_last_loading:
+                    solver.Add(qw2f[c1][t][p]/10/densityCargo_Low[c1]*densityCargo_Low[c1]/density_Cm[c1] +
+                               qw2f[c2][t][p]/10/densityCargo_Low[c2]*densityCargo_Low[c2]/density_Cm[c2] <=
+                               upperBound[t]*capacityCargoTank[t])
+        # Constr5c
+        for c1, c2 in zip(Cm_1, Cm_2):
+            solver.Add(solver.Sum([zz[c1][c2][t] for t in Tm]) <= 1)    # zz = x1*x2
+            for t in Tm:
+                solver.Add(zz[c1][c2][t] <= x[c1][t])   # zz <= x1
+                solver.Add(zz[c1][c2][t] <= x[c2][t])   # zz <= x2
+                solver.Add(zz[c1][c2][t] >= x[c1][t]+x[c2][t]-1)    # zz >= x1+x2-1
             
         # manual commingle
         # Constr5d1, 5d2, 5d3, 5d4
-        for i1, i2 in zip(Cm_1,Cm_2):
-            for j in Tm:
-                for k in P_last_loading:
+        for c1, c2 in zip(Cm_1,Cm_2):
+            for t in Tm:
+                for p in P_last_loading:
                     # Constr5d1
-                    solver.Add((x[i2][j]*Qm_2 - qw2f[i2][j][k]/10) <= Mm*(1-x[i1][j]))
+                    solver.Add((x[c2][t]*Qm_2 - qw2f[c2][t][p]/10) <= Mm*(1-x[c1][t]))
                     # Constr5d2
-                    solver.Add((qw2f[i2][j][k]/10 - x[i2][j]*(Qm_2+Mm)) <= Mm*(1-x[i1][j]))
+                    solver.Add((qw2f[c2][t][p]/10 - x[c2][t]*(Qm_2+Mm)) <= Mm*(1-x[c1][t]))
                     # Constr5d3
-                    solver.Add((x[i1][j]*Qm_1 - qw2f[i1][j][k]/10) <= Mm*(1-x[i2][j]))
+                    solver.Add((x[c1][t]*Qm_1 - qw2f[c1][t][p]/10) <= Mm*(1-x[c2][t]))
                     # Constr5d4
-                    solver.Add((qw2f[i1][j][k]/10 - x[i1][j]*(Qm_1+Mm)) <= Mm*(1-x[i2][j]))
+                    solver.Add((qw2f[c1][t][p]/10 - x[c1][t]*(Qm_1+Mm)) <= Mm*(1-x[c2][t]))
             
         # # Constr7a
         # for i in list(set(C)-set(C_loaded)-set(C_locked)):
@@ -1136,205 +1041,221 @@ def vlcc_ortools(inputs):
         #             # Constr7a DISABLE CURRENTLY
         #             # solver.Add(lowerBound[j]*capacityCargoTank[j]*x[i][j] <= qw2f[i][j][k]/10/densityCargo_Low[i]*densityCargo_Low[i]/density_low[i])
         #             pass
-        
-        
+
+        ## capacity constraint 60% rule
         # Constr8 
-        for i in C:
-            for j in Tc[i]:
-                for k in P_last_loading:
-                    # Constr8
-                    solver.Add((qw2f[i][j][k]/1000 - 1e4*(x[i][j])) <= 0)
-            
-        # Constr11  # Constr12
-        for i in TB:
-            for j in P:
-                solver.Add(wB[i][j]/densityBallast <= upperBoundB1[i]*capacityBallastTank[i]*xB[i][j])
-                solver.Add(lowerBoundB1[i]*capacityBallastTank[i]*xB[i][j] <= wB[i][j]/densityBallast)
-                
-                
+        for c in C:
+            for t in Tc[c]:
+                for p in P_last_loading:
+                    solver.Add((qw2f[c][t][p]/1000 - 1e4*x[c][t]) <= 0)
+
+        ## ballast capacity constraint
+        # Constr11, Constr12
+        for t in TB:
+            for p in P:
+                solver.Add(wB[t][p]/densityBallast <= upperBoundB1[t]*capacityBallastTank[t]*xB[t][p])
+                solver.Add(wB[t][p]/densityBallast >= lowerBoundB1[t]*capacityBallastTank[t]*xB[t][p])
+
         ## max num of tanks available
-        # Constr12a1 12a2
-        # solver.Add(solver.Sum([x[i][j] for i in C for j in T]) <= maxTankUsed) Constr12a
-        for j in T:
-            solver.Add(solver.Sum([x[i][j] for i in C]) <= 100*xt[j])
-            
-        solver.Add(solver.Sum([xt[j] for j in T]) <= maxTankUsed) 
-        
-        ##?? why remove?
-        # load all  cargo 
+        for t in T:
+            # Constr12a1
+            solver.Add(solver.Sum([x[c][t] for c in C]) <= 100*xt[t])
+        # Constr12a2
+        solver.Add(solver.Sum([xt[t] for t in T]) <= maxTankUsed)
+
+        ## load all  cargo
         # Condition111
-        # for i in P_last_loading:
-        #     solver.Add((solver.Sum([Wcp[c][pp] for c in C for pp in P if Wcp[c][pp]>0])-
-        #                 solver.Sum([qw2f[c][t][i]/10 for c in C for t in T])) >= -intended)
-        #     solver.Add((solver.Sum([Wcp[c][pp] for c in C for pp in P if Wcp[c][pp]>0])-
-        #                 solver.Sum([qw2f[c][t][i]/10 for c in C for t in T])) <= intended)       
-        
+        for p in P_last_loading:
+            solver.Add(solver.Sum([Wcp.get(c, {}).get(pp, 0.) for c in C for pp in P if Wcp.get(c, {}).get(pp, 0.) > 0]) -
+                       solver.Sum([qw2f[c][t][p]/10 for c in C for t in T]) >= -intended)
+            solver.Add(solver.Sum([Wcp.get(c, {}).get(pp, 0.) for c in C for pp in P if Wcp.get(c, {}).get(pp, 0.) > 0]) -
+                       solver.Sum([qw2f[c][t][p]/10 for c in C for t in T]) <= intended)
+
+        ## priority 1 and 2
         # Constr122
-        for u, v in cargoPriority:
-            solver.Add(solver.Sum([qw2f[v][t][p]/10/toLoad[v] for t in Tc[v] for p in P_last_loading]) <= solver.Sum([qw2f[u][t][p]/10/toLoad[u] for t in Tc[u] for p in P_last_loading]))
+        for c1, c2 in cargoPriority:
+            solver.Add(solver.Sum([qw2f[c2][t][p]/10/toLoad[c2] for t in Tc[c2] for p in P_last_loading]) <=
+                       solver.Sum([qw2f[c1][t][p]/10/toLoad[c1] for t in Tc[c1] for p in P_last_loading]))
+
         # symmetric loading
-        # Condition112a, 112b, 112c1, 112c2, 112c3
-        for i in C:
-            solver.Add(x[i]['1P'] == x[i]['1S']) 
-            solver.Add(x[i]['2P'] == x[i]['2S'])
-            solver.Add(x[i]['3P'] == x[i]['3S']) 
-            solver.Add(x[i]['4P'] == x[i]['4S'])
-            solver.Add(x[i]['5P'] == x[i]['5S'])
-    
-            for j in P_last_loading:
-                solver.Add(qw2f[i]['1P'][j]/10 == qw2f[i]['1S'][j]/10)
-                solver.Add(qw2f[i]['2P'][j]/10 == qw2f[i]['2S'][j]/10)    
-                solver.Add(qw2f[i]['4P'][j]/10 == qw2f[i]['4S'][j]/10)
-                solver.Add(qw2f[i]['5P'][j]/10 == qw2f[i]['5S'][j]/10)  
+        for c in C:
+            # Condition112a, 112b, 112c1, 112c2, 112c3
+            solver.Add(x[c]['1P'] == x[c]['1S'])
+            solver.Add(x[c]['2P'] == x[c]['2S'])
+            solver.Add(x[c]['3P'] == x[c]['3S'])
+            solver.Add(x[c]['4P'] == x[c]['4S'])
+            solver.Add(x[c]['5P'] == x[c]['5S'])
+        
+        for c in C_equal:
+            # Condition112d1, 112d2, 112d3, 112d4: equal weight in 1W, 2W, 4W, 5W
+            for p in P_last_loading:
+                solver.Add(qw2f[c]['1P'][p] == qw2f[c]['1S'][p])
+                solver.Add(qw2f[c]['2P'][p] == qw2f[c]['2S'][p])
+                solver.Add(qw2f[c]['4P'][p] == qw2f[c]['4S'][p])
+                solver.Add(qw2f[c]['5P'][p] == qw2f[c]['5S'][p])
                                
         # Condition112a1, 112a2 
-        for u, v in symmetricVolTank:
+        for t1, t2 in symmetricVolTank:
             for p in P_last_loading:
-                solver.Add(solver.Sum([qw2f[c][u][p]/10/densityCargo_Low[c]/capacityCargoTank[u] for c in C]) - 
-                            solver.Sum([qw2f[c][v][p]/10/densityCargo_Low[c]/capacityCargoTank[v] for c in C]) <= 0.1)
-                solver.Add(-0.1 <= (solver.Sum([qw2f[c][u][p]/10/densityCargo_Low[c]/capacityCargoTank[u] for c in C]) - 
-                            solver.Sum([qw2f[c][v][p]/10/densityCargo_Low[c]/capacityCargoTank[v] for c in C])))
-     
-        # diff cargos in slop tanks, except when only one cargo
-        # Condition112f
-        for i in C:
-            for u, v in cargoTankNonSym:
-                solver.Add(x[i][u] + x[i][v] <= diffSlop)
+                solver.Add(solver.Sum([qw2f[c][t1][p]/10/densityCargo_Low[c]/capacityCargoTank[t1] for c in C]) -
+                           solver.Sum([qw2f[c][t2][p]/10/densityCargo_Low[c]/capacityCargoTank[t2] for c in C]) <= 0.1)
+                solver.Add(solver.Sum([qw2f[c][t1][p]/10/densityCargo_Low[c]/capacityCargoTank[t1] for c in C]) -
+                           solver.Sum([qw2f[c][t2][p]/10/densityCargo_Low[c]/capacityCargoTank[t2] for c in C]) >= -0.1)
+
+        # Condition112f: diff cargos in slop tanks, except when only one cargo
+        for c in C:
+            for t1, t2 in cargoTankNonSym:
+                solver.Add(x[c][t1] + x[c][t2] <= diffSlop)
                 
-        # Condition112g1, Condition112g2
-        solver.Add(solver.Sum([x[i]['SLS'] for i in C]) == 1)
-        solver.Add(solver.Sum([x[i]['SLP'] for i in C]) == 1)
+        # Condition112g1, Condition112g2: slop tanks have to be used
+        solver.Add(solver.Sum([x[c]['SLS'] for c in C_slop]) == 1)
+        solver.Add(solver.Sum([x[c]['SLP'] for c in C_slop]) == 1)
         
-        for i in C_max:
+        for c in C_max:
             # Condition112h1, Condition112h2, Condition112h3, Condition112h4, Condition112h5
-            solver.Add(x[i]['1P'] + x[i]['1C'] >= 1)
-            solver.Add(x[i]['2P'] + x[i]['2C'] >= 1)
-            solver.Add(x[i]['3P'] + x[i]['3C'] >= 1)
-            solver.Add(x[i]['4P'] + x[i]['4C'] >= 1)
-            solver.Add(x[i]['5P'] + x[i]['5C'] >= 1)
-            # C_max cannot occupy 2 consecutive rows
+            # Each row must have a cargo for C_max, empty when only 1 cargo is loaded
+            solver.Add(x[c]['1P'] + x[c]['1C'] >= 1)
+            solver.Add(x[c]['2P'] + x[c]['2C'] >= 1)
+            solver.Add(x[c]['3P'] + x[c]['3C'] >= 1)
+            solver.Add(x[c]['4P'] + x[c]['4C'] >= 1)
+            solver.Add(x[c]['5P'] + x[c]['5C'] >= 1)
+
             # Condition112i1, Condition112i2, Condition112i3, Condition112i4
-            solver.Add(x[i]['1P'] + x[i]['1C'] + x[i]['1P'] + x[i]['2P'] + x[i]['2C'] + x[i]['2S'] <= 5)
-            solver.Add(x[i]['2P'] + x[i]['2C'] + x[i]['2P'] + x[i]['3P'] + x[i]['3C'] + x[i]['3S'] <= 5)
-            solver.Add(x[i]['3P'] + x[i]['3C'] + x[i]['3P'] + x[i]['4P'] + x[i]['4C'] + x[i]['4S'] <= 5)
-            solver.Add(x[i]['4P'] + x[i]['4C'] + x[i]['4P'] + x[i]['5P'] + x[i]['5C'] + x[i]['5S'] <= 5)
-                    
-        
-        # Condition112b1 Condition112b2
-        for i in C:
-            for j in T:
-                for k in P_last_loading:
-                    solver.Add(qw2f[i][j][k]/10 >= minCargoAmt*x[i][j])
-                    solver.Add(qw2f[i][j][k]/10 <= 1e5*x[i][j])
-        
-        for j in TB:
-            # ballast requirement
-            # Condition113d1 Condition113d2
-            for k in P:
-                solver.Add(wB[j][k] >= minBallastAmt*xB[j][k])
-                solver.Add(wB[j][k] <= 1e4*xB[j][k])
-    
+            # C_max cannot occupy 2 consecutive rows
+            solver.Add(x[c]['1P'] + x[c]['1C'] + x[c]['1P'] + x[c]['2P'] + x[c]['2C'] + x[c]['2S'] <= 5)
+            solver.Add(x[c]['2P'] + x[c]['2C'] + x[c]['2P'] + x[c]['3P'] + x[c]['3C'] + x[c]['3S'] <= 5)
+            solver.Add(x[c]['3P'] + x[c]['3C'] + x[c]['3P'] + x[c]['4P'] + x[c]['4C'] + x[c]['4S'] <= 5)
+            solver.Add(x[c]['4P'] + x[c]['4C'] + x[c]['4P'] + x[c]['5P'] + x[c]['5C'] + x[c]['5S'] <= 5)
+
+        # Condition112j: first discharge cargo
+        for c in firstDisCargo:
+            solver.Add(x[c]['SLS'] + x[c]['SLP'] >= 1)
+
+        # Condition112b1, Condition112b2
+        for c in C:
+            for t in T:
+                for p in P_last_loading:
+                    solver.Add(qw2f[c][t][p]/10 >= minCargoAmt*x[c][t])
+                    solver.Add(qw2f[c][t][p]/10 <= 1e5*x[c][t])
+
+        ## ballast requirement
+        # Condition113d1, Condition113d2
+        for t in TB:
+            for p in P:
+                solver.Add(wB[t][p] >= minBallastAmt[t] * xB[t][p])
+                solver.Add(wB[t][p] <= 1e4 * xB[t][p])
+                
+        # Condition113d3 for loading module
+        for t in minTB:
+            for p in P_stable:
+                solver.Add(wB[t][p] >= minBallastAmt[t]) # loaded min ballast 
+
                 
         
         # initial ballast condition
         # Condition114a1, Condition114a2, Condition114a3
-        for j in incTB:
-            solver.Add(initBallast.get(j,0.) <= wB[j][int(firstloadingPort)])
-        for j in decTB:
-            solver.Add(initBallast.get(j,0.) >= wB[j][int(firstloadingPort)])
-        for j in TB:
-            solver.Add(initBallast.get(j,0.) == wB[j][0])
-        
-        # decreasing ballast except last loading port
-        # Condition 114b
-        for i in TB:
-            for (u_, v_) in loadingPortNotLast:
-                solver.Add(wB[i][u_] >= wB[i][v_])
-        
-            
-        # decreasing ballast tank
-        # Condition 114c
-        for u_, v_ in loadingPort:
-            solver.Add(solver.Sum([xB[t][u_] for t in TB]) >= solver.Sum([xB[t][v_] for t in TB]))
-            
-        for j in TB:
-            # depart and arrival has to use same tank
-            # Condition 114d1, Condition 114d2
-            for (u, v) in depArrPort1:
-                solver.Add(xB[j][u] == xB[j][v])
-            for (u, v) in depArrPort2:
-                solver.Add(wB[j][u] == wB[j][v])
+        for t in incTB:
+            solver.Add(initBallast.get(t, 0.) <= wB[t][int(firstloadingPort)])
+        for t in decTB:
+            solver.Add(initBallast.get(t, 0.) >= wB[t][int(firstloadingPort)])
+        for t in TB:
+            solver.Add(initBallast.get(t, 0.) == wB[t][0])
+
+        # Condition114b: decreasing ballast except last loading port
+        for t in TB:
+            for (p1, p2) in loadingPortNotLast:
+                solver.Add(wB[t][p1] >= wB[t][p2])
+
+        # Condition114c: decreasing ballast tank
+        for p1, p2 in loadingPort:
+            solver.Add(solver.Sum([xB[t][p1] for t in TB]) >= solver.Sum([xB[t][p2] for t in TB]))
+
+        # depart and arrival has to use same tank
+        for t in TB:
+            for (p1, p2) in depArrPort1:
+                # Condition114d1: non-zero ROB
+                solver.Add(wB[t][p1] >= wB[t][p2])
+            for (p1, p2) in depArrPort2:
+                # Condition114d2: fixed ROB
+                solver.Add(wB[t][p1] == wB[t][p2])
             
             # rotation loading ports
-            # Condition 114e1, Condition 114e2
-            for u_, v_ in rotatingPort:
-                solver.Add((-wB[j][u_] +  wB[j][v_]) <= 1e6*(1-zBa[j]))
-                solver.Add((wB[j][u_] -  wB[j][v_]) <= 1e6*(1-zBb[j]))
+            # Condition114e1, Condition114e2
+            for p1, p2 in rotatingPort1:
+                solver.Add(wB[t][p2] - wB[t][p1] <= 1e6*(1-zBa1[t]))
+                solver.Add(wB[t][p1] - wB[t][p2] <= 1e6*(1-zBb1[t]))
                 
-            # Condition 114e3
-            solver.Add((zBa[j] + zBb[j]) == 1)
+            # Condition114e3
+            solver.Add(zBa1[t] + zBb1[t] == 1)
+
+            # Condition114e4, Condition114e5
+            for p1, p2 in rotatingPort2:
+                solver.Add(wB[t][p2] - wB[t][p1] <= 1e6*(1-zBa2[t]))
+                solver.Add(wB[t][p1] - wB[t][p2] <= 1e6*(1-zBb2[t]))
+
+            # Condition114e6
+            solver.Add(zBa2[t] + zBb2[t] == 1)
             
             # fixed ballast
-            # Condition 114f1
+            # Condition114f1
             for p in fixBallastPort:
                 if int(p) > 0:
-                    solver.Add(B_locked.get(j,{}).get(int(p),0) == wB[j][int(p)])
+                    solver.Add(B_locked.get(t, {}).get(int(p), 0) == wB[t][int(p)])
+
+        # Condition114g1: deballast amt
+        for p in list(set(loadPort).intersection(set(P_stable))):
+            solver.Add(solver.Sum([wB[t][p] for t in TB]) + deballastPercent*loadingPortAmt[p] >=
+                       solver.Sum([wB[t][p-1] for t in TB]))
+
+        # Condition114h: departure of last loading port
+        for t in lastLoadingPortBallastBan:
+            for p in specialBallastPort:
+                solver.Add(xB[t][p] == 0)
+
+        # Condition114h1: arrival of last loading port
+        for t in TB:
+            for p in zeroBallastPort:
+                solver.Add(xB[t][p] == 0)
                 
-        # deballast amt
-        # Condition 114g1
-        for i in list(set(loadPort).intersection(set(P_stable))):
-            solver.Add(solver.Sum([wB[t][i] for t in TB]) + deballastPercent*loadingPortAmt[i] >= solver.Sum([wB[t][i-1] for t in TB]))
-            
-        # departure of last loading port
-        # Condition114h
-        for i in lastLoadingPortBallastBan:
-            for j in specialBallastPort:
-                solver.Add(xB[i][j] == 0)
-        # arrival of last loading port
-        # Condition114h1
-        for i in TB:
-            for j in zeroBallastPort:
-                solver.Add(xB[i][j] == 0)
-                
-        ## ship stabilty
-        # assume the ship satisfies all the stability conditions when entering the first port, and ballast tank allocation will be refreshed before leaving each port.
+        ### ship stabilty
+        # assume the ship satisfies all the stability conditions when entering the first port,
+        # and ballast tank allocation will be refreshed before leaving each port.
          
-        # Constr 17a
-        for i in T:
-            for j in P:
-                solver.Add(wC[i][j] == onboard.get(i,0.) + solver.Sum([qw2f[k][i][j]/10 for k in C]))
-    
-                
-        # draft constraint
+        # Constr17a: displacement
+        for t in T:
+            for p in P:
+                solver.Add(wC[t][p] == onboard.get(t, 0.) + solver.Sum([qw2f[c][t][p]/10 for c in C]))
+
+        ## draft constraint
         # displacement
-        # Constr13c1
-        # Constr13c2
-        # loading and unloading port
-        # Constr13
-        for i in P_stable:
-            solver.Add(displacement[i] == (solver.Sum([wC[t][i] for t in T]) + 
-                          solver.Sum([wB[t][i] for t in TB]) + 
-                          solver.Sum([weightOtherTank.get(t,{}).get(i,0.) for t in OtherTanks]) + 
-                          lightWeight + deadweightConst))
-            solver.Add(displacement1[i] == displacement[i]*1.025/densitySeaWater[i])
-            solver.Add(displacement[i] >= (displacementLowLimit[i] + 0.001))
-            solver.Add(displacement[i] <= (displacementLimit[i] - 0.001))
+        for p in P_stable:
+            # Constr13c1
+            solver.Add(displacement[p] ==
+                       solver.Sum([wC[t][p] for t in T]) +
+                       solver.Sum([wB[t][p] for t in TB]) +
+                       solver.Sum([weightOtherTank.get(t, {}).get(p, 0.) for t in OtherTanks]) +
+                       lightWeight + deadweightConst)
+            # Constr13c2
+            solver.Add(displacement1[p] == displacement[p]*1.025/densitySeaWater[p])
+            # Constr13: loading and unloading port
+            solver.Add(displacement[p] >= displacementLowLimit[p] + 0.001)
+            solver.Add(displacement[p] <= displacementLimit[p] - 0.001)
         
         # deadweight constraint
         # Constr13a
-        for i in P_stable:
-            solver.Add((solver.Sum([wC[t][i] for t in T]) + 
-                        solver.Sum([wB[t][i] for t in TB]) +
-                        solver.Sum([weightOtherTank.get(t,{}).get(i,0.) for t in OtherTanks]) + 
-                        deadweightConst) <= deadweight)
+        for p in P_stable:
+            solver.Add(solver.Sum([wC[t][p] for t in T]) +
+                       solver.Sum([wB[t][p] for t in TB]) +
+                       solver.Sum([weightOtherTank.get(t, {}).get(p, 0.) for t in OtherTanks]) +
+                       deadweightConst <= deadweight)
         
         # Constr13b
-        for i in P_last_loading:
-            solver.Add(solver.Sum([wC[t][i] for t in T]) <= cargoweight)
-            
-            
+        for p in P_last_loading:
+            solver.Add(solver.Sum([wC[t][p] for t in T]) <= cargoweight)
+
         ## New list constraint
-        # 10 pieces
+        # ballast
+        # Constr15b1: 10 pieces in multi-pieces linear curve
         lambda1_TB = {}
         lambda2_TB = {}
         lambda3_TB = {}
@@ -1352,80 +1273,79 @@ def vlcc_ortools(inputs):
         z3_TB = {}
         z4_TB = {}
       
-        for i in list(set(TB)-set(TB1)):
-            lambda1_TB[i] = {}
-            lambda2_TB[i] = {}
-            lambda3_TB[i] = {}
-            lambda4_TB[i] = {}
-            lambda5_TB[i] = {}
-            lambda6_TB[i] = {}
-            lambda7_TB[i] = {}
-            lambda8_TB[i] = {}
-            lambda9_TB[i] = {}
-            lambda10_TB[i] = {}
-            lambda11_TB[i] = {}
-            z1_TB[i] = {}
-            z2_TB[i] = {}
-            z3_TB[i] = {}
-            z4_TB[i] = {}
-            
-               
-            for j in P_stable:
-                lambda1_TB[i][j] = solver.NumVar(0, 1, 'lambda1_TB[%s][%d]' % (i,j))
-                lambda2_TB[i][j] = solver.NumVar(0, 1, 'lambda2_TB[%s][%d]' % (i,j))
-                lambda3_TB[i][j] = solver.NumVar(0, 1, 'lambda3_TB[%s][%d]' % (i,j))
-                lambda4_TB[i][j] = solver.NumVar(0, 1, 'lambda4_TB[%s][%d]' % (i,j))
-                lambda5_TB[i][j] = solver.NumVar(0, 1, 'lambda5_TB[%s][%d]' % (i,j))
-                lambda6_TB[i][j] = solver.NumVar(0, 1, 'lambda6_TB[%s][%d]' % (i,j))
-                lambda7_TB[i][j] = solver.NumVar(0, 1, 'lambda7_TB[%s][%d]' % (i,j))
-                lambda8_TB[i][j] = solver.NumVar(0, 1, 'lambda8_TB[%s][%d]' % (i,j))
-                lambda9_TB[i][j] = solver.NumVar(0, 1, 'lambda9_TB[%s][%d]' % (i,j))
-                lambda10_TB[i][j] = solver.NumVar(0, 1, 'lambda10_TB[%s][%d]' % (i,j))
-                lambda11_TB[i][j] = solver.NumVar(0, 1, 'lambda11_TB[%s][%d]' % (i,j))
-                z1_TB[i][j] = solver.IntVar(0, 1, 'z1_TB[%s][%d]' % (i,j))
-                z2_TB[i][j] = solver.IntVar(0, 1, 'z2_TB[%s][%d]' % (i,j))
-                z3_TB[i][j] = solver.IntVar(0, 1, 'z3_TB[%s][%d]' % (i,j))
-                z4_TB[i][j] = solver.IntVar(0, 1, 'z4_TB[%s][%d]' % (i,j))
+        for t in list(set(TB)-set(TB1)):
+            lambda1_TB[t] = {}
+            lambda2_TB[t] = {}
+            lambda3_TB[t] = {}
+            lambda4_TB[t] = {}
+            lambda5_TB[t] = {}
+            lambda6_TB[t] = {}
+            lambda7_TB[t] = {}
+            lambda8_TB[t] = {}
+            lambda9_TB[t] = {}
+            lambda10_TB[t] = {}
+            lambda11_TB[t] = {}
+            z1_TB[t] = {}
+            z2_TB[t] = {}
+            z3_TB[t] = {}
+            z4_TB[t] = {}
+
+            for p in P_stable:
+                lambda1_TB[t][p] = solver.NumVar(0, 1, 'lambda1_TB[%s][%d]' % (t, p))
+                lambda2_TB[t][p] = solver.NumVar(0, 1, 'lambda2_TB[%s][%d]' % (t, p))
+                lambda3_TB[t][p] = solver.NumVar(0, 1, 'lambda3_TB[%s][%d]' % (t, p))
+                lambda4_TB[t][p] = solver.NumVar(0, 1, 'lambda4_TB[%s][%d]' % (t, p))
+                lambda5_TB[t][p] = solver.NumVar(0, 1, 'lambda5_TB[%s][%d]' % (t, p))
+                lambda6_TB[t][p] = solver.NumVar(0, 1, 'lambda6_TB[%s][%d]' % (t, p))
+                lambda7_TB[t][p] = solver.NumVar(0, 1, 'lambda7_TB[%s][%d]' % (t, p))
+                lambda8_TB[t][p] = solver.NumVar(0, 1, 'lambda8_TB[%s][%d]' % (t, p))
+                lambda9_TB[t][p] = solver.NumVar(0, 1, 'lambda9_TB[%s][%d]' % (t, p))
+                lambda10_TB[t][p] = solver.NumVar(0, 1, 'lambda10_TB[%s][%d]' % (t, p))
+                lambda11_TB[t][p] = solver.NumVar(0, 1, 'lambda11_TB[%s][%d]' % (t, p))
+                z1_TB[t][p] = solver.IntVar(0, 1, 'z1_TB[%s][%d]' % (t, p))
+                z2_TB[t][p] = solver.IntVar(0, 1, 'z2_TB[%s][%d]' % (t, p))
+                z3_TB[t][p] = solver.IntVar(0, 1, 'z3_TB[%s][%d]' % (t, p))
+                z4_TB[t][p] = solver.IntVar(0, 1, 'z4_TB[%s][%d]' % (t, p))
       
-                solver.Add(lambda3_TB[i][j] + lambda7_TB[i][j] + lambda11_TB[i][j] <= z1_TB[i][j])
-                solver.Add(lambda1_TB[i][j] + lambda5_TB[i][j] + lambda9_TB[i][j] <= 1 - z1_TB[i][j])
-                solver.Add(lambda4_TB[i][j] + lambda5_TB[i][j] + lambda6_TB[i][j] <= z2_TB[i][j])
-                solver.Add(lambda1_TB[i][j] + lambda2_TB[i][j] + lambda8_TB[i][j]  + 
-                            lambda9_TB[i][j] + lambda10_TB[i][j] + lambda11_TB[i][j] <= 1 - z2_TB[i][j])
-                solver.Add(lambda6_TB[i][j] + lambda7_TB[i][j] + lambda8_TB[i][j]  + 
-                            lambda9_TB[i][j] + lambda10_TB[i][j] + lambda11_TB[i][j] <= z3_TB[i][j])
-                solver.Add(lambda1_TB[i][j] + lambda2_TB[i][j] + lambda3_TB[i][j]  + 
-                            lambda4_TB[i][j] <= 1 - z3_TB[i][j])
-                solver.Add(lambda10_TB[i][j] + lambda11_TB[i][j] <= z4_TB[i][j])
-                solver.Add(lambda1_TB[i][j] + lambda2_TB[i][j] + lambda3_TB[i][j]  + 
-                            lambda4_TB[i][j] + lambda5_TB[i][j] + lambda6_TB[i][j]  + 
-                            lambda7_TB[i][j] + lambda8_TB[i][j]<= 1 - z4_TB[i][j])
+                solver.Add(lambda3_TB[t][p] + lambda7_TB[t][p] + lambda11_TB[t][p] <= z1_TB[t][p])
+                solver.Add(lambda1_TB[t][p] + lambda5_TB[t][p] + lambda9_TB[t][p] <= 1 - z1_TB[t][p])
+                solver.Add(lambda4_TB[t][p] + lambda5_TB[t][p] + lambda6_TB[t][p] <= z2_TB[t][p])
+                solver.Add(lambda1_TB[t][p] + lambda2_TB[t][p] + lambda8_TB[t][p] +
+                           lambda9_TB[t][p] + lambda10_TB[t][p] + lambda11_TB[t][p] <= 1 - z2_TB[t][p])
+                solver.Add(lambda6_TB[t][p] + lambda7_TB[t][p] + lambda8_TB[t][p] +
+                           lambda9_TB[t][p] + lambda10_TB[t][p] + lambda11_TB[t][p] <= z3_TB[t][p])
+                solver.Add(lambda1_TB[t][p] + lambda2_TB[t][p] + lambda3_TB[t][p] +
+                           lambda4_TB[t][p] <= 1 - z3_TB[t][p])
+                solver.Add(lambda10_TB[t][p] + lambda11_TB[t][p] <= z4_TB[t][p])
+                solver.Add(lambda1_TB[t][p] + lambda2_TB[t][p] + lambda3_TB[t][p] +
+                           lambda4_TB[t][p] + lambda5_TB[t][p] + lambda6_TB[t][p] +
+                           lambda7_TB[t][p] + lambda8_TB[t][p] <= 1 - z4_TB[t][p])
                 
-                solver.Add(lambda1_TB[i][j]+lambda2_TB[i][j]+lambda3_TB[i][j]+
-                            lambda4_TB[i][j]+lambda5_TB[i][j]+lambda6_TB[i][j]+
-                            lambda7_TB[i][j]+lambda8_TB[i][j]+lambda9_TB[i][j]+
-                            lambda10_TB[i][j]+lambda11_TB[i][j] == 1)
+                solver.Add(lambda1_TB[t][p]+lambda2_TB[t][p]+lambda3_TB[t][p]+
+                           lambda4_TB[t][p]+lambda5_TB[t][p]+lambda6_TB[t][p]+
+                           lambda7_TB[t][p]+lambda8_TB[t][p]+lambda9_TB[t][p]+
+                           lambda10_TB[t][p]+lambda11_TB[t][p] == 1)
     
-                ##?? check on need for seawater density
-                solver.Add(wB[i][j] == lambda1_TB[i][j]*bTank_n[0][i]+lambda2_TB[i][j]*bTank_n[1][i]+lambda3_TB[i][j]*bTank_n[2][i]+
-                                        lambda4_TB[i][j]*bTank_n[3][i]+lambda5_TB[i][j]*bTank_n[4][i]+lambda6_TB[i][j]*bTank_n[5][i]+
-                                        lambda7_TB[i][j]*bTank_n[6][i]+lambda8_TB[i][j]*bTank_n[7][i]+lambda9_TB[i][j]*bTank_n[8][i]+
-                                        lambda10_TB[i][j]*bTank_n[9][i]+lambda11_TB[i][j]*bTank_n[10][i])
-                
-                
+                ## Constr15b1
+                solver.Add(wB[t][p] ==
+                           lambda1_TB[t][p]*bTank_n[0][t]+lambda2_TB[t][p]*bTank_n[1][t]+lambda3_TB[t][p]*bTank_n[2][t]+
+                           lambda4_TB[t][p]*bTank_n[3][t]+lambda5_TB[t][p]*bTank_n[4][t]+lambda6_TB[t][p]*bTank_n[5][t]+
+                           lambda7_TB[t][p]*bTank_n[6][t]+lambda8_TB[t][p]*bTank_n[7][t]+lambda9_TB[t][p]*bTank_n[8][t]+
+                           lambda10_TB[t][p]*bTank_n[9][t]+lambda11_TB[t][p]*bTank_n[10][t])
+
                 # Constr15b1
-                solver.Add(TB_tmom[i][j] == (lambda1_TB[i][j]*cTank_n[0][i]+lambda2_TB[i][j]*cTank_n[1][i]+lambda3_TB[i][j]*cTank_n[2][i]+
-                                            lambda4_TB[i][j]*cTank_n[3][i]+lambda5_TB[i][j]*cTank_n[4][i]+lambda6_TB[i][j]*cTank_n[5][i]+
-                                            lambda7_TB[i][j]*cTank_n[6][i]+lambda8_TB[i][j]*cTank_n[7][i]+lambda9_TB[i][j]*cTank_n[8][i]+
-                                            lambda10_TB[i][j]*cTank_n[9][i]+lambda11_TB[i][j]*cTank_n[10][i]))
+                solver.Add(TB_tmom[t][p] ==
+                           lambda1_TB[t][p]*cTank_n[0][t]+lambda2_TB[t][p]*cTank_n[1][t]+lambda3_TB[t][p]*cTank_n[2][t]+
+                           lambda4_TB[t][p]*cTank_n[3][t]+lambda5_TB[t][p]*cTank_n[4][t]+lambda6_TB[t][p]*cTank_n[5][t]+
+                           lambda7_TB[t][p]*cTank_n[6][t]+lambda8_TB[t][p]*cTank_n[7][t]+lambda9_TB[t][p]*cTank_n[8][t]+
+                           lambda10_TB[t][p]*cTank_n[9][t]+lambda11_TB[t][p]*cTank_n[10][t])
                         
         # Constr15b2
-        for i in TB1:
-            for j in P_stable:
-                solver.Add(TB_tmom[i][j] == wB[i][j]*TCGt[i])
-                
-                
-                
+        for t in TB1:
+            for p in P_stable:
+                solver.Add(TB_tmom[t][p] == wB[t][p]*TCGt[t])
+
+        # cargo
         # Constr15c1
         lambda1_T = {}
         lambda2_T = {}
@@ -1444,89 +1364,91 @@ def vlcc_ortools(inputs):
         z3_T = {}
         z4_T = {}
     
-        for i in list(set(T)-set(T1)):
-            lambda1_T[i] = {}
-            lambda2_T[i] = {}
-            lambda3_T[i] = {}
-            lambda4_T[i] = {}
-            lambda5_T[i] = {}
-            lambda6_T[i] = {}
-            lambda7_T[i] = {}
-            lambda8_T[i] = {}
-            lambda9_T[i] = {}
-            lambda10_T[i] = {}
-            lambda11_T[i] = {}
-            z1_T[i] = {}
-            z2_T[i] = {}
-            z3_T[i] = {}
-            z4_T[i] = {}
+        for t in list(set(T)-set(T1)):
+            lambda1_T[t] = {}
+            lambda2_T[t] = {}
+            lambda3_T[t] = {}
+            lambda4_T[t] = {}
+            lambda5_T[t] = {}
+            lambda6_T[t] = {}
+            lambda7_T[t] = {}
+            lambda8_T[t] = {}
+            lambda9_T[t] = {}
+            lambda10_T[t] = {}
+            lambda11_T[t] = {}
+            z1_T[t] = {}
+            z2_T[t] = {}
+            z3_T[t] = {}
+            z4_T[t] = {}
     
-            for j in P_stable:
-                lambda1_T[i][j] = solver.NumVar(0, 1, 'lambda1_T[%s][%d]' % (i,j))
-                lambda2_T[i][j] = solver.NumVar(0, 1, 'lambda2_T[%s][%d]' % (i,j))
-                lambda3_T[i][j] = solver.NumVar(0, 1, 'lambda3_T[%s][%d]' % (i,j))
-                lambda4_T[i][j] = solver.NumVar(0, 1, 'lambda4_T[%s][%d]' % (i,j))
-                lambda5_T[i][j] = solver.NumVar(0, 1, 'lambda5_T[%s][%d]' % (i,j))
-                lambda6_T[i][j] = solver.NumVar(0, 1, 'lambda6_T[%s][%d]' % (i,j))
-                lambda7_T[i][j] = solver.NumVar(0, 1, 'lambda7_T[%s][%d]' % (i,j))
-                lambda8_T[i][j] = solver.NumVar(0, 1, 'lambda8_T[%s][%d]' % (i,j))
-                lambda9_T[i][j] = solver.NumVar(0, 1, 'lambda9_T[%s][%d]' % (i,j))
-                lambda10_T[i][j] = solver.NumVar(0, 1, 'lambda10_T[%s][%d]' % (i,j))
-                lambda11_T[i][j] = solver.NumVar(0, 1, 'lambda11_T[%s][%d]' % (i,j))
-                z1_T[i][j] = solver.IntVar(0, 1, 'z1_T[%s][%d]' % (i,j))
-                z2_T[i][j] = solver.IntVar(0, 1, 'z2_T[%s][%d]' % (i,j))
-                z3_T[i][j] = solver.IntVar(0, 1, 'z3_T[%s][%d]' % (i,j))
-                z4_T[i][j] = solver.IntVar(0, 1, 'z4_T[%s][%d]' % (i,j))
+            for p in P_stable:
+                lambda1_T[t][p] = solver.NumVar(0, 1, 'lambda1_T[%s][%d]' % (t, p))
+                lambda2_T[t][p] = solver.NumVar(0, 1, 'lambda2_T[%s][%d]' % (t, p))
+                lambda3_T[t][p] = solver.NumVar(0, 1, 'lambda3_T[%s][%d]' % (t, p))
+                lambda4_T[t][p] = solver.NumVar(0, 1, 'lambda4_T[%s][%d]' % (t, p))
+                lambda5_T[t][p] = solver.NumVar(0, 1, 'lambda5_T[%s][%d]' % (t, p))
+                lambda6_T[t][p] = solver.NumVar(0, 1, 'lambda6_T[%s][%d]' % (t, p))
+                lambda7_T[t][p] = solver.NumVar(0, 1, 'lambda7_T[%s][%d]' % (t, p))
+                lambda8_T[t][p] = solver.NumVar(0, 1, 'lambda8_T[%s][%d]' % (t, p))
+                lambda9_T[t][p] = solver.NumVar(0, 1, 'lambda9_T[%s][%d]' % (t, p))
+                lambda10_T[t][p] = solver.NumVar(0, 1, 'lambda10_T[%s][%d]' % (t, p))
+                lambda11_T[t][p] = solver.NumVar(0, 1, 'lambda11_T[%s][%d]' % (t, p))
+                z1_T[t][p] = solver.IntVar(0, 1, 'z1_T[%s][%d]' % (t, p))
+                z2_T[t][p] = solver.IntVar(0, 1, 'z2_T[%s][%d]' % (t, p))
+                z3_T[t][p] = solver.IntVar(0, 1, 'z3_T[%s][%d]' % (t, p))
+                z4_T[t][p] = solver.IntVar(0, 1, 'z4_T[%s][%d]' % (t, p))
     
-                solver.Add(lambda3_T[i][j] + lambda7_T[i][j] + lambda11_T[i][j] <= z1_T[i][j])
-                solver.Add(lambda1_T[i][j] + lambda5_T[i][j] + lambda9_T[i][j] <= 1 - z1_T[i][j])
-                solver.Add(lambda4_T[i][j] + lambda5_T[i][j] + lambda6_T[i][j] <= z2_T[i][j])
-                solver.Add(lambda1_T[i][j] + lambda2_T[i][j] + lambda8_T[i][j]  + 
-                            lambda9_T[i][j] + lambda10_T[i][j] + lambda11_T[i][j] <= 1 - z2_T[i][j])
-                solver.Add(lambda6_T[i][j] + lambda7_T[i][j] + lambda8_T[i][j]  + 
-                            lambda9_T[i][j] + lambda10_T[i][j] + lambda11_T[i][j] <= z3_T[i][j])
-                solver.Add(lambda1_T[i][j] + lambda2_T[i][j] + lambda3_T[i][j]  + 
-                            lambda4_T[i][j] <= 1 - z3_T[i][j])
-                solver.Add(lambda10_T[i][j] + lambda11_T[i][j] <= z4_T[i][j])
-                solver.Add(lambda1_T[i][j] + lambda2_T[i][j] + lambda3_T[i][j]  + 
-                            lambda4_T[i][j] + lambda5_T[i][j] + lambda6_T[i][j]  + 
-                            lambda7_T[i][j] + lambda8_T[i][j]<= 1 - z4_T[i][j])
+                solver.Add(lambda3_T[t][p] + lambda7_T[t][p] + lambda11_T[t][p] <= z1_T[t][p])
+                solver.Add(lambda1_T[t][p] + lambda5_T[t][p] + lambda9_T[t][p] <= 1 - z1_T[t][p])
+                solver.Add(lambda4_T[t][p] + lambda5_T[t][p] + lambda6_T[t][p] <= z2_T[t][p])
+                solver.Add(lambda1_T[t][p] + lambda2_T[t][p] + lambda8_T[t][p] +
+                           lambda9_T[t][p] + lambda10_T[t][p] + lambda11_T[t][p] <= 1 - z2_T[t][p])
+                solver.Add(lambda6_T[t][p] + lambda7_T[t][p] + lambda8_T[t][p] +
+                           lambda9_T[t][p] + lambda10_T[t][p] + lambda11_T[t][p] <= z3_T[t][p])
+                solver.Add(lambda1_T[t][p] + lambda2_T[t][p] + lambda3_T[t][p] +
+                           lambda4_T[t][p] <= 1 - z3_T[t][p])
+                solver.Add(lambda10_T[t][p] + lambda11_T[t][p] <= z4_T[t][p])
+                solver.Add(lambda1_T[t][p] + lambda2_T[t][p] + lambda3_T[t][p] +
+                           lambda4_T[t][p] + lambda5_T[t][p] + lambda6_T[t][p] +
+                           lambda7_T[t][p] + lambda8_T[t][p] <= 1 - z4_T[t][p])
                 
-                solver.Add(lambda1_T[i][j]+lambda2_T[i][j]+lambda3_T[i][j]+
-                            lambda4_T[i][j]+lambda5_T[i][j]+lambda6_T[i][j]+
-                            lambda7_T[i][j]+lambda8_T[i][j]+lambda9_T[i][j]+
-                            lambda10_T[i][j]+lambda11_T[i][j] == 1)
-                
-                solver.Add(wC[i][j] == lambda1_T[i][j]*bTank_n[0][i]+lambda2_T[i][j]*bTank_n[1][i]+lambda3_T[i][j]*bTank_n[2][i]+
-                                        lambda4_T[i][j]*bTank_n[3][i]+lambda5_T[i][j]*bTank_n[4][i]+lambda6_T[i][j]*bTank_n[5][i]+
-                                        lambda7_T[i][j]*bTank_n[6][i]+lambda8_T[i][j]*bTank_n[7][i]+lambda9_T[i][j]*bTank_n[8][i]+
-                                        lambda10_T[i][j]*bTank_n[9][i]+lambda11_T[i][j]*bTank_n[10][i])
-                
-                solver.Add(T_tmom[i][j] == lambda1_T[i][j]*cTank_n[0][i]+lambda2_T[i][j]*cTank_n[1][i]+lambda3_T[i][j]*cTank_n[2][i]+
-                                            lambda4_T[i][j]*cTank_n[3][i]+lambda5_T[i][j]*cTank_n[4][i]+lambda6_T[i][j]*cTank_n[5][i]+
-                                            lambda7_T[i][j]*cTank_n[6][i]+lambda8_T[i][j]*cTank_n[7][i]+lambda9_T[i][j]*cTank_n[8][i]+
-                                            lambda10_T[i][j]*cTank_n[9][i]+lambda11_T[i][j]*cTank_n[10][i])
+                solver.Add(lambda1_T[t][p]+lambda2_T[t][p]+lambda3_T[t][p]+
+                           lambda4_T[t][p]+lambda5_T[t][p]+lambda6_T[t][p]+
+                           lambda7_T[t][p]+lambda8_T[t][p]+lambda9_T[t][p]+
+                           lambda10_T[t][p]+lambda11_T[t][p] == 1)
+
+                # Constr15c1
+                solver.Add(wC[t][p] ==
+                           lambda1_T[t][p]*bTank_n[0][t]+lambda2_T[t][p]*bTank_n[1][t]+lambda3_T[t][p]*bTank_n[2][t]+
+                           lambda4_T[t][p]*bTank_n[3][t]+lambda5_T[t][p]*bTank_n[4][t]+lambda6_T[t][p]*bTank_n[5][t]+
+                           lambda7_T[t][p]*bTank_n[6][t]+lambda8_T[t][p]*bTank_n[7][t]+lambda9_T[t][p]*bTank_n[8][t]+
+                           lambda10_T[t][p]*bTank_n[9][t]+lambda11_T[t][p]*bTank_n[10][t])
+
+                # Constr15c1
+                solver.Add(T_tmom[t][p] ==
+                           lambda1_T[t][p]*cTank_n[0][t]+lambda2_T[t][p]*cTank_n[1][t]+lambda3_T[t][p]*cTank_n[2][t]+
+                           lambda4_T[t][p]*cTank_n[3][t]+lambda5_T[t][p]*cTank_n[4][t]+lambda6_T[t][p]*cTank_n[5][t]+
+                           lambda7_T[t][p]*cTank_n[6][t]+lambda8_T[t][p]*cTank_n[7][t]+lambda9_T[t][p]*cTank_n[8][t]+
+                           lambda10_T[t][p]*cTank_n[9][t]+lambda11_T[t][p]*cTank_n[10][t])
     
         # Constr15c2
-        for i in T1:
-            for j in P_stable:
-                solver.Add(T_tmom[i][j] == wC[i][j]*TCGt[i])    
+        for t in T1:
+            for p in P_stable:
+                solver.Add(T_tmom[t][p] == wC[t][p]*TCGt[t])
                 
-        for i in P_stable:
+        for p in P_stable:
             # Constr153
-            
-            solver.Add(T_mom[i] == (solver.Sum([T_tmom[t][i] for t in T]) + 
-                        solver.Sum([TB_tmom[t][i] for t in TB]) + 
-                        solver.Sum([weightOtherTank.get(t,{}).get(i,0.)*TCGtp.get(t,{}).get(i,0.) for t in OtherTanks]) + 
-                        deadweightConst*TCGdw))
+            solver.Add(T_mom[p] ==
+                       solver.Sum([T_tmom[t][p] for t in T]) +
+                       solver.Sum([TB_tmom[t][p] for t in TB]) +
+                       solver.Sum([weightOtherTank.get(t, {}).get(p, 0.)*TCGtp.get(t, {}).get(p, 0.) for t in OtherTanks]) +
+                       deadweightConst*TCGdw)
             
             # Constr154
-            solver.Add(T_mom[i] >= -ListMOM)
-            solver.Add(T_mom[i] <= ListMOM)
+            solver.Add(T_mom[p] >= -ListMOM)
+            solver.Add(T_mom[p] <= ListMOM)
         
         ## Trim constraint
-        
-        
         lambda1l_TB = {}
         lambda2l_TB = {}
         lambda3l_TB = {}
@@ -1543,81 +1465,79 @@ def vlcc_ortools(inputs):
         z2l_TB = {}
         z3l_TB = {}
         z4l_TB = {}
-        
-        
-        for i in list(set(TB)-set(TB2)):
-            lambda1l_TB[i] = {}
-            lambda2l_TB[i] = {}
-            lambda3l_TB[i] = {}
-            lambda4l_TB[i] = {}
-            lambda5l_TB[i] = {}
-            lambda6l_TB[i] = {}
-            lambda7l_TB[i] = {}
-            lambda8l_TB[i] = {}
-            lambda9l_TB[i] = {}
-            lambda10l_TB[i] = {}
-            lambda11l_TB[i] = {}
-            z1l_TB[i] = {}
-            z2l_TB[i] = {}
-            z3l_TB[i] = {}
-            z4l_TB[i] = {}
-            
-               
-            for j in P_stable:
-                lambda1l_TB[i][j] = solver.NumVar(0, 1, 'lambda1l_TB[%s][%d]' % (i,j))
-                lambda2l_TB[i][j] = solver.NumVar(0, 1, 'lambda2l_TB[%s][%d]' % (i,j))
-                lambda3l_TB[i][j] = solver.NumVar(0, 1, 'lambda3l_TB[%s][%d]' % (i,j))
-                lambda4l_TB[i][j] = solver.NumVar(0, 1, 'lambda4l_TB[%s][%d]' % (i,j))
-                lambda5l_TB[i][j] = solver.NumVar(0, 1, 'lambda5l_TB[%s][%d]' % (i,j))
-                lambda6l_TB[i][j] = solver.NumVar(0, 1, 'lambda6l_TB[%s][%d]' % (i,j))
-                lambda7l_TB[i][j] = solver.NumVar(0, 1, 'lambda7l_TB[%s][%d]' % (i,j))
-                lambda8l_TB[i][j] = solver.NumVar(0, 1, 'lambda8l_TB[%s][%d]' % (i,j))
-                lambda9l_TB[i][j] = solver.NumVar(0, 1, 'lambda9l_TB[%s][%d]' % (i,j))
-                lambda10l_TB[i][j] = solver.NumVar(0, 1, 'lambda10l_TB[%s][%d]' % (i,j))
-                lambda11l_TB[i][j] = solver.NumVar(0, 1, 'lambda11l_TB[%s][%d]' % (i,j))
-                z1l_TB[i][j] = solver.IntVar(0, 1, 'z1l_TB[%s][%d]' % (i,j))
-                z2l_TB[i][j] = solver.IntVar(0, 1, 'z2l_TB[%s][%d]' % (i,j))
-                z3l_TB[i][j] = solver.IntVar(0, 1, 'z3l_TB[%s][%d]' % (i,j))
-                z4l_TB[i][j] = solver.IntVar(0, 1, 'z4l_TB[%s][%d]' % (i,j))
+
+        for t in list(set(TB)-set(TB2)):
+            lambda1l_TB[t] = {}
+            lambda2l_TB[t] = {}
+            lambda3l_TB[t] = {}
+            lambda4l_TB[t] = {}
+            lambda5l_TB[t] = {}
+            lambda6l_TB[t] = {}
+            lambda7l_TB[t] = {}
+            lambda8l_TB[t] = {}
+            lambda9l_TB[t] = {}
+            lambda10l_TB[t] = {}
+            lambda11l_TB[t] = {}
+            z1l_TB[t] = {}
+            z2l_TB[t] = {}
+            z3l_TB[t] = {}
+            z4l_TB[t] = {}
+
+            for p in P_stable:
+                lambda1l_TB[t][p] = solver.NumVar(0, 1, 'lambda1l_TB[%s][%d]' % (t, p))
+                lambda2l_TB[t][p] = solver.NumVar(0, 1, 'lambda2l_TB[%s][%d]' % (t, p))
+                lambda3l_TB[t][p] = solver.NumVar(0, 1, 'lambda3l_TB[%s][%d]' % (t, p))
+                lambda4l_TB[t][p] = solver.NumVar(0, 1, 'lambda4l_TB[%s][%d]' % (t, p))
+                lambda5l_TB[t][p] = solver.NumVar(0, 1, 'lambda5l_TB[%s][%d]' % (t, p))
+                lambda6l_TB[t][p] = solver.NumVar(0, 1, 'lambda6l_TB[%s][%d]' % (t, p))
+                lambda7l_TB[t][p] = solver.NumVar(0, 1, 'lambda7l_TB[%s][%d]' % (t, p))
+                lambda8l_TB[t][p] = solver.NumVar(0, 1, 'lambda8l_TB[%s][%d]' % (t, p))
+                lambda9l_TB[t][p] = solver.NumVar(0, 1, 'lambda9l_TB[%s][%d]' % (t, p))
+                lambda10l_TB[t][p] = solver.NumVar(0, 1, 'lambda10l_TB[%s][%d]' % (t, p))
+                lambda11l_TB[t][p] = solver.NumVar(0, 1, 'lambda11l_TB[%s][%d]' % (t, p))
+                z1l_TB[t][p] = solver.IntVar(0, 1, 'z1l_TB[%s][%d]' % (t, p))
+                z2l_TB[t][p] = solver.IntVar(0, 1, 'z2l_TB[%s][%d]' % (t, p))
+                z3l_TB[t][p] = solver.IntVar(0, 1, 'z3l_TB[%s][%d]' % (t, p))
+                z4l_TB[t][p] = solver.IntVar(0, 1, 'z4l_TB[%s][%d]' % (t, p))
       
-                solver.Add(lambda3l_TB[i][j] + lambda7l_TB[i][j] + lambda11l_TB[i][j] <= z1l_TB[i][j])
-                solver.Add(lambda1l_TB[i][j] + lambda5l_TB[i][j] + lambda9l_TB[i][j] <= 1 - z1l_TB[i][j])
-                solver.Add(lambda4l_TB[i][j] + lambda5l_TB[i][j] + lambda6l_TB[i][j] <= z2l_TB[i][j])
-                solver.Add(lambda1l_TB[i][j] + lambda2l_TB[i][j] + lambda8l_TB[i][j]  + 
-                            lambda9l_TB[i][j] + lambda10l_TB[i][j] + lambda11l_TB[i][j] <= 1 - z2l_TB[i][j])
-                solver.Add(lambda6l_TB[i][j] + lambda7l_TB[i][j] + lambda8l_TB[i][j]  + 
-                            lambda9l_TB[i][j] + lambda10l_TB[i][j] + lambda11l_TB[i][j] <= z3l_TB[i][j])
-                solver.Add(lambda1l_TB[i][j] + lambda2l_TB[i][j] + lambda3l_TB[i][j]  + 
-                            lambda4l_TB[i][j] <= 1 - z3l_TB[i][j])
-                solver.Add(lambda10l_TB[i][j] + lambda11l_TB[i][j] <= z4l_TB[i][j])
-                solver.Add(lambda1l_TB[i][j] + lambda2l_TB[i][j] + lambda3l_TB[i][j]  + 
-                            lambda4l_TB[i][j] + lambda5l_TB[i][j] + lambda6l_TB[i][j]  + 
-                            lambda7l_TB[i][j] + lambda8l_TB[i][j]<= 1 - z4l_TB[i][j])
+                solver.Add(lambda3l_TB[t][p] + lambda7l_TB[t][p] + lambda11l_TB[t][p] <= z1l_TB[t][p])
+                solver.Add(lambda1l_TB[t][p] + lambda5l_TB[t][p] + lambda9l_TB[t][p] <= 1 - z1l_TB[t][p])
+                solver.Add(lambda4l_TB[t][p] + lambda5l_TB[t][p] + lambda6l_TB[t][p] <= z2l_TB[t][p])
+                solver.Add(lambda1l_TB[t][p] + lambda2l_TB[t][p] + lambda8l_TB[t][p] +
+                           lambda9l_TB[t][p] + lambda10l_TB[t][p] + lambda11l_TB[t][p] <= 1 - z2l_TB[t][p])
+                solver.Add(lambda6l_TB[t][p] + lambda7l_TB[t][p] + lambda8l_TB[t][p] +
+                           lambda9l_TB[t][p] + lambda10l_TB[t][p] + lambda11l_TB[t][p] <= z3l_TB[t][p])
+                solver.Add(lambda1l_TB[t][p] + lambda2l_TB[t][p] + lambda3l_TB[t][p] +
+                           lambda4l_TB[t][p] <= 1 - z3l_TB[t][p])
+                solver.Add(lambda10l_TB[t][p] + lambda11l_TB[t][p] <= z4l_TB[t][p])
+                solver.Add(lambda1l_TB[t][p] + lambda2l_TB[t][p] + lambda3l_TB[t][p] +
+                           lambda4l_TB[t][p] + lambda5l_TB[t][p] + lambda6l_TB[t][p] +
+                           lambda7l_TB[t][p] + lambda8l_TB[t][p] <= 1 - z4l_TB[t][p])
                 
-                solver.Add(lambda1l_TB[i][j]+lambda2l_TB[i][j]+lambda3l_TB[i][j]+
-                            lambda4l_TB[i][j]+lambda5l_TB[i][j]+lambda6l_TB[i][j]+
-                            lambda7l_TB[i][j]+lambda8l_TB[i][j]+lambda9l_TB[i][j]+
-                            lambda10l_TB[i][j]+lambda11l_TB[i][j] == 1)
+                solver.Add(lambda1l_TB[t][p]+lambda2l_TB[t][p]+lambda3l_TB[t][p]+
+                           lambda4l_TB[t][p]+lambda5l_TB[t][p]+lambda6l_TB[t][p]+
+                           lambda7l_TB[t][p]+lambda8l_TB[t][p]+lambda9l_TB[t][p]+
+                           lambda10l_TB[t][p]+lambda11l_TB[t][p] == 1)
     
-                # ##?? check on need for seawater density
-                solver.Add(wB[i][j] == lambda1l_TB[i][j]*bTankl_n[0][i]+lambda2l_TB[i][j]*bTankl_n[1][i]+lambda3l_TB[i][j]*bTankl_n[2][i]+
-                                        lambda4l_TB[i][j]*bTankl_n[3][i]+lambda5l_TB[i][j]*bTankl_n[4][i]+lambda6l_TB[i][j]*bTankl_n[5][i]+
-                                        lambda7l_TB[i][j]*bTankl_n[6][i]+lambda8l_TB[i][j]*bTankl_n[7][i]+lambda9l_TB[i][j]*bTankl_n[8][i]+
-                                        lambda10l_TB[i][j]*bTankl_n[9][i]+lambda11l_TB[i][j]*bTankl_n[10][i])
-                
-                
                 # Constr16b1
-                solver.Add(TB_lmom[i][j] == 1000*(lambda1l_TB[i][j]*cTankl_n[0][i]+lambda2l_TB[i][j]*cTankl_n[1][i]+lambda3l_TB[i][j]*cTankl_n[2][i]+
-                                            lambda4l_TB[i][j]*cTankl_n[3][i]+lambda5l_TB[i][j]*cTankl_n[4][i]+lambda6l_TB[i][j]*cTankl_n[5][i]+
-                                            lambda7l_TB[i][j]*cTankl_n[6][i]+lambda8l_TB[i][j]*cTankl_n[7][i]+lambda9l_TB[i][j]*cTankl_n[8][i]+
-                                            lambda10l_TB[i][j]*cTankl_n[9][i]+lambda11l_TB[i][j]*cTankl_n[10][i]))
+                solver.Add(wB[t][p] ==
+                           lambda1l_TB[t][p]*bTankl_n[0][t]+lambda2l_TB[t][p]*bTankl_n[1][t]+lambda3l_TB[t][p]*bTankl_n[2][t]+
+                           lambda4l_TB[t][p]*bTankl_n[3][t]+lambda5l_TB[t][p]*bTankl_n[4][t]+lambda6l_TB[t][p]*bTankl_n[5][t]+
+                           lambda7l_TB[t][p]*bTankl_n[6][t]+lambda8l_TB[t][p]*bTankl_n[7][t]+lambda9l_TB[t][p]*bTankl_n[8][t]+
+                           lambda10l_TB[t][p]*bTankl_n[9][t]+lambda11l_TB[t][p]*bTankl_n[10][t])
+
+                # Constr16b1
+                solver.Add(TB_lmom[t][p] == 1000 *
+                           (lambda1l_TB[t][p]*cTankl_n[0][t]+lambda2l_TB[t][p]*cTankl_n[1][t]+lambda3l_TB[t][p]*cTankl_n[2][t]+
+                            lambda4l_TB[t][p]*cTankl_n[3][t]+lambda5l_TB[t][p]*cTankl_n[4][t]+lambda6l_TB[t][p]*cTankl_n[5][t]+
+                            lambda7l_TB[t][p]*cTankl_n[6][t]+lambda8l_TB[t][p]*cTankl_n[7][t]+lambda9l_TB[t][p]*cTankl_n[8][t]+
+                            lambda10l_TB[t][p]*cTankl_n[9][t]+lambda11l_TB[t][p]*cTankl_n[10][t]))
                         
         # Constr16b2
-        for i in TB2:
-            for j in P_stable:
-                solver.Add(TB_lmom[i][j] == wB[i][j]*LCGt[i])
-                
-        
+        for t in TB2:
+            for p in P_stable:
+                solver.Add(TB_lmom[t][p] == wB[t][p]*LCGt[t])
+
         lambda1_LCB = {}
         lambda2_LCB = {}
         lambda3_LCB = {}
@@ -1652,120 +1572,118 @@ def vlcc_ortools(inputs):
         z3_MTC = {}
         z4_MTC = {}
         
-        for i in P_stable:
+        for p in P_stable:
             
             # Constr161
-            # solver.Add(L_mom[i] == (solver.Sum([wC[t][i]*LCGt[t] for t in T]) + 
-            #             solver.Sum([wB[t][i]*LCGt[t] for t in TB]) + 
-            #             solver.Sum([weightOtherTank.get(t,{}).get(i,0.)*LCGt[t] for t in OtherTanks]) + 
-            #             lightWeight*LCGship + deadweightConst*LCGdw))
-            
-            
-            solver.Add(L_mom[i] == (solver.Sum([wC[t][i]*LCGt[t] for t in T]) + 
-                        solver.Sum([TB_lmom[t][i] for t in TB]) + 
-                        solver.Sum([weightOtherTank.get(t,{}).get(i,0.)*LCGtp.get(t,{}).get(i,0.) for t in OtherTanks]) + 
-                        lightWeight*LCGship + deadweightConst*LCGdw))
-            
-            
+            solver.Add(L_mom[p] ==
+                       solver.Sum([wC[t][p]*LCGt[t] for t in T]) +
+                       solver.Sum([TB_lmom[t][p] for t in TB]) +
+                       solver.Sum([weightOtherTank.get(t, {}).get(p, 0.)*LCGtp.get(t, {}).get(p, 0.) for t in OtherTanks]) +
+                       lightWeight*LCGship + deadweightConst*LCGdw)
+
             # Constr163
-            lambda1_LCB[i] = solver.NumVar(0, 1, 'lambda1_LCB[%d]' % (i))
-            lambda2_LCB[i] = solver.NumVar(0, 1, 'lambda2_LCB[%d]' % (i))
-            lambda3_LCB[i] = solver.NumVar(0, 1, 'lambda3_LCB[%d]' % (i))
-            lambda4_LCB[i] = solver.NumVar(0, 1, 'lambda4_LCB[%d]' % (i))
-            lambda5_LCB[i] = solver.NumVar(0, 1, 'lambda5_LCB[%d]' % (i))
-            lambda6_LCB[i] = solver.NumVar(0, 1, 'lambda6_LCB[%d]' % (i))
-            lambda7_LCB[i] = solver.NumVar(0, 1, 'lambda7_LCB[%d]' % (i))
-            lambda8_LCB[i] = solver.NumVar(0, 1, 'lambda8_LCB[%d]' % (i))
-            lambda9_LCB[i] = solver.NumVar(0, 1, 'lambda9_LCB[%d]' % (i))
-            lambda10_LCB[i] = solver.NumVar(0, 1, 'lambda10_LCB[%d]' % (i))
-            lambda11_LCB[i] = solver.NumVar(0, 1, 'lambda11_LCB[%d]' % (i))
-            z1_LCB[i] = solver.IntVar(0, 1, 'z1_LCB[%d]' % (i))
-            z2_LCB[i] = solver.IntVar(0, 1, 'z2_LCB[%d]' % (i))
-            z3_LCB[i] = solver.IntVar(0, 1, 'z3_LCB[%d]' % (i))
-            z4_LCB[i] = solver.IntVar(0, 1, 'z4_LCB[%d]' % (i))
+            lambda1_LCB[p] = solver.NumVar(0, 1, 'lambda1_LCB[%d]' % p)
+            lambda2_LCB[p] = solver.NumVar(0, 1, 'lambda2_LCB[%d]' % p)
+            lambda3_LCB[p] = solver.NumVar(0, 1, 'lambda3_LCB[%d]' % p)
+            lambda4_LCB[p] = solver.NumVar(0, 1, 'lambda4_LCB[%d]' % p)
+            lambda5_LCB[p] = solver.NumVar(0, 1, 'lambda5_LCB[%d]' % p)
+            lambda6_LCB[p] = solver.NumVar(0, 1, 'lambda6_LCB[%d]' % p)
+            lambda7_LCB[p] = solver.NumVar(0, 1, 'lambda7_LCB[%d]' % p)
+            lambda8_LCB[p] = solver.NumVar(0, 1, 'lambda8_LCB[%d]' % p)
+            lambda9_LCB[p] = solver.NumVar(0, 1, 'lambda9_LCB[%d]' % p)
+            lambda10_LCB[p] = solver.NumVar(0, 1, 'lambda10_LCB[%d]' % p)
+            lambda11_LCB[p] = solver.NumVar(0, 1, 'lambda11_LCB[%d]' % p)
+            z1_LCB[p] = solver.IntVar(0, 1, 'z1_LCB[%d]' % p)
+            z2_LCB[p] = solver.IntVar(0, 1, 'z2_LCB[%d]' % p)
+            z3_LCB[p] = solver.IntVar(0, 1, 'z3_LCB[%d]' % p)
+            z4_LCB[p] = solver.IntVar(0, 1, 'z4_LCB[%d]' % p)
      
-            solver.Add(lambda3_LCB[i] + lambda7_LCB[i] + lambda11_LCB[i] <= z1_LCB[i])
-            solver.Add(lambda1_LCB[i] + lambda5_LCB[i] + lambda9_LCB[i] <= 1 - z1_LCB[i])
-            solver.Add(lambda4_LCB[i] + lambda5_LCB[i] + lambda6_LCB[i] <= z2_LCB[i])
-            solver.Add(lambda1_LCB[i] + lambda2_LCB[i] + lambda8_LCB[i] + 
-                        lambda9_LCB[i] + lambda10_LCB[i] + lambda11_LCB[i] <= 1 - z2_LCB[i])
-            solver.Add(lambda6_LCB[i] + lambda7_LCB[i] + lambda8_LCB[i] + 
-                        lambda9_LCB[i] + lambda10_LCB[i] + lambda11_LCB[i] <= z3_LCB[i])
-            solver.Add(lambda1_LCB[i] + lambda2_LCB[i] + lambda3_LCB[i] + 
-                        lambda4_LCB[i] <= 1 - z3_LCB[i])
-            solver.Add(lambda10_LCB[i] + lambda11_LCB[i] <= z4_LCB[i])
-            solver.Add(lambda1_LCB[i] + lambda2_LCB[i] + lambda3_LCB[i] + 
-                        lambda4_LCB[i] + lambda5_LCB[i] + lambda6_LCB[i] + 
-                        lambda7_LCB[i] + lambda8_LCB[i]<= 1 - z4_LCB[i])
+            solver.Add(lambda3_LCB[p] + lambda7_LCB[p] + lambda11_LCB[p] <= z1_LCB[p])
+            solver.Add(lambda1_LCB[p] + lambda5_LCB[p] + lambda9_LCB[p] <= 1 - z1_LCB[p])
+            solver.Add(lambda4_LCB[p] + lambda5_LCB[p] + lambda6_LCB[p] <= z2_LCB[p])
+            solver.Add(lambda1_LCB[p] + lambda2_LCB[p] + lambda8_LCB[p] +
+                       lambda9_LCB[p] + lambda10_LCB[p] + lambda11_LCB[p] <= 1 - z2_LCB[p])
+            solver.Add(lambda6_LCB[p] + lambda7_LCB[p] + lambda8_LCB[p] +
+                       lambda9_LCB[p] + lambda10_LCB[p] + lambda11_LCB[p] <= z3_LCB[p])
+            solver.Add(lambda1_LCB[p] + lambda2_LCB[p] + lambda3_LCB[p] +
+                       lambda4_LCB[p] <= 1 - z3_LCB[p])
+            solver.Add(lambda10_LCB[p] + lambda11_LCB[p] <= z4_LCB[p])
+            solver.Add(lambda1_LCB[p] + lambda2_LCB[p] + lambda3_LCB[p] +
+                       lambda4_LCB[p] + lambda5_LCB[p] + lambda6_LCB[p] +
+                       lambda7_LCB[p] + lambda8_LCB[p]<= 1 - z4_LCB[p])
             
-            solver.Add(lambda1_LCB[i]+lambda2_LCB[i]+lambda3_LCB[i]+
-                        lambda4_LCB[i]+lambda5_LCB[i]+lambda6_LCB[i]+
-                        lambda7_LCB[i]+lambda8_LCB[i]+lambda9_LCB[i]+
-                        lambda10_LCB[i]+lambda11_LCB[i] == 1)
-            
-            solver.Add(displacement1[i] == lambda1_LCB[i]*bLCB_n[0]+lambda2_LCB[i]*bLCB_n[1]+lambda3_LCB[i]*bLCB_n[2]+
-                                          lambda4_LCB[i]*bLCB_n[3]+lambda5_LCB[i]*bLCB_n[4]+lambda6_LCB[i]*bLCB_n[5]+
-                                          lambda7_LCB[i]*bLCB_n[6]+lambda8_LCB[i]*bLCB_n[7]+lambda9_LCB[i]*bLCB_n[8]+
-                                          lambda10_LCB[i]*bLCB_n[9]+lambda11_LCB[i]*bLCB_n[10])
-                
-                  
-            solver.Add(LCBp[i] == lambda1_LCB[i]*cLCB_n[0]+lambda2_LCB[i]*cLCB_n[1]+lambda3_LCB[i]*cLCB_n[2]+
-                                  lambda4_LCB[i]*cLCB_n[3]+lambda5_LCB[i]*cLCB_n[4]+lambda6_LCB[i]*cLCB_n[5]+
-                                  lambda7_LCB[i]*cLCB_n[6]+lambda8_LCB[i]*cLCB_n[7]+lambda9_LCB[i]*cLCB_n[8]+
-                                  lambda10_LCB[i]*cLCB_n[9]+lambda11_LCB[i]*cLCB_n[10])
+            solver.Add(lambda1_LCB[p]+lambda2_LCB[p]+lambda3_LCB[p]+
+                       lambda4_LCB[p]+lambda5_LCB[p]+lambda6_LCB[p]+
+                       lambda7_LCB[p]+lambda8_LCB[p]+lambda9_LCB[p]+
+                       lambda10_LCB[p]+lambda11_LCB[p] == 1)
+
+            # Constr163
+            solver.Add(displacement1[p] ==
+                       lambda1_LCB[p]*bLCB_n[0]+lambda2_LCB[p]*bLCB_n[1]+lambda3_LCB[p]*bLCB_n[2]+
+                       lambda4_LCB[p]*bLCB_n[3]+lambda5_LCB[p]*bLCB_n[4]+lambda6_LCB[p]*bLCB_n[5]+
+                       lambda7_LCB[p]*bLCB_n[6]+lambda8_LCB[p]*bLCB_n[7]+lambda9_LCB[p]*bLCB_n[8]+
+                       lambda10_LCB[p]*bLCB_n[9]+lambda11_LCB[p]*bLCB_n[10])
+            # Constr163
+            solver.Add(LCBp[p] ==
+                       lambda1_LCB[p]*cLCB_n[0]+lambda2_LCB[p]*cLCB_n[1]+lambda3_LCB[p]*cLCB_n[2]+
+                       lambda4_LCB[p]*cLCB_n[3]+lambda5_LCB[p]*cLCB_n[4]+lambda6_LCB[p]*cLCB_n[5]+
+                       lambda7_LCB[p]*cLCB_n[6]+lambda8_LCB[p]*cLCB_n[7]+lambda9_LCB[p]*cLCB_n[8]+
+                       lambda10_LCB[p]*cLCB_n[9]+lambda11_LCB[p]*cLCB_n[10])
             
             # Constr164
-            lambda1_MTC[i] = solver.NumVar(0, 1, 'lambda1_MTC[%d]' % (i))
-            lambda2_MTC[i] = solver.NumVar(0, 1, 'lambda2_MTC[%d]' % (i))
-            lambda3_MTC[i] = solver.NumVar(0, 1, 'lambda3_MTC[%d]' % (i))
-            lambda4_MTC[i] = solver.NumVar(0, 1, 'lambda4_MTC[%d]' % (i))
-            lambda5_MTC[i] = solver.NumVar(0, 1, 'lambda5_MTC[%d]' % (i))
-            lambda6_MTC[i] = solver.NumVar(0, 1, 'lambda6_MTC[%d]' % (i))
-            lambda7_MTC[i] = solver.NumVar(0, 1, 'lambda7_MTC[%d]' % (i))
-            lambda8_MTC[i] = solver.NumVar(0, 1, 'lambda8_MTC[%d]' % (i))
-            lambda9_MTC[i] = solver.NumVar(0, 1, 'lambda9_MTC[%d]' % (i))
-            lambda10_MTC[i] = solver.NumVar(0, 1, 'lambda10_MTC[%d]' % (i))
-            lambda11_MTC[i] = solver.NumVar(0, 1, 'lambda11_MTC[%d]' % (i))
-            z1_MTC[i] = solver.IntVar(0, 1, 'z1_MTC[%d]' % (i))
-            z2_MTC[i] = solver.IntVar(0, 1, 'z2_MTC[%d]' % (i))
-            z3_MTC[i] = solver.IntVar(0, 1, 'z3_MTC[%d]' % (i))
-            z4_MTC[i] = solver.IntVar(0, 1, 'z4_MTC[%d]' % (i))
+            lambda1_MTC[p] = solver.NumVar(0, 1, 'lambda1_MTC[%d]' % p)
+            lambda2_MTC[p] = solver.NumVar(0, 1, 'lambda2_MTC[%d]' % p)
+            lambda3_MTC[p] = solver.NumVar(0, 1, 'lambda3_MTC[%d]' % p)
+            lambda4_MTC[p] = solver.NumVar(0, 1, 'lambda4_MTC[%d]' % p)
+            lambda5_MTC[p] = solver.NumVar(0, 1, 'lambda5_MTC[%d]' % p)
+            lambda6_MTC[p] = solver.NumVar(0, 1, 'lambda6_MTC[%d]' % p)
+            lambda7_MTC[p] = solver.NumVar(0, 1, 'lambda7_MTC[%d]' % p)
+            lambda8_MTC[p] = solver.NumVar(0, 1, 'lambda8_MTC[%d]' % p)
+            lambda9_MTC[p] = solver.NumVar(0, 1, 'lambda9_MTC[%d]' % p)
+            lambda10_MTC[p] = solver.NumVar(0, 1, 'lambda10_MTC[%d]' % p)
+            lambda11_MTC[p] = solver.NumVar(0, 1, 'lambda11_MTC[%d]' % p)
+            z1_MTC[p] = solver.IntVar(0, 1, 'z1_MTC[%d]' % p)
+            z2_MTC[p] = solver.IntVar(0, 1, 'z2_MTC[%d]' % p)
+            z3_MTC[p] = solver.IntVar(0, 1, 'z3_MTC[%d]' % p)
+            z4_MTC[p] = solver.IntVar(0, 1, 'z4_MTC[%d]' % p)
             
-            solver.Add(lambda3_MTC[i] + lambda7_MTC[i] + lambda11_MTC[i] <= z1_MTC[i])
-            solver.Add(lambda1_MTC[i] + lambda5_MTC[i] + lambda9_MTC[i] <= 1 - z1_MTC[i])
-            solver.Add(lambda4_MTC[i] + lambda5_MTC[i] + lambda6_MTC[i] <= z2_MTC[i])
-            solver.Add(lambda1_MTC[i] + lambda2_MTC[i] + lambda8_MTC[i] + 
-                        lambda9_MTC[i] + lambda10_MTC[i] + lambda11_MTC[i] <= 1 - z2_MTC[i])
-            solver.Add(lambda6_MTC[i] + lambda7_MTC[i] + lambda8_MTC[i] + 
-                        lambda9_MTC[i] + lambda10_MTC[i] + lambda11_MTC[i] <= z3_MTC[i])
-            solver.Add(lambda1_MTC[i] + lambda2_MTC[i] + lambda3_MTC[i] + 
-                        lambda4_MTC[i] <= 1 - z3_MTC[i])
-            solver.Add(lambda10_MTC[i] + lambda11_MTC[i] <= z4_MTC[i])
-            solver.Add(lambda1_MTC[i] + lambda2_MTC[i] + lambda3_MTC[i] + 
-                        lambda4_MTC[i] + lambda5_MTC[i] + lambda6_MTC[i] + 
-                        lambda7_MTC[i] + lambda8_MTC[i]<= 1 - z4_MTC[i])
+            solver.Add(lambda3_MTC[p] + lambda7_MTC[p] + lambda11_MTC[p] <= z1_MTC[p])
+            solver.Add(lambda1_MTC[p] + lambda5_MTC[p] + lambda9_MTC[p] <= 1 - z1_MTC[p])
+            solver.Add(lambda4_MTC[p] + lambda5_MTC[p] + lambda6_MTC[p] <= z2_MTC[p])
+            solver.Add(lambda1_MTC[p] + lambda2_MTC[p] + lambda8_MTC[p] +
+                       lambda9_MTC[p] + lambda10_MTC[p] + lambda11_MTC[p] <= 1 - z2_MTC[p])
+            solver.Add(lambda6_MTC[p] + lambda7_MTC[p] + lambda8_MTC[p] +
+                       lambda9_MTC[p] + lambda10_MTC[p] + lambda11_MTC[p] <= z3_MTC[p])
+            solver.Add(lambda1_MTC[p] + lambda2_MTC[p] + lambda3_MTC[p] +
+                       lambda4_MTC[p] <= 1 - z3_MTC[p])
+            solver.Add(lambda10_MTC[p] + lambda11_MTC[p] <= z4_MTC[p])
+            solver.Add(lambda1_MTC[p] + lambda2_MTC[p] + lambda3_MTC[p] +
+                       lambda4_MTC[p] + lambda5_MTC[p] + lambda6_MTC[p] +
+                       lambda7_MTC[p] + lambda8_MTC[p]<= 1 - z4_MTC[p])
             
-            solver.Add(lambda1_MTC[i]+lambda2_MTC[i]+lambda3_MTC[i]+
-                        lambda4_MTC[i]+lambda5_MTC[i]+lambda6_MTC[i]+
-                        lambda7_MTC[i]+lambda8_MTC[i]+lambda9_MTC[i]+
-                        lambda10_MTC[i]+lambda11_MTC[i] == 1)
+            solver.Add(lambda1_MTC[p]+lambda2_MTC[p]+lambda3_MTC[p]+
+                       lambda4_MTC[p]+lambda5_MTC[p]+lambda6_MTC[p]+
+                       lambda7_MTC[p]+lambda8_MTC[p]+lambda9_MTC[p]+
+                       lambda10_MTC[p]+lambda11_MTC[p] == 1)
+
+            # Constr164
+            solver.Add(displacement1[p] ==
+                       lambda1_MTC[p]*bMTC_n[0]+lambda2_MTC[p]*bMTC_n[1]+lambda3_MTC[p]*bMTC_n[2]+
+                       lambda4_MTC[p]*bMTC_n[3]+lambda5_MTC[p]*bMTC_n[4]+lambda6_MTC[p]*bMTC_n[5]+
+                       lambda7_MTC[p]*bMTC_n[6]+lambda8_MTC[p]*bMTC_n[7]+lambda9_MTC[p]*bMTC_n[8]+
+                       lambda10_MTC[p]*bMTC_n[9]+lambda11_MTC[p]*bMTC_n[10])
+            # Constr164
+            solver.Add(MTCp[p] ==
+                       lambda1_MTC[p]*cMTC_n[0]+lambda2_MTC[p]*cMTC_n[1]+lambda3_MTC[p]*cMTC_n[2]+
+                       lambda4_MTC[p]*cMTC_n[3]+lambda5_MTC[p]*cMTC_n[4]+lambda6_MTC[p]*cMTC_n[5]+
+                       lambda7_MTC[p]*cMTC_n[6]+lambda8_MTC[p]*cMTC_n[7]+lambda9_MTC[p]*cMTC_n[8]+
+                       lambda10_MTC[p]*cMTC_n[9]+lambda11_MTC[p]*cMTC_n[10])
             
-            
-            solver.Add(displacement1[i] == lambda1_MTC[i]*bMTC_n[0]+lambda2_MTC[i]*bMTC_n[1]+lambda3_MTC[i]*bMTC_n[2]+
-                                          lambda4_MTC[i]*bMTC_n[3]+lambda5_MTC[i]*bMTC_n[4]+lambda6_MTC[i]*bMTC_n[5]+
-                                          lambda7_MTC[i]*bMTC_n[6]+lambda8_MTC[i]*bMTC_n[7]+lambda9_MTC[i]*bMTC_n[8]+
-                                          lambda10_MTC[i]*bMTC_n[9]+lambda11_MTC[i]*bMTC_n[10])
-    
-            solver.Add(MTCp[i] == lambda1_MTC[i]*cMTC_n[0]+lambda2_MTC[i]*cMTC_n[1]+lambda3_MTC[i]*cMTC_n[2]+
-                                  lambda4_MTC[i]*cMTC_n[3]+lambda5_MTC[i]*cMTC_n[4]+lambda6_MTC[i]*cMTC_n[5]+
-                                  lambda7_MTC[i]*cMTC_n[6]+lambda8_MTC[i]*cMTC_n[7]+lambda9_MTC[i]*cMTC_n[8]+
-                                  lambda10_MTC[i]*cMTC_n[9]+lambda11_MTC[i]*cMTC_n[10])
-            
-            #Constr16a
-            solver.Add(MTCp[i]*trim_lower.get(i,-0.001)*100 <= (L_mom[i] - LCBp[i]))
+            # Constr16a
+            solver.Add(MTCp[p]*trim_lower.get(p, -0.001)*100 <= (L_mom[p] - LCBp[p]))
             
             # Constr16b
-            solver.Add((L_mom[i] - LCBp[i]) <= MTCp[i]*trim_upper.get(i,0.001)*100)
+            solver.Add(L_mom[p] - LCBp[p] <= MTCp[p]*trim_upper.get(p, 0.001)*100)
         
         ## SF and BM 
         # wn, mn
@@ -1786,106 +1704,116 @@ def vlcc_ortools(inputs):
         z3_Draft = {}
         z4_Draft = {}
         
-        for i in P_stable:
+        for p in P_stable:
             # Constr18a
-            solver.Add(wn[0][i] == 0)
+            solver.Add(wn[0][p] == 0)
             # Constr19a
-            solver.Add(mn[0][i] == 0)
+            solver.Add(mn[0][p] == 0)
             
             # Constr18d
-            lambda1_Draft[i] = solver.NumVar(0, 1, 'lambda1_Draft[%d]' % (i))
-            lambda2_Draft[i] = solver.NumVar(0, 1, 'lambda2_Draft[%d]' % (i))
-            lambda3_Draft[i] = solver.NumVar(0, 1, 'lambda3_Draft[%d]' % (i))
-            lambda4_Draft[i] = solver.NumVar(0, 1, 'lambda4_Draft[%d]' % (i))
-            lambda5_Draft[i] = solver.NumVar(0, 1, 'lambda5_Draft[%d]' % (i))
-            lambda6_Draft[i] = solver.NumVar(0, 1, 'lambda6_Draft[%d]' % (i))
-            lambda7_Draft[i] = solver.NumVar(0, 1, 'lambda7_Draft[%d]' % (i))
-            lambda8_Draft[i] = solver.NumVar(0, 1, 'lambda8_Draft[%d]' % (i))
-            lambda9_Draft[i] = solver.NumVar(0, 1, 'lambda9_Draft[%d]' % (i))
-            lambda10_Draft[i] = solver.NumVar(0, 1, 'lambda10_Draft[%d]' % (i))
-            lambda11_Draft[i] = solver.NumVar(0, 1, 'lambda11_Draft[%d]' % (i))
-            z1_Draft[i] = solver.IntVar(0, 1, 'z1_Draft[%d]' % (i))
-            z2_Draft[i] = solver.IntVar(0, 1, 'z2_Draft[%d]' % (i))
-            z3_Draft[i] = solver.IntVar(0, 1, 'z3_Draft[%d]' % (i))
-            z4_Draft[i] = solver.IntVar(0, 1, 'z4_Draft[%d]' % (i))
+            lambda1_Draft[p] = solver.NumVar(0, 1, 'lambda1_Draft[%d]' % p)
+            lambda2_Draft[p] = solver.NumVar(0, 1, 'lambda2_Draft[%d]' % p)
+            lambda3_Draft[p] = solver.NumVar(0, 1, 'lambda3_Draft[%d]' % p)
+            lambda4_Draft[p] = solver.NumVar(0, 1, 'lambda4_Draft[%d]' % p)
+            lambda5_Draft[p] = solver.NumVar(0, 1, 'lambda5_Draft[%d]' % p)
+            lambda6_Draft[p] = solver.NumVar(0, 1, 'lambda6_Draft[%d]' % p)
+            lambda7_Draft[p] = solver.NumVar(0, 1, 'lambda7_Draft[%d]' % p)
+            lambda8_Draft[p] = solver.NumVar(0, 1, 'lambda8_Draft[%d]' % p)
+            lambda9_Draft[p] = solver.NumVar(0, 1, 'lambda9_Draft[%d]' % p)
+            lambda10_Draft[p] = solver.NumVar(0, 1, 'lambda10_Draft[%d]' % p)
+            lambda11_Draft[p] = solver.NumVar(0, 1, 'lambda11_Draft[%d]' % p)
+            z1_Draft[p] = solver.IntVar(0, 1, 'z1_Draft[%d]' % p)
+            z2_Draft[p] = solver.IntVar(0, 1, 'z2_Draft[%d]' % p)
+            z3_Draft[p] = solver.IntVar(0, 1, 'z3_Draft[%d]' % p)
+            z4_Draft[p] = solver.IntVar(0, 1, 'z4_Draft[%d]' % p)
             
-            solver.Add(lambda3_Draft[i] + lambda7_Draft[i] + lambda11_Draft[i] <= z1_Draft[i])
-            solver.Add(lambda1_Draft[i] + lambda5_Draft[i] + lambda9_Draft[i] <= 1 - z1_Draft[i])
-            solver.Add(lambda4_Draft[i] + lambda5_Draft[i] + lambda6_Draft[i] <= z2_Draft[i])
-            solver.Add(lambda1_Draft[i] + lambda2_Draft[i] + lambda8_Draft[i] + 
-                        lambda9_Draft[i] + lambda10_Draft[i] + lambda11_Draft[i] <= 1 - z2_Draft[i])
-            solver.Add(lambda6_Draft[i] + lambda7_Draft[i] + lambda8_Draft[i] + 
-                        lambda9_Draft[i] + lambda10_Draft[i] + lambda11_Draft[i] <= z3_Draft[i])
-            solver.Add(lambda1_Draft[i] + lambda2_Draft[i] + lambda3_Draft[i] + 
-                        lambda4_Draft[i] <= 1 - z3_Draft[i])
-            solver.Add(lambda10_Draft[i] + lambda11_Draft[i] <= z4_Draft[i])
-            solver.Add(lambda1_Draft[i] + lambda2_Draft[i] + lambda3_Draft[i] + 
-                        lambda4_Draft[i] + lambda5_Draft[i] + lambda6_Draft[i] + 
-                        lambda7_Draft[i] + lambda8_Draft[i]<= 1 - z4_Draft[i])
+            solver.Add(lambda3_Draft[p] + lambda7_Draft[p] + lambda11_Draft[p] <= z1_Draft[p])
+            solver.Add(lambda1_Draft[p] + lambda5_Draft[p] + lambda9_Draft[p] <= 1 - z1_Draft[p])
+            solver.Add(lambda4_Draft[p] + lambda5_Draft[p] + lambda6_Draft[p] <= z2_Draft[p])
+            solver.Add(lambda1_Draft[p] + lambda2_Draft[p] + lambda8_Draft[p] +
+                       lambda9_Draft[p] + lambda10_Draft[p] + lambda11_Draft[p] <= 1 - z2_Draft[p])
+            solver.Add(lambda6_Draft[p] + lambda7_Draft[p] + lambda8_Draft[p] +
+                       lambda9_Draft[p] + lambda10_Draft[p] + lambda11_Draft[p] <= z3_Draft[p])
+            solver.Add(lambda1_Draft[p] + lambda2_Draft[p] + lambda3_Draft[p] +
+                       lambda4_Draft[p] <= 1 - z3_Draft[p])
+            solver.Add(lambda10_Draft[p] + lambda11_Draft[p] <= z4_Draft[p])
+            solver.Add(lambda1_Draft[p] + lambda2_Draft[p] + lambda3_Draft[p] +
+                       lambda4_Draft[p] + lambda5_Draft[p] + lambda6_Draft[p] +
+                       lambda7_Draft[p] + lambda8_Draft[p]<= 1 - z4_Draft[p])
             
-            solver.Add(lambda1_Draft[i]+lambda2_Draft[i]+lambda3_Draft[i]+
-                        lambda4_Draft[i]+lambda5_Draft[i]+lambda6_Draft[i]+
-                        lambda7_Draft[i]+lambda8_Draft[i]+lambda9_Draft[i]+
-                        lambda10_Draft[i]+lambda11_Draft[i] == 1)
-            
-            solver.Add(displacement[i] == lambda1_Draft[i]*bDraft_n[0]+lambda2_Draft[i]*bDraft_n[1]+lambda3_Draft[i]*bDraft_n[2]+
-                                          lambda4_Draft[i]*bDraft_n[3]+lambda5_Draft[i]*bDraft_n[4]+lambda6_Draft[i]*bDraft_n[5]+
-                                          lambda7_Draft[i]*bDraft_n[6]+lambda8_Draft[i]*bDraft_n[7]+lambda9_Draft[i]*bDraft_n[8]+
-                                          lambda10_Draft[i]*bDraft_n[9]+lambda11_Draft[i]*bDraft_n[10])
-                
-            solver.Add(mean_draft[i] == lambda1_Draft[i]*cDraft_n[0]+lambda2_Draft[i]*cDraft_n[1]+lambda3_Draft[i]*cDraft_n[2]+
-                                        lambda4_Draft[i]*cDraft_n[3]+lambda5_Draft[i]*cDraft_n[4]+lambda6_Draft[i]*cDraft_n[5]+
-                                        lambda7_Draft[i]*cDraft_n[6]+lambda8_Draft[i]*cDraft_n[7]+lambda9_Draft[i]*cDraft_n[8]+
-                                        lambda10_Draft[i]*cDraft_n[9]+lambda11_Draft[i]*cDraft_n[10])
+            solver.Add(lambda1_Draft[p]+lambda2_Draft[p]+lambda3_Draft[p]+
+                       lambda4_Draft[p]+lambda5_Draft[p]+lambda6_Draft[p]+
+                       lambda7_Draft[p]+lambda8_Draft[p]+lambda9_Draft[p]+
+                       lambda10_Draft[p]+lambda11_Draft[p] == 1)
+            # Constr18d
+            solver.Add(displacement[p] ==
+                       lambda1_Draft[p]*bDraft_n[0]+lambda2_Draft[p]*bDraft_n[1]+lambda3_Draft[p]*bDraft_n[2]+
+                       lambda4_Draft[p]*bDraft_n[3]+lambda5_Draft[p]*bDraft_n[4]+lambda6_Draft[p]*bDraft_n[5]+
+                       lambda7_Draft[p]*bDraft_n[6]+lambda8_Draft[p]*bDraft_n[7]+lambda9_Draft[p]*bDraft_n[8]+
+                       lambda10_Draft[p]*bDraft_n[9]+lambda11_Draft[p]*bDraft_n[10])
+            # Constr18d
+            solver.Add(mean_draft[p] ==
+                       lambda1_Draft[p]*cDraft_n[0]+lambda2_Draft[p]*cDraft_n[1]+lambda3_Draft[p]*cDraft_n[2]+
+                       lambda4_Draft[p]*cDraft_n[3]+lambda5_Draft[p]*cDraft_n[4]+lambda6_Draft[p]*cDraft_n[5]+
+                       lambda7_Draft[p]*cDraft_n[6]+lambda8_Draft[p]*cDraft_n[7]+lambda9_Draft[p]*cDraft_n[8]+
+                       lambda10_Draft[p]*cDraft_n[9]+lambda11_Draft[p]*cDraft_n[10])
         
-        for i in range(1,Fr+1):
-            
-            for j in P_stable:
-                
-              
-                
+        for fr in range(1, Fr+1):
+            for p in P_stable:
                 # Constr18b
-                solver.Add(wn[i][j] == wn[i-1][j] + 
-                            solver.Sum([weightRatio_ct.get(i,{}).get(t,0.)*wC[t][j]/1000 for t in T]) + 
-                            solver.Sum([weightRatio_bt.get(i,{}).get(t,0.)*wB[t][j]/1000 for t in TB]) + 
-                            solver.Sum([weightRatio_ot.get(i,{}).get(t,0.)*weightOtherTank.get(t,{}).get(j,0.)/1000 for t in OtherTanks]))
+                solver.Add(wn[fr][p] ==
+                           wn[fr-1][p] +
+                           solver.Sum([weightRatio_ct.get(fr, {}).get(t, 0.)*wC[t][p]/1000 for t in T]) +
+                           solver.Sum([weightRatio_bt.get(fr, {}).get(t, 0.)*wB[t][p]/1000 for t in TB]) +
+                           solver.Sum([weightRatio_ot.get(fr, {}).get(t, 0.)*weightOtherTank.get(t, {}).get(p, 0.)/1000
+                                       for t in OtherTanks]))
                 
                 # Constr19b
-                solver.Add(mn[i][j] == mn[i-1][j] + 
-                            solver.Sum([LCG_ct.get(i,{}).get(t,0.)*weightRatio_ct.get(i,{}).get(t,0.)*wC[t][j]/1000 for t in T]) + 
-                            solver.Sum([LCG_bt.get(i,{}).get(t,0.)*weightRatio_bt.get(i,{}).get(t,0.)*wB[t][j]/1000 for t in TB]) + 
-                            solver.Sum([LCG_ot.get(i,{}).get(t,0.)*weightRatio_ot.get(i,{}).get(t,0.)*weightOtherTank.get(t,{}).get(j,0.)/1000 for t in OtherTanks]))
-                
-                #Condition20a
-                solver.Add(lowerSFlimit[i] <= BV_SF[i][j] + CD_SF[i][j]*(mean_draft[j]-base_draft[j]) - wn[i][j])
-                
+                solver.Add(mn[fr][p] ==
+                           mn[fr-1][p] +
+                           solver.Sum([LCG_ct.get(fr, {}).get(t, 0.)*weightRatio_ct.get(fr, {}).get(t, 0.)*wC[t][p]/1000 for t in T]) +
+                           solver.Sum([LCG_bt.get(fr, {}).get(t, 0.)*weightRatio_bt.get(fr, {}).get(t, 0.)*wB[t][p]/1000 for t in TB]) +
+                           solver.Sum([LCG_ot.get(fr, {}).get(t, 0.)*weightRatio_ot.get(fr, {}).get(t, 0.)*weightOtherTank.get(t, {}).get(p, 0.)/1000
+                                       for t in OtherTanks]))
+                # Condition20a
+                solver.Add(SS[fr][p] ==
+                           BV_SF[fr][p] +
+                           CD_SF[fr][p] * (mean_draft[p] + 0.5 * est_trim[p] - base_draft[p]) +
+                           CT_SF[fr][p] * est_trim[p])
+
                 # Condition20b
-                solver.Add(BV_SF[i][j] + CD_SF[i][j]*(mean_draft[j]-base_draft[j]) - wn[i][j] <= upperSFlimit[i])
-                
+                solver.Add(lowerSFlimit[fr] <= SS[fr][p] - wn[fr][p])
+
+                # Condition20c
+                solver.Add(SS[fr][p] - wn[fr][p] <= upperSFlimit[fr])
+
                 # Condition21a
-                solver.Add(lowerBMlimit[i] <= wn[i][j]*LCG_fr[i] +mn[i][j] - (BV_BM[i][j]+CD_BM[i][j]*(mean_draft[j]-base_draft[j])))
-                
+                solver.Add(SB[fr][p] ==
+                           BV_BM[fr][p] +
+                           CD_BM[fr][p] * (mean_draft[p] + 0.5 * est_trim[p] - base_draft[p]) +
+                           CT_BM[fr][p] * est_trim[p])
+
                 # Condition21b
-                solver.Add(wn[i][j]*LCG_fr[i] + mn[i][j] - (BV_BM[i][j]+ CD_BM[i][j]*(mean_draft[j]- base_draft[j])) <= upperBMlimit[i])
-                
-                
-   
-    
-    
-    #    print('print model:')
-    #    print(solver.ExportModelAsLpFormat(False).replace('\\', '').replace(',_', ','), sep='\n')
-    
-    # Output
-    ##------------------------------------------------------------------------------------------
+                solver.Add(lowerBMlimit[fr] <= wn[fr][p] * LCG_fr[fr] + mn[fr][p] - SB[fr][p])
+
+                # Condition21c
+                solver.Add(wn[fr][p] * LCG_fr[fr] + mn[fr][p] - SB[fr][p] <= upperBMlimit[fr])
+
+        # Condition200a
+        for p in P_stable:
+            solver.Add(est_trim[p] == (trim_upper.get(p, 0.001) + trim_lower.get(p, -0.001))/2)
+
+    ##########################################
+    ## Output
+    ##########################################
+
     # Solve
     print('Number of variables = %d' % solver.NumVariables())
-    print('Number of constraints = %d' % solver.NumConstraints())    
+    print('Number of constraints = %d' % solver.NumConstraints())
     status = solver.Solve()
     # assert solver.VerifySolution(1e-5, True)
 
     if status in [0, 1]:
-        
-        
         if status == 0:
             print('Optimum solution is found.')
         else:
@@ -1895,49 +1823,50 @@ def vlcc_ortools(inputs):
         print('Problem solved in %d branch-and-bound nodes' % solver.nodes())
         print('Problem solved in %d iterations' % solver.iterations())
         totloaded = 0
-        for i in C:
-            for j in Tc[i]:
-                for k in P_last_loading:
-                    totloaded = totloaded + qw2f[i][j][k].solution_value()/10
-                
-        num_sol = 1.0;
+        for c in C:
+            for t in Tc[c]:
+                for p in P_last_loading:
+                    totloaded = totloaded + qw2f[c][t][p].solution_value()/10
+
+        num_sol = 1.0
         cargoloaded = {}
         cargoloaded[num_sol] = {}
-        for i in C:
-            cargoloaded[num_sol][i] = sum([qw2f[i][j][k].solution_value()/10 for j in Tc[i] for k in P_last_loading])
-        # print(totloaded)
+        for c in C:
+            cargoloaded[num_sol][c] = sum([qw2f[c][t][p].solution_value() / 10
+                                           for t in Tc[c] for p in P_last_loading])
         res = {}
         shipStatus = {}
         xx = {}
         res[num_sol] = {}
         shipStatus[num_sol] = {}
         xx[num_sol] = {}
-        for i in C:
-            res[num_sol][i] = {}
-            shipStatus[num_sol][i] = {}
-            xx[num_sol][i] = {}
-            for j in T:
-                res[num_sol][i][j] = {}
-                shipStatus[num_sol][i][j] = {}
-                xx[num_sol][i][j] = x[i][j].solution_value()
-                for k in P:
-                    res[num_sol][i][j][k] = w[i][j][k].solution_value()
-                    shipStatus[num_sol][i][j][k] = qw2f[i][j][k].solution_value()/10
-        
+
+        for c in C:
+            res[num_sol][c] = {}
+            shipStatus[num_sol][c] = {}
+            xx[num_sol][c] = {}
+            for t in T:
+                res[num_sol][c][t] = {}
+                shipStatus[num_sol][c][t] = {}
+                xx[num_sol][c][t] = x[c][t].solution_value()
+                for p in P:
+                    res[num_sol][c][t][p] = w[c][t][p].solution_value()
+                    shipStatus[num_sol][c][t][p] = qw2f[c][t][p].solution_value() / 10
+
         wtB = {}
         wtB[num_sol] = {}
-        for i in TB:
-            wtB[num_sol][i] = {}
-            for j in P:
-                wtB[num_sol][i][j] = wB[i][j].solution_value()
-                    
+        for t in TB:
+            wtB[num_sol][t] = {}
+            for p in P:
+                wtB[num_sol][t][p] = wB[t][p].solution_value()
+
         cargoloadedport = {}
         cargoloadedport[num_sol] = {}
-        for i in C:
-            cargoloadedport[num_sol][i] = {}
-            for j in P:
-                cargoloadedport[num_sol][i][j] = 0
-                cargoloadedport[num_sol][i][j] = sum([qw2f[i][k][j].solution_value()/10 for k in Tc[i]])
+        for c in C:
+            cargoloadedport[num_sol][c] = {}
+            for p in P:
+                cargoloadedport[num_sol][c][p] = 0
+                cargoloadedport[num_sol][c][p] = sum([qw2f[c][t][p].solution_value() / 10 for t in Tc[c]])
         
         # ## to be removed
         # TB_moment = {}
@@ -1976,15 +1905,19 @@ def vlcc_ortools(inputs):
         # for i in TB:
         #     for j in P:
         #         print(wB[i][j].name(), ' = ', wB[i][j].solution_value())
+
         return {'status': status,
-                'totloaded': [(1,totloaded)],
+                'totloaded': [(1, totloaded)],
                 'cargoloaded': [(k, t, x) for k, v, in cargoloaded.items() for t, x in v.items()],
-                'res': [(k, t, u, w, p) for k, v, in res.items() for t, x in v.items() for u, y in x.items() for w, p in y.items()],
-                'shipStatus': [(k, t, u, w, p) for k, v, in shipStatus.items() for t, x in v.items() for u, y in x.items() for w, p in y.items()],
+                'res': [(k, t, u, w, p) for k, v, in res.items() for t, x in v.items() for u, y in x.items() for w, p in
+                        y.items()],
+                'shipStatus': [(k, t, u, w, p) for k, v, in shipStatus.items() for t, x in v.items() for u, y in
+                               x.items() for w, p in y.items()],
                 'xx': [(k, t, u, y) for k, v, in xx.items() for t, x in v.items() for u, y in x.items()],
                 'wtB': [(k, t, u, y) for k, v, in wtB.items() for t, x in v.items() for u, y in x.items()],
-                'cargoloadedport': [(k, t, u, y) for k, v, in cargoloadedport.items() for t, x in v.items() for u, y in x.items()],
-                'obj':[(1, Action_Amount.solution_value())]}
+                'cargoloadedport': [(k, t, u, y) for k, v, in cargoloadedport.items() for t, x in v.items() for u, y in
+                                    x.items()],
+                'obj': [(1, Action_Amount.solution_value())]}
 
         # for i in TB:
         #     for j in P:
@@ -2000,27 +1933,5 @@ def vlcc_ortools(inputs):
                 'xx': [],
                 'wtB': [],
                 'cargoloadedport': [],
-                'obj':[]}
+                'obj': []}
     
-
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-     

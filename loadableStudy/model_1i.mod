@@ -193,6 +193,7 @@ param deballastPercent default 0.4;
 set TB; #set of ballast tanks
 set TB1; # set of ballast tanks with no pw tcg details
 set TB2; # set of ballast tanks with no pw lcg details
+set minTB default {}; # set of ballast tanks >= 30cm ullage
 
 param densitySeaWater{p in Pbar} default 1.025; # density of water @ high temperature
 param densityBallast{p in Pbar} default 1.025; # density of water @ high temperature
@@ -585,8 +586,9 @@ subject to Condition112b2 {t in T, c in C, p in P_last_loading}: qw[c,t,p] <= 1e
 #subject to Condition113b {t in TB, p in P}: wB[t,p] <= 1e6*xB[t,p]; # link xB and wB
 #subject to Condition113c {t in TB, p in P}: wB[t,p] <= 1e6*xwB[t,p];
 
-subject to Condition113d1 {t in TB, p in P}: wB[t,p] >= minBallastAmt[t]*xB[t,p]; # loaded min ballast 
-subject to Condition113d2 {t in TB, p in P}: wB[t,p] <= 1e4*xB[t,p]; # loaded min ballast 
+subject to Condition113d1 {t in TB, p in P_stable}: wB[t,p] >= minBallastAmt[t]*xB[t,p]; # loaded min ballast 
+subject to Condition113d2 {t in TB, p in P_stable}: wB[t,p] <= 1e4*xB[t,p]; # loaded min ballast 
+subject to Condition113d3 {t in minTB, p in P_stable}: wB[t,p] >= minBallastAmt[t]; # loaded min ballast 
 
 # initial ballast condition
 subject to Condition114a1 {t in incTB}: initBallast[t] <= wB[t,firstloadingPort];

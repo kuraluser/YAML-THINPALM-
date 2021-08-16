@@ -12,10 +12,13 @@ import json
 from vlcc_ortools import vlcc_ortools
 from loading_seq import Loading_seq
 
+from copy import deepcopy
+
 DEC_PLACE = 3
 
 CONS = {'Condition01z': 'Min tolerance constraints violated!!',
-            'Constr122': 'Priority constraints violated!!'}
+        'Constr122': 'Priority constraints violated!!',
+        'Condition112d1': '1P and 1S cannot have same weight!!'}
 
 DENSITY = {'DSWP':1.0, 'DWP':1.0, 'FWS':1.0, 'DSWS':1.0,
                    'FO2P':0.98, 'FO2S':0.98, 'FO1P':0.98, 'FO1S':0.98, 'BFOSV':0.98, 'FOST':0.98, 'FOSV':0.98,
@@ -86,7 +89,7 @@ class Generate_plan:
             # model_3i.mod : min tank 
             
             if self.input.module in ['LOADING']:
-                model_ = 'model_1iloading.mod'
+                model_ = 'model_1i.mod'
                 dat_file = 'input_load.dat'
             else:
                 model_ = 'model_2i.mod' if self.input.mode in ['FullManual'] else 'model_1i.mod'
@@ -96,12 +99,21 @@ class Generate_plan:
             # ampl.option['show_presolve_messages'] = True
             
             if self.input.module in ['LOADING']:
-                pass
+                ampl.option['presolve'] = False
             else:
                 if self.input.mode in ['Manual'] or not self.IIS:
                     ampl.option['presolve'] = False
                 
             ampl.read(model_)
+            
+            if self.input.module in ['LOADING']:
+                # drop slop tanks must be used constraints
+                slp_ = ampl.getConstraint('Condition112g1')
+                sls_ = ampl.getConstraint('Condition112g2')
+                slp_.drop()
+                sls_.drop()
+                
+                
             ampl.readData(dat_file)
             ampl.read('run_ampl.run')
             
@@ -514,11 +526,11 @@ class Generate_plan:
             # ballast status: departure/arrive for loading/discharging port       
             if hasattr(self.input.loadable, "info"):
                 ballast_weight_ = {str(pp_):{} for pp_ in range(0,self.input.loadable.info['lastVirtualPort']+1)} 
-                tot_ballast_vol_ = {str(pp_):0. for pp_ in range(0,self.input.loadable.info['lastVirtualPort']+1)} 
+                # tot_ballast_vol_ = {str(pp_):0. for pp_ in range(0,self.input.loadable.info['lastVirtualPort']+1)} 
                 
             else:
                 ballast_weight_ = {str(pp_):{} for pp_ in range(0,self.input.loadable['lastVirtualPort']+1)}
-                tot_ballast_vol_ = {str(pp_):0. for pp_ in range(0,self.input.loadable['lastVirtualPort']+1)} 
+#                tot_ballast_vol_ = {str(pp_):0. for pp_ in range(0,self.input.loadable['lastVirtualPort']+1)} 
                 
             
             if hasattr(self.input, "mode") and self.input.mode in ['FullManual']:
@@ -596,7 +608,7 @@ class Generate_plan:
                                                           'corrLevel':round(corrLevel_,3),
                                                           'maxTankVolume':capacity_,
                                                           'vol':vol_}]
-                                 
+                                                   
                         # if k_ not in [str(self.input.port.info['numPort'])+'D']:
                         #     ship_status_[k_]['other'][i_]  = [{'wt': round(v_['wt'],DEC_PLACE), 
                         #                                   'SG':round(v_['wt']/max(1.0,v_['vol']),DEC_PLACE),
@@ -604,9 +616,12 @@ class Generate_plan:
             
             
             
+            
+            
             self.ship_status_dep.append(ship_status_dep_)       
             self.ballast_weight.append(ballast_weight_)       
             self.commingled = commingled_
+            
             
             cargo_in_tank_, max_tank_used_ = {}, 0
             # print(p_,'--------------------------------------------------------')
@@ -731,7 +746,7 @@ class Generate_plan:
                 vol_ = v_[0]['quantityM3']
                 corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
                 
-                info_ = {'parcel':v_[0]['cargo'], 'wt': round(v_[0]['quantityMT'],3), 'SG': None,
+                info_ = {'parcel':v_[0]['cargo'], 'wt': round(v_[0]['quantityMT'],3), 'SG': v_[0]['SG'],
                                      'fillRatio': None, 'tcg':v_[0]['tcg'],  'lcg':v_[0]['lcg'],
                                      'temperature':v_[0]['temperature'],
                                      'api':v_[0]['api'],
@@ -791,7 +806,7 @@ class Generate_plan:
                 
                 tankId_ = self.input.vessel.info['tankName'][k_]     
                 try:
-                    corrLevel_ = self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist()
+                    corrLevel_ = self.input.vessel.info['ullage'][str(tankId_)](float(info_['vol'])).tolist()
                 except:
                     print(k_, vol_, ': correctLevel not available!!')
                     corrLevel_ = 0.
@@ -918,6 +933,7 @@ class Generate_plan:
         data['processId'] = self.input.process_id
         data['portId'] = self.input.port_id
         data['loadingInfoId'] = self.input.information_id
+        data['hasLoadicator'] = self.input.has_loadicator
         
         # data['user'] = self.input.user
         # data['role'] = self.input.role
@@ -931,6 +947,7 @@ class Generate_plan:
             return data
         
         loading_seq = Loading_seq(self, stability_values)
+        # loading_seq._get_ballast()
         # events
         data["events"] = []
         
@@ -943,13 +960,57 @@ class Generate_plan:
             for e__, e_ in enumerate(EVENTS):
                 info1_ = {"stage": e_}
                 loading_seq._stage(info1_, c_, c__+1)
+                
+                
+                if e_ in ['loadingAtMaxRate']:
+                    for d__, d_ in enumerate(info_['sequence'][1:-1]):
+                        # print(d_['stage'])
+                        info_['sequence'][d__+1]['deballastingRateM3_Hr'] = info1_['iniDeballastingRateM3_Hr']
+                        info_['sequence'][d__+1]['ballastingRateM3_Hr'] = info1_['iniBallastingRateM3_Hr']
+                        
+                        info2_ = {'simIniDeballastingRateM3_Hr': deepcopy(info1_['simIniDeballastingRateM3_Hr']),
+                                  'simIniBallastingRateM3_Hr': deepcopy(info1_['simIniBallastingRateM3_Hr'])}
+                        
+                        
+                        for k_, v_ in info2_['simIniDeballastingRateM3_Hr'][0].items():
+                            info2_['simIniDeballastingRateM3_Hr'][0][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                            info2_['simIniDeballastingRateM3_Hr'][0][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                            
+                        for k_, v_ in info2_['simIniBallastingRateM3_Hr'][0].items():
+                            info2_['simIniBallastingRateM3_Hr'][0][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                            info2_['simIniBallastingRateM3_Hr'][0][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                             
+                        
+                        
+                        # info2_['simIniDeballastingRateM3_Hr'][0]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                        # info2_['simIniDeballastingRateM3_Hr'][0]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                        
+                        # info2_['simIniBallastingRateM3_Hr'][0]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                        # info2_['simIniBallastingRateM3_Hr'][0]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                            
+                        info_['sequence'][d__+1]['simDeballastingRateM3_Hr'] = info2_['simIniDeballastingRateM3_Hr']
+                        info_['sequence'][d__+1]['simBallastingRateM3_Hr'] = info2_['simIniBallastingRateM3_Hr']
+                        
+                  
+                    # print(info1_.keys())
+                    info1_.pop('simIniDeballastingRateM3_Hr')
+                    info1_.pop('simIniBallastingRateM3_Hr')
+                    info1_.pop('iniDeballastingRateM3_Hr')
+                    info1_.pop('iniBallastingRateM3_Hr')
+                        
                 info_["sequence"].append(info1_)
+                        
             
             data["events"].append(info_)
             
         
         data["plans"] = {'arrival':loading_seq.initial_plan, 'departure':loading_seq.final_plan}
         data["stages"] = loading_seq.stages
+        
+        data['message'] = {'limits':self.input.limits}
+        
+        
+        
         
         return data
     

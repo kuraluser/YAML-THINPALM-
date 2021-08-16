@@ -33,7 +33,8 @@ class Process_input(object):
                                   "loadingStages":data['loading']['loadingInformation']["loadingStages"],
                                   "loadingSequences":data['loading']['loadingInformation']["loadingSequences"],
                                   "toppingOffSequence":data['loading']['loadingInformation']["toppingOffSequence"],
-                                  "loadableQuantityCargoDetails":data['loading']['loadingInformation']["loadableQuantityCargoDetails"]
+                                  "loadableQuantityCargoDetails":data['loading']['loadingInformation']["loadableQuantityCargoDetails"],
+                                  "loadingMachinesInUses":data['loading']['loadingInformation']["machineryInUses"]["loadingMachinesInUses"]
                                   }
         
         
@@ -44,6 +45,13 @@ class Process_input(object):
         self.information_id = data['loading']['loadingInformation']['loadingInfoId']
         
         self.module = 'LOADING'
+        self.has_loadicator = self.vessel_json['vessel']['vessel'].get('hasLoadicator',False)
+        
+        self.max_draft = data['loading']['loadingInformation']['berthDetails'][0].get('maxDraft', None)
+        self.max_draft = 30.0 if self.max_draft in [None] else self.max_draft
+        self.max_airdraft = data['loading']['loadingInformation']['berthDetails'][0].get('airDraftLimitation', None)
+        self.max_airdraft = 100.0 if self.max_airdraft in [None] else self.max_airdraft
+        
 
     def prepare_data(self):
         
@@ -61,8 +69,18 @@ class Process_input(object):
         
     def get_param(self):
         
-        self.seawater_density = 1.025  ##           
-        self.deballast_percent = 0.4
+        
+        self.limits = {}
+        self.limits['draft'] = {}
+        self.limits['draft']['loadline'] = 100
+        self.limits['draft']['maxDraft'] =  self.max_draft 
+        self.limits['airDraft'] = self.max_airdraft
+        #self.limits['sfbm'] = self.sf_bm_frac
+        #self.limits['feedback'] = {'feedbackLoop': self.feedbackLoop,'feedbackLoopCount':self.feedbackLoopCount}
+       
+        
+        self.seawater_density = self.loading.seawater_density  ##           
+        self.deballast_percent = round(7000/self.loading.staggering_param['maxShoreRate'],3)-0.001  #0.4
         
         self.loadable = {}
         self.loadable['parcel'] = {c_:{}  for c_ in self.loading.preloaded_cargos + self.loading.info['loading_order']}
@@ -107,7 +125,7 @@ class Process_input(object):
             
         
         
-        self.loadable['stages'] = {}
+        self.loadable['stages'], self.loadable['stageTimes'] = {}, {}
         self.loadable['toLoadPort'] = {0:round(wt_,1)} ###
         for c__, c_ in enumerate(self.loading.info['loading_order']):
             last_cargo_ = True if c__+1 == len(self.loading.info['loading_order']) else False
@@ -133,6 +151,7 @@ class Process_input(object):
                     
                     self.loadable['toLoadPort1'][port_] = wt_       ## at each port
                     self.loadable['stages'][port_] = d_
+                    self.loadable['stageTimes'][port_] = self.loading.seq[c_]['loadingInfo'][d_]['Time']
                     
                     for e_ in self.loading.seq[c_]['loadingInfo'][d_].iteritems():
                         # print(e_)
@@ -221,17 +240,17 @@ class Process_input(object):
                             self.loadable['ballastOperation'][k_][str(port_)] = v_[0]['quantityMT']
                         
                 if not last_cargo_ and d_ in [self.loading.seq[c_]['justBeforeTopping'] + str(c__+1)]:
-                    print(d_,2,0)
-                    self.trim_upper[str(port_)] =  2.0
-                    self.trim_lower[str(port_)] =  0.0
+                    #print(d_,'trim constraint: 0.0 to 2.0')
+                    self.trim_upper[str(port_)] = 1.0
+                    self.trim_lower[str(port_)] = 0.0
                     
                 elif not last_cargo_ and d_ in [self.loading.seq[c_]['lastStage'] + str(c__+1)]:
-                    print(d_,1,0)
-                    self.trim_upper[str(port_)] =  1.2
-                    self.trim_lower[str(port_)] =  1.0
+                    #print(d_,'trim constraint: 0.95 to 1.05')
+                    self.trim_upper[str(port_)] =  1.01
+                    self.trim_lower[str(port_)] =  0.99
                     
                 elif  d_[0:3] in ['Max']:
-                    #print(d_,2.5,2.05) max loading stage
+                    #print(d_,'trim constraint: 2.05 to 2.5')
                     self.trim_upper[str(port_)] =  2.5
                     self.trim_lower[str(port_)] =  2.05
                     
@@ -282,8 +301,9 @@ class Process_input(object):
             est_displacement_ = lightweight_ + est_deadweight_
             
             
+            lower_displacement_limit_ = 120000
             seawater_density_ = self.seawater_density
-            est_displacement_ = est_displacement_ #max(lower_displacement_limit_, est_displacement_)  
+            est_displacement_ = max(lower_displacement_limit_, est_displacement_)  
             
             ## upper bound displacement
             # upper_draft_limit_ = min(loadline_, self.port.info['portRotation'][port_code_]['maxDraft']) - 0.001
@@ -291,14 +311,15 @@ class Process_input(object):
             ## correct displacement to port seawater density
             upper_displacement_limit_  = 1e6
             est_displacement_ = min(est_displacement_, upper_displacement_limit_)
-            self.displacement_lower[str(p_)] = 5000 #lower_displacement_limit_
+            self.displacement_lower[str(p_)] = lower_displacement_limit_
             self.displacement_upper[str(p_)] = upper_displacement_limit_
             
             est_draft_ = np.interp(est_displacement_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
             
             # base draft for BM and SF
             trim_ = 0.5*(self.trim_lower.get(str(p_),0.) + self.trim_upper.get(str(p_),0.))
-            base_draft_ = int(np.floor(est_draft_+trim_/2))
+            base_draft__ = int(np.floor(est_draft_+trim_/2))
+            base_draft_ = base_draft__ if p_  == 1 else max(base_draft__, self.base_draft[str(p_-1)])
             self.base_draft[str(p_)] = base_draft_
             # print(p_,trim_,base_draft_)
             
@@ -667,6 +688,13 @@ class Process_input(object):
                       
                 print(str1+';', file=text_file)
                 
+                str1 = 'set minTB := '
+                for i_ in self.loading.info['eduction']:
+                    if i_ not in  self.vessel.info['banBallast']:
+                        str1 += i_ + ' '
+                print(str1+';', file=text_file)
+                
+                
                 
                 print('# ballast tanks with non-pw tcg details',file=text_file)#  
                 tb_list_ = list(self.vessel.info['tankTCG']['tcg_pw'].keys()) + self.vessel.info['banBallast']
@@ -757,14 +785,14 @@ class Process_input(object):
                 
                 # same weight
                 str1 = 'set depArrPort2 := '
-                # for k__, k_  in enumerate(self.loading.seq['sameBallast']):
-                #     str1 += '('+ str(k_)  + ',' + str(k_+1) + ') '
+                for k__, k_  in enumerate(self.loading.seq['sameBallast']):
+                    str1 += '('+ str(k_)  + ',' + str(k_+1) + ') '
                 print(str1+';', file=text_file)
                 
                 # same weight
                 str1 = 'set sameBallastPort := '
-                # for k__, k_  in enumerate(self.loading.seq['sameBallast']):
-                #     str1 += '('+ str(k_)  + ',' + str(k_+1) + ') '
+                for k__, k_  in enumerate(self.loading.seq['sameBallast']):
+                    str1 += str(k_)  + ' '
                 print(str1+';', file=text_file)
                 
                 
@@ -844,7 +872,12 @@ class Process_input(object):
                 # if len(self.loadable.info['parcel']) == 1:
                 #     str1 += list(self.loadable.info['parcel'].keys())[0]
                 print(str1+';', file=text_file) 
-             
+                
+                str1 = 'set C_slop := '  
+                # if len(self.loadable.info['parcel']) == 1:
+                #     str1 += list(self.loadable.info['parcel'].keys())[0]
+                print(str1+';', file=text_file) 
+                    
                 
                 
                 print('# random seed for Gurobi', file=text_file)
