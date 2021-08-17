@@ -3,6 +3,8 @@
 Created on Sun Dec  6 12:24:27 2020
 
 @author: I2R
+
+Testing loadable module 
 """
 import json
 from uuid import uuid4
@@ -116,18 +118,18 @@ fname = 'loadableStudy26c2.json' # commingle 4C:0 onboard 90sec deballastPercent
 # fname = 'pattern_validate.json'
 
 # fname = '7588-loadablestudy.json' # fix draft error duplication 
-# fname = '7872-loadablestudy.json' # 2 port 2 cargo
+fname = '7872-loadablestudy.json' # 2 port 2 cargo
 # fname = '7967-loadablestudy.json' # fix loading hrs
 
 # fname = 'pattern_validate.json'
 # fname = 'loadablePattern_request_3995.json' # manual
 # fname = 'Loadablepatternrequest-4439.json' # loosen 98% vol, symmetric tank
 # fname = 'loadablePattern_request_3654a.json' # commingle
-# fname = 'loadablePattern_request_3984.json' # 1 cargo loaded at 2 port
+# fname = 'loadablePattern_request_3984.json' # 1 cargo loaded at 2 port manual
 
 
 # fname = 'loadableStudy_7410.json'
-fname = 'loadableStudy_8066.json' # sea water density different between arrival and departure port same set of ballast tanks might not be possible
+# fname = 'loadableStudy_8066.json' # sea water density different between arrival and departure port same set of ballast tanks might not be possible
 
 # UAT
 # fname = 'loadableStudy_8073.json'
@@ -158,9 +160,9 @@ fname = 'loadableStudy_8066.json' # sea water density different between arrival 
 # fname = 'loadableStudy_8327.json' # commingle error
 # fname = 'loadableStudy_8328b.json' # priority
 
-fname = 'loadableStudy_8380.json'
+# fname = 'loadableStudy_8380.json'
 
-fname = 'loadableStudy_9220.json'
+# fname = 'loadableStudy_9220.json'
 
 # fname = 'loadableStudy_8441a.json' #first port bunkering
 # fname = 'loadableStudy_9254.json' #first port bunkering 
@@ -175,9 +177,9 @@ fname = 'loadableStudy_9220.json'
 
 
 # fname = 'loadableStudy_8520.json'
-fname = 'loadableStudy_9660.json'
+# fname = 'loadableStudy_9660.json'
 
-# fname = 'pattern_validate_0713.json' # fully manual mode
+fname = 'pattern_validate_0713.json' # fully manual mode
 
 # fname = 'loadableStudy_9486.json'
 # fname = 'loadableStudy_9450.json'
@@ -185,6 +187,20 @@ fname = 'loadableStudy_9660.json'
 #fname = 'loadableStudy_9483.json'
 
 #fname = 'loadableStudy_0718.json'
+
+# fname = 'loadableStudy_6436.json'     # min tank 3 cargos 3 ports
+# fname = 'loadableStudy_10242.json' # min tank 3 cargos 2 ports
+
+# fname = 'loadableStudy_10155.json'
+# fname = 'loadableStudy_10129.json' # infeasbible 
+
+# fname = 'loadableStudy_8593.json' # Bunkering port as the first port 
+# fname = 'loadableStudy_8594.json' # Bunkering port in between two loading ports 
+# fname = 'loadableStudy_8595.json' # Bunkering port after last loading ports
+
+# fname = 'loadableStudy_8621.json' # 3 cargos 3 ports
+
+# fname = 'loadableStudy_7872.json' # 2 port 2 cargos each port
 
 ## to be modified in main.py --------------------------------------------
 data = {}

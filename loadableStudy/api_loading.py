@@ -30,11 +30,11 @@ def loading(data: dict) -> dict:
     params.write_ampl()
     
     #input("Press Enter to continue...")
-    # # collect plan from AMPL
+    # collect plan from AMPL
     gen_output = Generate_plan(params)
     gen_output.run(num_plans=1)
     
-    #with open('result.pickle', 'wb') as fp_:
+    # with open('result.pickle', 'wb') as fp_:
     #    pickle.dump(gen_output, fp_)  
     
     # with open('result.pickle', 'rb') as fp_:
@@ -63,7 +63,7 @@ def loadicator1(data, limits):
     for s__, s_ in enumerate(data['stages']):
         u_, v_ = s_['ldTrim'], s_['ldStrength']
         info_ = {}
-        info_['time'] = int(s_['time'])
+        info_['time'] = int(float(s_['time']))
         
         info_["calculatedDraftFwdPlanned"] = u_["foreDraftValue"]
         info_["calculatedDraftMidPlanned"] = u_["meanDraftValue"]

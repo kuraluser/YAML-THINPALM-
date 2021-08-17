@@ -133,7 +133,7 @@ class Process_input(object):
             self.loadable['operation'][c_] = {}
             self.loadable['toLoad'][c_] = 0.0
             self.loadable['manualOperation'][c_] = {t_:{}  for t_ in self.vessel.info['cargoTanks']}
-            self.loadable['toLoadCargoTank'][c_] = {t_:0.  for t_ in self.vessel.info['cargoTanks']}
+            self.loadable['toLoadCargoTank'][c_] = {} #{t_:0.  for t_ in self.vessel.info['cargoTanks']}
             
             for k_, v_ in  self.loading.info['cargo_plans'][-1].items():
                 if v_[0]['cargo'] == c_:
@@ -240,19 +240,22 @@ class Process_input(object):
                             self.loadable['ballastOperation'][k_][str(port_)] = v_[0]['quantityMT']
                         
                 if not last_cargo_ and d_ in [self.loading.seq[c_]['justBeforeTopping'] + str(c__+1)]:
-                    #print(d_,'trim constraint: 0.0 to 2.0')
-                    self.trim_upper[str(port_)] = 1.0
-                    self.trim_lower[str(port_)] = 0.0
+                    a_, b_ = 1.0, 0.0
+                    print(d_,'trim constraint:', b_, a_)
+                    self.trim_upper[str(port_)] = a_
+                    self.trim_lower[str(port_)] = b_
                     
                 elif not last_cargo_ and d_ in [self.loading.seq[c_]['lastStage'] + str(c__+1)]:
-                    #print(d_,'trim constraint: 0.95 to 1.05')
-                    self.trim_upper[str(port_)] =  1.01
-                    self.trim_lower[str(port_)] =  0.99
+                    a_, b_ = 1.01, 0.99
+                    print(d_,'trim constraint:', b_, a_)
+                    self.trim_upper[str(port_)] =  a_
+                    self.trim_lower[str(port_)] =  b_
                     
                 elif  d_[0:3] in ['Max']:
-                    #print(d_,'trim constraint: 2.05 to 2.5')
-                    self.trim_upper[str(port_)] =  2.5
-                    self.trim_lower[str(port_)] =  2.05
+                    a_, b_ = 2.5, 1.05
+                    print(d_,'trim constraint:', b_, a_)
+                    self.trim_upper[str(port_)] =  a_
+                    self.trim_lower[str(port_)] =  b_
                     
         
         
@@ -427,7 +430,7 @@ class Process_input(object):
                 
                 # for k_, v_ in self.loadable['preloadOperation'].items():
                 #     for k1_, v1_ in v_.items():
-                #         str1 = k_ + ' ' + self.tanks.cargo_tanks[k1_]['tankName'] + ' ' + str(k2_) + ' ' + str(v2_)
+                #         str1 = k_ + ' ' + self.tanks.cargo_tanks[k1_]['tankName'] + ' ' + str(k1_) + ' ' + str(v1_)
                 #         print(str1, file=text_file)
                 print(';', file=text_file)
     

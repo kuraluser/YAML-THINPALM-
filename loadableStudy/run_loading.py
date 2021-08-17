@@ -16,6 +16,13 @@ fname = 'loading_information_65b.json' # 1 single cargo
 fname = 'loading_information_40c.json'
 
 
+# fname = 'loading_information_request_144v5.json'
+
+fname = 'loading_information_request_25.json'
+
+fname = 'loading_information_request_116b.json'
+fname = 'loading_information_request_165.json'
+fname = 'loading_information_request_167.json'
 
 ## to be modified in main.py --------------------------------------------
 data = {}
@@ -35,7 +42,8 @@ data['processId'] = str(uuid4())
 
 if __name__ == "__main__":
 
+
     result = gen_sequence(data)
     
-    # with open('result.json', 'w') as f_:  
-    #     json.dump(message, f_)
+    with open('result.json', 'w') as f_:  
+        json.dump(result, f_)

@@ -5,7 +5,9 @@ Created on Sun Feb 14 14:38:01 2021
 @author: I2R
 """
 import json
-from api_vlcc import loadicator
+#from api_vlcc import loadicator
+from api_loading import loadicator1
+
 
 fname = 'loadable_pattern_loadicator_request.json' # single dict
 fname = 'loadable_study_loadicator_request.json'
@@ -19,6 +21,9 @@ fname = 'loadicator_6606.json'
 fname = 'loadicator_6680.json'
 fname = 'loadicator_0713.json'
 
+fname = 'loading_loadicator_25.json'
+fname = 'loadicator_request_165.json'
+
 
 with open(fname) as f_:    
     data = json.load(f_)
@@ -31,15 +36,18 @@ with open(fname) as f_:
 #   'airDraft': {'107327': 200, '107327': 200}}}
 
 
-limits = {'limits': {'draft': {'loadline': 20.943, '359': 20.0, '1': 20.0},
-  'operationId': {'359': '1', '1': '2'},
-  'id': 6861,
-  'vesselId': 1,
-  'voyageId': 2042,
-  'airDraft': {'359': 20.0, '1': 20.0}}}
+# limits = {'limits': {'draft': {'loadline': 20.943, '359': 20.0, '1': 20.0},
+#   'operationId': {'359': '1', '1': '2'},
+#   'id': 6861,
+#   'vesselId': 1,
+#   'voyageId': 2042,
+#   'airDraft': {'359': 20.0, '1': 20.0}}}
+
+limits = {'limits': {'draft': {'loadline': 100, 'maxDraft': 30.0}, 'airDraft': 33.69}}
+
 
 if __name__ == "__main__":
-    message = loadicator(data, limits)
+    message = loadicator1(data, limits)
     
     with open('result_loadicator.json', 'w') as f_:  
         json.dump(message, f_)

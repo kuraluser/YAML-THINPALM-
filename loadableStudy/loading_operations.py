@@ -234,8 +234,8 @@ class LoadingOperations(object):
     
     def _get_ballast(self, ballast, cargo_info_):
         
-        # density_ = 1.025
-        density_ = self.seawater_density
+        density_ = 1.025 #  ballast density
+        # density_ = self.seawater_density
         plan_ = {}
         for d_ in ballast:
             tank_, wt_ = d_['tankId'], d_['quantityMT']
@@ -322,7 +322,7 @@ class LoadingOperations(object):
                 
             if initial and cargo_ not in self.preloaded_cargos :
                 self.preloaded_cargos.append(cargo_)
-            elif cargo_ not in self.to_load_cargos:
+            elif (cargo_ not in self.to_load_cargos) and (cargo_ not in self.preloaded_cargos):
                 self.to_load_cargos.append(cargo_)
                 
         cargo_info_['cargo_plans'].append(plan_)

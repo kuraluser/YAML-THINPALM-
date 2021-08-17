@@ -71,8 +71,16 @@ fname1 = 'loadableStudy_8380.json'
 
 fname1 = 'loadableStudy_0713.json'
 
-fname1 = 'loadableStudy_9955.json'
+fname1 = 'pattern_validate_0713.json' # fully manual mode
+fname1 = 'loading_information_40c.json'
 
+fname = 'loading_information_request_144v4.json'
+fname = 'loading_loadicator_25.json'
+
+
+# fname1 = 'loadableStudy_10155.json'
+# fname1 = 'loadableStudy_10129.json'
+fname1 = 'loading_information_request_165.json'
 
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #

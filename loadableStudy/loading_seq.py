@@ -40,6 +40,7 @@ class Loading_seq:
             pre_vol_ = pre_ballast_.get(k_, [{}])[0].get('quantityM3',0.) if prev_port == 0 else  pre_ballast_.get(k_, [{}])[0].get('vol',0.)
             
             k1_ = self.plans.input.vessel.info['tankName'][k_]
+            # print(k_, cur_vol_, pre_vol_)
             if round(cur_vol_,3) < round(pre_vol_,3):
                 plan['deballastingRateM3_Hr'][k1_] = str(round((-cur_vol_ + pre_vol_)/time*60,2))
             elif round(cur_vol_,3) > round(pre_vol_,3):
@@ -51,6 +52,7 @@ class Loading_seq:
                pre_vol_ = v_[0]['quantityM3'] if prev_port == 0 else  v_[0]['vol']
                
                k1_ = self.plans.input.vessel.info['tankName'][k_]
+               # print(k_, cur_vol_, pre_vol_)
                if round(cur_vol_,3) < round(pre_vol_,3):
                     plan['deballastingRateM3_Hr'][k1_] = str(round((-cur_vol_ + pre_vol_)/time*60,2))
                elif round(cur_vol_,3) > round(pre_vol_,3):
@@ -103,6 +105,8 @@ class Loading_seq:
             else:
                 plan_ = {k_: v_ for k_, v_ in self.last_plan.items() if k_ in ['time', 'loadableQuantityCommingleCargoDetails', 'loadablePlanStowageDetails', 'loadablePlanBallastDetails', 'loadablePlanRoBDetails', 'ballastVol', 'cargoVol', 'foreDraft', 'meanDraft', 'afterDraft', 'trim', 'heel', 'airDraft', 'bendinMoment', 'shearForce']}
             
+            
+            plan_['time'] = info["timeEnd"]
             info['loadablePlanPortWiseDetails'].append(plan_)
             
             if cargo_order == 1:
@@ -213,17 +217,21 @@ class Loading_seq:
             
             info["toLoadicator"] = True
             pre_port_ = self.pre_port
+            # print('self.pre_port', self.pre_port)
+            # {1: 'MaxLoading11', 2: 'MaxLoading21', 3: 'MaxLoading31', 4: 'MaxLoading41', 5: 'MaxLoading51', 6: 'MaxLoading61', 7: 'Topping61', 8: 'MaxLoading12', 9: 'MaxLoading22', 10: 'MaxLoading32', 11: 'Topping42'}
             for k_, v_ in self.plans.input.loadable['stages'].items():
                 
                 justBeforeTopping = v_[:-1] == self.plans.input.loading.seq[cargo]['justBeforeTopping'] 
                 
+                # print(v_, justBeforeTopping)
+                
                 if v_[:3] in ['Max'] and v_[-1] == str(cargo_order) and (not justBeforeTopping):
                     time_ = self.plans.input.loading.seq[cargo]['gantt'][v_[:-1]]['Time'] + self.plans.input.loading.seq[cargo]['startTime'] + self.delay
                     plan_ = {'time': str(time_), 
-                     "loadableQuantityCommingleCargoDetails":[],
-                     "loadablePlanStowageDetails":[],
-                     "loadablePlanBallastDetails":[],
-                     "loadablePlanRoBDetails":[]}
+                             "loadableQuantityCommingleCargoDetails":[],
+                             "loadablePlanStowageDetails":[],
+                             "loadablePlanBallastDetails":[],
+                             "loadablePlanRoBDetails":[]}
                     
                     port_ = [a_ for a_, b_ in self.plans.input.loadable['stages'].items() if b_ == v_][0]
                     self._get_plan(plan_, port_)
@@ -240,19 +248,20 @@ class Loading_seq:
                     self.stages.append(info_)
                     
                     ballast_plan_ = {'deballastingRateM3_Hr':{}, 'ballastingRateM3_Hr':{}}
-                    
                     cur_time_ = self.plans.input.loadable['stageTimes'][port_]
                     pre_time_ = self.plans.input.loadable['stageTimes'].get(pre_port_, 0.)
                     
                     # print(cur_time_, pre_time_)
                     self._get_ballast_rate(ballast_plan_, port_, pre_port_, cur_time_-pre_time_)
-                    pre_port_ = port_
+                    
                     plan_['deballastingRateM3_Hr'] = ballast_plan_['deballastingRateM3_Hr']
                     plan_['ballastingRateM3_Hr'] = ballast_plan_['ballastingRateM3_Hr']
                     
-                    if self.pre_port == 0:
-                        pre_time_ = 30  # start of maxloading1
+                    if pre_port_ == self.pre_port:
+                        pre_time_ += 30  # start of maxloading1
                         
+                    # print(port_,pre_port_,cur_time_,pre_time_)
+                    # print()
                     
                     info_ = {}
                     for k1_, v1_ in  ballast_plan_['deballastingRateM3_Hr'].items():
@@ -272,21 +281,81 @@ class Loading_seq:
                     
                     info['simBallastingRateM3_Hr'].append(info_)
                     
-                    # dict(ballast_plan_['deballastingRateM3_Hr'])
+                   
                     
-                    
-                    #  = dict(ballast_plan_['ballastingRateM3_Hr'])
-                    
-                    
+                    pre_port_ = port_
                     
                     if v_[:-1] == 'MaxLoading1':
+                        
                         # pass to other stage prior to MaxLoading1
-                        info['iniDeballastingRateM3_Hr'] = ballast_plan_['deballastingRateM3_Hr']
-                        info['iniBallastingRateM3_Hr'] = ballast_plan_['ballastingRateM3_Hr']
+                        info['iniDeballastingRateM3_Hr'] = deepcopy(ballast_plan_['deballastingRateM3_Hr'])
+                        info['iniBallastingRateM3_Hr'] = deepcopy(ballast_plan_['ballastingRateM3_Hr'])
                         
-                        info['simIniDeballastingRateM3_Hr'] = info['simDeballastingRateM3_Hr']
-                        info['simIniBallastingRateM3_Hr'] = info['simBallastingRateM3_Hr']
+                        info['simIniDeballastingRateM3_Hr'] = deepcopy(info['simDeballastingRateM3_Hr'])
+                        info['simIniBallastingRateM3_Hr'] = deepcopy(info['simBallastingRateM3_Hr'])
                         
+                elif v_[:3] in ['Max'] and v_[-1] == str(cargo_order) and (justBeforeTopping):      
+                    
+                    # time_ = self.plans.input.loading.seq[cargo]['gantt'][v_[:-1]]['Time'] + self.plans.input.loading.seq[cargo]['startTime'] + self.delay
+                    # plan_ = {'time': str(time_), 
+                    #          "loadableQuantityCommingleCargoDetails":[],
+                    #          "loadablePlanStowageDetails":[],
+                    #          "loadablePlanBallastDetails":[],
+                    #          "loadablePlanRoBDetails":[]}
+                    
+                    port_ = [a_ for a_, b_ in self.plans.input.loadable['stages'].items() if b_ == v_][0]
+                    # self._get_plan(plan_, port_)
+            
+                    # info['loadablePlanPortWiseDetails'].append(plan_)
+                    
+                    # info_ = {}
+                    # for a_, b_ in plan_.items():
+                    #     if a_ in STAGE_INFO:
+                    #         info_[a_] = b_
+                    #         # if a_ in ['time']:
+                    #         #     info_[a_] = str(int(info_[a_]) + self.delay)
+                            
+                    # self.stages.append(info_)
+                    
+                    ballast_plan_ = {'deballastingRateM3_Hr':{}, 'ballastingRateM3_Hr':{}}
+                    cur_time_ = self.plans.input.loadable['stageTimes'][port_]
+                    pre_time_ = self.plans.input.loadable['stageTimes'].get(pre_port_, 0.)
+                    
+                    # print(cur_time_, pre_time_)
+                    self._get_ballast_rate(ballast_plan_, port_, pre_port_, cur_time_-pre_time_)
+                    
+                    # plan_['deballastingRateM3_Hr'] = ballast_plan_['deballastingRateM3_Hr']
+                    # plan_['ballastingRateM3_Hr'] = ballast_plan_['ballastingRateM3_Hr']
+                    
+                    if pre_port_ == self.pre_port:
+                        pre_time_ += 30  # start of maxloading1
+                        
+                    # print(port_,pre_port_,cur_time_,pre_time_)
+                    # print()
+                    
+                    info_ = {}
+                    for k1_, v1_ in  ballast_plan_['deballastingRateM3_Hr'].items():
+                        info_[k1_] = {'tankName': self.plans.input.vessel.info['tankId'][k1_],
+                                     'rate': v1_,
+                                     "timeStart": str(int(pre_time_+self.delay)), "timeEnd": str(int(cur_time_+self.delay))}
+                    
+                    info['simDeballastingRateM3_Hr'].append(info_)
+                    
+                    info_ = {}
+                    for k1_, v1_ in  ballast_plan_['ballastingRateM3_Hr'].items():
+                        info_[k1_] = {'tankName': self.plans.input.vessel.info['tankId'][k1_],
+                                     'rate': v1_,
+                                     "timeStart": str(int(pre_time_+self.delay)), 
+                                     "timeEnd": str(int(cur_time_+self.delay))}
+                    
+                    
+                    info['simBallastingRateM3_Hr'].append(info_)
+                    
+                   
+                    
+                    pre_port_ = port_
+                    
+                    
                     
             self.pre_port = pre_port_
                     
@@ -314,16 +383,22 @@ class Loading_seq:
                     
                     end_time_ = int(float(info['timeStart'])) + len(r1_)*15    
                     info["cargoLoadingRatePerTankM3_Hr"][self.plans.input.vessel.info['tankName'][k_]] = str(round(rate_,2))
-                    info["cargoLoadingRatePerTankM3_Hr"][self.plans.input.vessel.info['tankName'][k_]] = {'tankName': k_,
+                    info["simCargoLoadingRatePerTankM3_Hr"][self.plans.input.vessel.info['tankName'][k_]] = {'tankName': k_,
                                                                                                           'rate':str(round(rate_,2)),
                                                                                                           "timeStart":info['timeStart'],
                                                                                                           'timeEnd':str(end_time_)}
             
             
             # last item of last row
-            reduce_rate_ = self.plans.input.loading.seq[cargo]['staggerRate'].iloc[-1,:].to_list()[-1]
+            for i_ in range(1,13):
+                rate_ = self.plans.input.loading.seq[cargo]['staggerRate'].iloc[-i_,:].to_list()
+                if len([j_ for j_ in rate_ if j_ not in [None]]) > 0:
+                    reduce_rate_ = rate_[-1]
+                    break
+                    
+            # reduce_rate_ = self.plans.input.loading.seq[cargo]['staggerRate'].iloc[-1,:].to_list()[-1]
             info["cargoLoadingRateM3_Hr"] = {0:str(self.plans.input.loading.seq[cargo]['maxShoreRate']),
-                                             1:str(reduce_rate_) }
+                                             1:str(int(reduce_rate_)) }
             
             
             info["toLoadicator"] = True
