@@ -46,7 +46,7 @@ class Check_plans:
                     if hasattr(self.input.loadable, "info"):
                         seawater_density_ = self.input.loadable.info['seawaterDensity'][k_]
                     else:
-                        seawater_density_ = 1.025
+                        seawater_density_ = self.input.seawater_density
                     
                     
                     result = self._check_plan(plan_, k_, seawater_density=seawater_density_)

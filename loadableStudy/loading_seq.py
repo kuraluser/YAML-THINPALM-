@@ -312,7 +312,7 @@ class Loading_seq:
                         r1_ = [r_  for r_ in rate_ if r_ not in [None]] # every 15min
                         rate_ = np.mean(r1_)/2
                     
-                    end_time_ = int(info['timeStart']) + len(r1_)*15    
+                    end_time_ = int(float(info['timeStart'])) + len(r1_)*15    
                     info["cargoLoadingRatePerTankM3_Hr"][self.plans.input.vessel.info['tankName'][k_]] = str(round(rate_,2))
                     info["cargoLoadingRatePerTankM3_Hr"][self.plans.input.vessel.info['tankName'][k_]] = {'tankName': k_,
                                                                                                           'rate':str(round(rate_,2)),
