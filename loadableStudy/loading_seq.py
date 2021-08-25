@@ -109,6 +109,18 @@ class Loading_seq:
             plan_['time'] = info["timeEnd"]
             info['loadablePlanPortWiseDetails'].append(plan_)
             
+            info_ = {'time': plan_['time'], 
+                     'foreDraft': plan_['foreDraft'], 
+                     'meanDraft': plan_['meanDraft'], 
+                     'afterDraft': plan_['afterDraft'], 
+                     'trim': plan_['trim'], 
+                     'heel': None, 
+                     'airDraft': plan_['airDraft'],
+                     'bendinMoment': plan_['bendinMoment'], 
+                     'shearForce': plan_['shearForce']
+                     }
+            self.stages.append(info_)
+            
             if cargo_order == 1:
                 self.initial_plan = plan_
             

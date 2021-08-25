@@ -163,7 +163,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
         
     # print(result_url_)
     logger.info(uid + ": Upload result")
-    # print(result)
+#    print('results:',result)
     await post_response(result_url_, result, uid)
     
 def get_data(data, gID):

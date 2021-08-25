@@ -814,15 +814,6 @@ class Generate_plan:
                 
                 self.initial_ballast_weight[k_] = [info_]
                 
-                
-                
-                
-            
-            
-            
-                
-   
-        
             
     def _process_checking_plans(self, result):
         
@@ -1155,6 +1146,8 @@ class Generate_plan:
                         info_['toppingSequence'] = self.plans['topping'][sol][k_]
                         info_['timeRequiredForLoading'] = str(round(self.plans['loading_hrs'][sol][k_][0]+self.plans['loading_hrs'][sol][k_][1], 2))
                         info_['cargoNominationTemperature'] = str(self.input.loadable.info['parcel'][k_]['loadingTemperature'])
+                        info_['loadingRate'] = str(self.plans['loading_rate'][sol][k_][0])
+                        info_['timeAddedForLoading'] = str(self.plans['loading_rate'][sol][k_][1])
                         
                         plan_.append(info_)
             

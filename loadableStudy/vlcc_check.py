@@ -146,7 +146,7 @@ class Check_plans:
                 
     def _check_plan(self, plan, virtual_port, seawater_density = 1.025):
 #        print(plan)
-        print('seawater_density', seawater_density)
+#        print('seawater_density', seawater_density)
         result = {}
         
         lpp_ = self.input.vessel.info['LPP']
@@ -234,8 +234,9 @@ class Check_plans:
             tide_ = self.input.port.info['portRotation'][origin_port_]['tideHeight']
             result['airDraft'] = self.input.vessel.info['height'] - da_ + tide_
         else:
-            result['airDraft'] = 0.0
-        # print(result['airDraft'])
+            result['airDraft'] = self.input.vessel.info['height'] - da_
+            
+        # print('airDraft:', result['airDraft'])
         
         
         #
