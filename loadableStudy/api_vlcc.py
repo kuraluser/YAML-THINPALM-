@@ -14,6 +14,10 @@ from vlcc_rotation import Check_rotations
 from vlcc_gen import Generate_plan 
 from vlcc_multi_gen import Multiple_plans 
 
+
+
+from discharge_init import Process_input1
+
 # import pickle
 
 def gen_allocation(data):
@@ -24,14 +28,41 @@ def gen_allocation(data):
     
     if data.get('loadablePlanPortWiseDetails', []):
         out = manual_mode(data)        
-    else:
+    elif data['module'] in ['LOADABLE']:
         print ('Auto Mode LOADABLE --------------------------------------------')
         out = auto_mode(data)
+    else:
+        print ('DISCHARGE Mode --------------------------------------------')
+        out = discharge_mode(data)
     
     return out
 
-# def full_manual_mode(data):
-#     pass
+def discharge_mode(data):
+    out = []
+    
+    input_param = Process_input1(data)
+    input_param.prepare_dat_file()
+    input_param.write_dat_file()
+    
+    # collect plan from AMPL
+    gen_output = Generate_plan(input_param)
+    gen_output.run(num_plans=1)
+    
+    # with open('result.pickle', 'wb') as fp_:
+    #     pickle.dump(gen_output, fp_)  
+    
+    # with open('result.pickle', 'rb') as fp_:
+    #     gen_output = pickle.load(fp_)
+    
+    ## check and modify plans    
+    plan_check = Check_plans(input_param)
+    plan_check._check_plans(gen_output.plans.get('ship_status',[]), gen_output.plans.get('cargo_tank',[]))
+    
+      
+    ## gen json  
+    out = gen_output.gen_json2({}, plan_check.stability_values)
+    
+    return out
 
 def manual_mode(data):
     if not data.get('ballastEdited', False):

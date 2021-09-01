@@ -63,7 +63,7 @@ class Vessel:
         vessel_info_['deadweightConst']['tcg'] = vessel_json['vessel']['deadweightConstantTcg'] 
         ##
         vessel_info_['draftCondition'] = {}
-        if not loading:
+        if inputs.module in ['LOADABLE']:
             condition_ = next(i_ for i_ in vessel_json['vesselDraftCondition'] if i_.get("draftConditionId")  == inputs.loadline_id and i_.get("draftExtreme")  == inputs.draft_mark)
             vessel_info_['draftCondition']['deadweight'] = float(condition_['deadWeight'])
             vessel_info_['draftCondition']['draftExtreme'] = float(condition_['draftExtreme'])
@@ -347,7 +347,7 @@ class Vessel:
                     self.info['tankTCG']['tcg_pw'].pop(tank_,None)
                     # self.info['tankTCG']['tcg_pw'].pop('1P',None)
                     
-        if not loading:
+        if inputs.module in ['LOADABLE']:
             ## balllast -------------------------------------------------
             self.info['initBallast'] = {'wt': {'LFPT':4800,
                                       'WB1P':9000, 'WB1S':9000,
@@ -388,7 +388,30 @@ class Vessel:
                 self.info['notSym'] += [('1P','1C'), ('2P','2C'), ('3P','3C'), ('4P','4C'), ('5P','5C')]
                 
                 
+    def _set_preloaded(self, inputs): 
+        
+        if inputs.loadable.info['initialBallast']:
+            self.info['initBallast'] = {'wt':{}, 'dec':[], 'inc':[]}
             
+            for k_, v_ in inputs.loadable.info['initialBallast'].items():
+                tank_ = self.info['tankId'][k_]
+                self.info['initBallast']['wt'][tank_] = v_
+            
+            self.info['initBallast']['inc'] = ['LFPT','WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S']
+            
+        
+            
+        if  inputs.loadable.info['preloadOperation']:
+            info_ = {}
+            for k_, v_ in inputs.loadable.info['preloadOperation'].items():
+                info_[k_] = {}
+                for k1_, v1_ in v_.items():
+                    tank_ = self.info['tankId'][k1_]
+                    info_[k_][tank_] = v1_
+                    
+            inputs.loadable.info['preloadOperation'] = info_
+
+        
     def _get_onhand(self, inputs): 
         ## virtual ports
         DENSITY = {'DSWP':1.0, 'DWP':1.0, 'FWS':1.0, 'DSWS':1.0,
@@ -443,7 +466,7 @@ class Vessel:
         self.info['sameROB'] = []
         for p_ in range(1,inputs.port.info['numPort']):
             p1_, p2_ = str(p_)+'D', str(p_+1)+'A'
-            port1_, port2_ = inputs.port.info['portOrder'][p1_[:-1]], inputs.port.info['portOrder'][p2_[:-1]]
+            # port1_, port2_ = inputs.port.info['portOrder'][p1_[:-1]], inputs.port.info['portOrder'][p2_[:-1]]
             wt1_ = sum([v_ for k_,v_ in self.info['onhand1'].get(p1_,{}).items()])
             wt2_ = sum([v_ for k_,v_ in self.info['onhand1'].get(p2_,{}).items()])
             

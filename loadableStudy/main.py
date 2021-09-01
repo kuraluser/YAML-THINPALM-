@@ -107,7 +107,7 @@ async def run_in_process(fn, *args):
 
 async def start_cpu_bound_task(uid: str, data: dict) -> None:
 #    print(uid,type(uid))    
-    if data['module'] in ['LOADABLE']:
+    if data['module'] in ['LOADABLE', 'DISCHARGE']:
         result = await run_in_process(gen_allocation, data)
     elif data['module'] in ['LOADING']:
         result = await run_in_process(gen_sequence, data)
@@ -129,7 +129,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
     # print(result.get('validated', None))
     
     if data['module'] in ['LOADABLE']:
-        logger.info(uid + ": Allocation completed")
+        logger.info(uid + ": Loadable study completed")
     
         if result.get('validated', None) in [None]:
             logger.info(uid + ": Update status")
@@ -161,10 +161,15 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
         # print(status_url_)
         # print(result_url_)
         
+    elif data['module'] in ['DISCHARGE']:
+        logger.info(uid + ": Discharge study completed")
+        
     # print(result_url_)
     logger.info(uid + ": Upload result")
-#    print('results:',result)
-    await post_response(result_url_, result, uid)
+    
+    if data['module'] in ['LOADABLE', 'LOADING']:
+        # print(result)
+        await post_response(result_url_, result, uid)
     
 def get_data(data, gID):
     
@@ -189,6 +194,11 @@ def get_data(data, gID):
     elif data_['module'] in ['LOADING']:
         data_['loading'] = data
         data_['loading']['infoId'] = data["loadingInformation"]["loadingInfoId"]
+        
+    elif data_['module'] in ['DISCHARGE']:
+        # print('DISCHARGE MODULE')
+        data_['discharge'] = data
+    
         
     data_['vessel'] = None
     data_['processId'] = gID
@@ -224,6 +234,9 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
         vesselId_ = data_['loadable']['vesselId']
     elif data_['module'] in ['LOADING']:
         vesselId_ = data_['loading']['vesselId']
+    elif data_['module'] in ['DISCHARGE']:
+        vesselId_ = data_['discharge']['vesselId']
+ 
         # print('LOADING', vesselId_)
         
     vessel_url_ = config['url']['vessel-details'].format(vesselId=vesselId_)
@@ -234,8 +247,11 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
     
     if data_['module'] in ['LOADABLE']:
         logger.info(gID + ": Add new loadable")
-    else:
+    elif data_['module'] in ['LOADING']:
         logger.info(gID + ": Add new loading")
+    elif data_['module'] in ['DISCHARGE']:
+        logger.info(gID + ": Add new discharge")
+        
         # print('No action taken!!', data_['module'])
         
     background_tasks.add_task(start_cpu_bound_task, gID, data_)

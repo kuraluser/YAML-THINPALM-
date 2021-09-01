@@ -91,28 +91,52 @@ class Generate_plan:
             if self.input.module in ['LOADING']:
                 model_ = 'model_1i.mod'
                 dat_file = 'input_load.dat'
-            else:
+            elif self.input.module in ['LOADABLE']:
                 model_ = 'model_2i.mod' if self.input.mode in ['FullManual'] else 'model_1i.mod'
-            
+            elif self.input.module in ['DISCHARGE']:
+                model_ = 'model_1i.mod'
+                dat_file = 'input_discharge.dat'
+                
             print(model_)
             ampl = AMPL()
             # ampl.option['show_presolve_messages'] = True
             
             if self.input.module in ['LOADING']:
                 ampl.option['presolve'] = False
-            else:
+            elif self.input.module in ['LOADABLE']:
                 if self.input.mode in ['Manual'] or not self.IIS:
                     ampl.option['presolve'] = False
                 
             ampl.read(model_)
             
-            if self.input.module in ['LOADING']:
+            if self.input.module in ['LOADABLE'] and self.input.mode not in ['FullManual']:
+                c1_ = ampl.getConstraint('Condition112d5')
+                c2_ = ampl.getConstraint('Condition114g2')
+                c1_.drop()
+                c2_.drop()
+            
+            elif self.input.module in ['LOADING']:
+                c1_ = ampl.getConstraint('Condition112d5')
+                c2_ = ampl.getConstraint('Condition114g2')
+                c1_.drop()
+                c2_.drop()
+                
                 # drop slop tanks must be used constraints
                 slp_ = ampl.getConstraint('Condition112g1')
                 sls_ = ampl.getConstraint('Condition112g2')
                 slp_.drop()
                 sls_.drop()
-                
+            elif self.input.module in ['DISCHARGE']:
+                cw_ = ampl.getConstraint('Constr13b')
+                cw_.drop()
+                # drop slop tanks must be used constraints
+                slp_ = ampl.getConstraint('Condition112g1')
+                sls_ = ampl.getConstraint('Condition112g2')
+                slp_.drop()
+                sls_.drop()
+                #
+                wwt_ = ampl.getConstraint('condition24a')
+                wwt_.drop()
                 
             ampl.readData(dat_file)
             ampl.read('run_ampl.run')
@@ -140,9 +164,10 @@ class Generate_plan:
                 
                 is_succeed = True
                 
-                if hasattr(self.input.loadable, "info"):
+                toLoadPortMax_ = -1
+                if self.input.module in ['LOADABLE']:
                     toLoadPortMax_ = round(self.input.loadable.info['toLoadPort'].max(),3)
-                else:
+                elif self.input.module in ['LOADING']:
                     toLoadPortMax_ = round(max([j_ for i_, j_ in  self.input.loadable['toLoadPort'].items()]),3)
                 
                 print("{:.3f}".format(toLoadPortMax_), "{:.3f}".format(tot_load[0][1]))
@@ -736,9 +761,40 @@ class Generate_plan:
             
             
         self.initial_cargo_weight = {}
-        if self.input.module not in ['LOADING']:
-            pass
-        else:
+        if self.input.module in ['LOADABLE', 'DISCHARGE']:
+            
+            for  k_, v_ in self.input.loadable.info['preloadOperation'].items():
+                density_ = self.input.loadable.info['parcel'][k_]['maxtempSG']
+                temp_ = self.input.loadable.info['parcel'][k_]['temperature']
+                api_ = self.input.loadable.info['parcel'][k_]['api']
+                for k1_, v1_ in v_.items():
+                    
+                    tankId_ = self.input.vessel.info['tankName'][k1_]
+                    vol_ = v1_/density_
+                    
+                    tcg_data_ = self.input.vessel.info['tankTCG']['tcg'][k1_] # tcg_data
+                    lcg_data_ = self.input.vessel.info['tankLCG']['lcg'][k1_] # lcg_data
+                    
+                    tcg_ = np.interp(vol_, tcg_data_['vol'], tcg_data_['tcg'])
+                    lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
+                    
+                    corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
+                    
+                    fr_ = round(vol_/self.input.vessel.info['cargoTanks'][k1_]['capacityCubm'], DEC_PLACE)
+                    
+                    info_ = {'parcel':k_, 'wt': round(v1_,1), 'SG': density_,
+                                     'fillRatio': fr_, 'tcg':tcg_,  'lcg':lcg_,
+                                     'temperature':temp_,
+                                     'api':api_,
+                                     'corrUllage':corrUllage_
+                                     }
+                    
+                    self.initial_cargo_weight[k1_] = [info_]
+                    
+                    
+                    
+                
+        elif self.input.module in ['LOADING']:
             
             for k_, v_ in self.input.loading.info['cargo_plans'][0].items():
                 
@@ -746,7 +802,7 @@ class Generate_plan:
                 vol_ = v_[0]['quantityM3']
                 corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
                 
-                info_ = {'parcel':v_[0]['cargo'], 'wt': round(v_[0]['quantityMT'],3), 'SG': v_[0]['SG'],
+                info_ = {'parcel':v_[0]['cargo'], 'wt': round(v_[0]['quantityMT'],1), 'SG': v_[0]['SG'],
                                      'fillRatio': None, 'tcg':v_[0]['tcg'],  'lcg':v_[0]['lcg'],
                                      'temperature':v_[0]['temperature'],
                                      'api':v_[0]['api'],
@@ -814,6 +870,15 @@ class Generate_plan:
                 
                 self.initial_ballast_weight[k_] = [info_]
                 
+                
+                
+                
+            
+            
+            
+                
+   
+        
             
     def _process_checking_plans(self, result):
         
@@ -833,7 +898,7 @@ class Generate_plan:
             
             for i_ in range(0, port_+1):
                 
-                if i_ == port_ and self.input.module not in ['LOADING']:
+                if i_ == port_ and self.input.module not in ['LOADING', 'DISCHARGE']:
                     break
                 
                 ship_status_[str(i_)] = {'cargo':{},'ballast':{},'other':{}}
@@ -865,7 +930,7 @@ class Generate_plan:
             self.plans['slop_qty'].append(slop_qty_)
             ##--------------------------------------------------------------
             
-            if hasattr(self.input.loadable, "info"):
+            if hasattr(self.input.loadable, "info") and self.input.module in ['LOADABLE']:
                 self.plans['cargo_order'].append(self.input.loadable.info['cargoOrder'])
             
             ##--------------------------------------------------------------- 
@@ -907,6 +972,7 @@ class Generate_plan:
         
         return weight_api_, weight_temp_
         
+    
     
     ## for LOADING
     def gen_json1(self, constraints, stability_values):
@@ -1001,6 +1067,84 @@ class Generate_plan:
         data['message'] = {'limits':self.input.limits}
         
         
+        
+        
+        return data
+    
+    
+    ## for discharging
+    def gen_json2(self, constraints, stability_values):
+        data = {}
+        data['message'] = None
+        data['processId'] = self.input.process_id
+        data['hasLoadicator'] = self.input.has_loadicator
+        
+        if len(self.plans['ship_status']) == 0:
+            data['loadablePlanDetails'] = []
+            #data['message'] = self.input.error + self.plan['message']
+            
+            data['message'] = {**self.input.error, **self.plans['message']}
+            data['errors'] = self._format_errors(data['message'])
+            # data['validated'] = False if self.input.mode in ['Manual', 'FullManual'] else None
+            
+            return data
+        
+        # all loading port
+        path_ = [self.input.port.info['portOrder'][str(i_+1)]  for i_ in range(self.input.port.info['numPort'])]
+        # print(path_)
+        data['dischargePlanDetails'] = []
+        for s_ in range(len(self.plans['ship_status'])):
+            plan = {}
+            
+            plan['caseNumber'] = int(s_+1)
+            
+            plan['dischargePlanPortWiseDetails'] = []
+            plan['constraints'] = constraints.get(str(s_),[])
+            
+            for p__,p_ in enumerate(path_):
+                plan_ = {}
+                plan_['portId'] = int(self.input.port.info['portRotation'][p_]['portId'])
+                plan_['portCode'] = p_
+                
+                # arrival
+                plan_['arrivalCondition'] = {"dischargeQuantityCargoDetails":[],
+                                              "dischargeQuantityCommingleCargoDetails":[],
+                                              "dischargePlanStowageDetails":[],
+                                              "dischargePlanBallastDetails":[],
+                                              "dischargePlanRoBDetails":[]}
+                
+                plan_['arrivalCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'A']]
+                
+                plan_['arrivalCondition']["dischargeQuantityCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'dTotal')
+                # get loadablePlanStowageDetails
+                plan_['arrivalCondition']["dischargePlanStowageDetails"] = self._get_status(s_, str(p__+1)+'A', 'dCargoStatus')
+                # get loadablePlanBallastDetails
+                plan_['arrivalCondition']["dischargePlanBallastDetails"] = self._get_status(s_, str(p__+1)+'A', 'ballastStatus')
+                # get loadablePlanRoBDetails
+                plan_['arrivalCondition']["dischargePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'A', 'robStatus')
+                
+                # departure
+                plan_['departureCondition'] = {"dischargeQuantityCargoDetails":[],
+                                              "dischargeQuantityCommingleCargoDetails":[],
+                                              "dischargePlanStowageDetails":[],
+                                              "dischargePlanBallastDetails":[],
+                                              "dischargePlanRoBDetails":[]}
+                
+                plan_['departureCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'D']]
+                
+                plan_['departureCondition']["dischargeQuantityCargoDetails"] = self._get_status(s_, str(p__+1)+'D', 'dTotal')
+                # get loadablePlanStowageDetails
+                plan_['departureCondition']["dischargePlanStowageDetails"] = self._get_status(s_, str(p__+1)+'D', 'dCargoStatus')
+                # get loadablePlanBallastDetails
+                plan_['departureCondition']["dischargePlanBallastDetails"] = self._get_status(s_, str(p__+1)+'D', 'ballastStatus')
+                # get loadablePlanRoBDetails
+                plan_['departureCondition']["dischargePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'D', 'robStatus')
+                # get loadableQuantityCommingleCargoDetails
+                # plan_['departureCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'D', 'commingleStatus')
+                plan['dischargePlanPortWiseDetails'].append(plan_)
+                
+            data['dischargePlanDetails'].append(plan)
+        # data['message'] = {'limits':self.input.limits}
         
         
         return data
@@ -1146,11 +1290,87 @@ class Generate_plan:
                         info_['toppingSequence'] = self.plans['topping'][sol][k_]
                         info_['timeRequiredForLoading'] = str(round(self.plans['loading_hrs'][sol][k_][0]+self.plans['loading_hrs'][sol][k_][1], 2))
                         info_['cargoNominationTemperature'] = str(self.input.loadable.info['parcel'][k_]['loadingTemperature'])
-                        info_['loadingRate'] = str(self.plans['loading_rate'][sol][k_][0])
-                        info_['timeAddedForLoading'] = str(self.plans['loading_rate'][sol][k_][1])
                         
                         plan_.append(info_)
+        
+        elif category == 'dTotal':
+             if len(self.plans['cargo_status'][sol]) > 0:
+                 
+                if virtual_ in ['0']:
+                    data_ = {}
+                    
+                    for k_, v_ in self.input.loadable.info['preloadOperation'].items():
+                        data_[k_] = 0.
+                        for k1_, v1_ in v_.items():
+                            data_[k_]  += v1_
+                            
+                    self.plans['cargo_status'][sol][virtual_] = data_
+                    
+                
             
+                for k_, v_ in self.plans['cargo_status'][sol][virtual_].items():
+                    #print(k_, v_)
+                    
+                    info_ = {}
+                    info_["cargoId"] = int(self.input.loadable.info['parcel'][k_]['cargoId'])
+                    info_["dscargoNominationId"] = int(k_[1:])
+                    info_['cargoNominationId'] = int(self.input.loadable.info['parcel'][k_]['cargoNominationId'][1:])
+                    info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
+                    info_['estimatedAPI'] = str(self.input.loadable.info['parcel'][k_]['api'])
+                    info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])
+                    
+                    info_['dischargeMT'] = str(0.0)
+                    if virtual_ not in ['0']:
+                        pre_ = str(int(virtual_)-1)
+                        disch_ = self.plans['cargo_status'][sol][pre_][k_] - v_
+                        info_['dischargeMT'] = str(round(disch_,1))
+                        
+                    info_['priority'] = int(self.input.loadable.info['parcel'][k_]['priority'])
+                    info_['colorCode'] = self.input.loadable.info['parcel'][k_]['color']
+                    
+                    info_['dischargingRate'] = None
+                    info_['timeRequiredForDischarging'] = None
+                    info_['cowDetails'] = []
+                        
+                    
+                    plan_.append(info_)
+                                    
+            
+        elif category == 'dCargoStatus':
+                        
+            for k_,v_ in self.plans['ship_status'][sol][virtual_]['cargo'].items():
+                # print(k_,v_)
+                info_ = {}
+                info_['tankShortName'] = k_
+                info_['quantityMT'] = str(abs(v_[0]['wt']))
+                info_['quantityM3'] = str(round(abs(v_[0]['wt'])/v_[0]['SG'],2))
+                
+                info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['abbreviation']
+                info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
+                info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
+                info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
+                   
+                info_['temperature'] = str(v_[0]['temperature'])
+                # info_['cargoNominationTemperature'] = str(v_[0]['temperature'])
+                
+                info_['colorCode'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['color']
+                info_['api'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['api'])
+                
+                info_['dscargoNominationId'] = int(v_[0]['parcel'][1:])
+                info_['cargoNominationId'] = int(self.input.loadable.info['parcel'][v_[0]['parcel']]['cargoNominationId'][1:])
+                # info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
+                
+                # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
+                # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
+                
+                info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
+                info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
+                info_['rdgUllage'] = str(v_[0]['rdgUllage'])
+                info_['maxTankVolume'] = str(self.input.vessel.info['cargoTanks'][k_]['capacityCubm'])
+                
+                plan_.append(info_)
+                    
+                    
         elif category == 'cargoStatus':
                         
             for k_,v_ in self.plans['ship_status'][sol][virtual_]['cargo'].items():

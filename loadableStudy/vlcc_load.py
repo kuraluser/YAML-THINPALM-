@@ -17,11 +17,26 @@ class Loadable:
         cargos_info_['maxPriority'] = 0
         cargos_info_['priority'] = {i_:[] for i_ in range(10)}
         
-        
+        data_ = inputs.loadable_json['cargoNomination'] if inputs.module == 'LOADABLE' else inputs.discharge_json['cargoNomination']
         
         # operations_ = {}
         
-        for c__, c_ in enumerate(inputs.loadable_json['cargoNomination']):
+        cargoNominationId_, dscargoNominationId_ = {}, {}
+        if inputs.module == 'DISCHARGE':
+            for c__, c_ in enumerate(inputs.discharge_json['cargoOperation']):
+                if 'P' + str(c_['dscargoNominationId']) not in cargoNominationId_:
+                    cargoNominationId_['P' + str(c_['dscargoNominationId'])] = 'P' + str(c_['cargoNominationId']) 
+                    dscargoNominationId_['P' + str(c_['cargoNominationId'])] = 'P' + str(c_['dscargoNominationId']) 
+                    
+                    
+            cargos_info_['cargoNominationId'] = cargoNominationId_
+            cargos_info_['dscargoNominationId'] = dscargoNominationId_
+            
+                    
+            
+        
+        
+        for c__, c_ in enumerate(data_):
 #            print(c_)
             cargo_id_ = 'P' + str(c_['id'])
             
@@ -35,8 +50,8 @@ class Loadable:
             cargos_info_['parcel'][cargo_id_]['api']  = c_['api']
             cargos_info_['parcel'][cargo_id_]['abbreviation']  = c_['abbreviation']
             cargos_info_['parcel'][cargo_id_]['loadingTemperature']  = c_['temperature']
+            cargos_info_['parcel'][cargo_id_]['cargoNominationId'] = cargoNominationId_.get(cargo_id_, None)
             
-                        
             if c_['api'] > 90:
                 message_ = 'API > 90 for cargo ' + c_['abbreviation'] + '!!'
                 if 'API Error' not in inputs.error.keys():
@@ -44,22 +59,27 @@ class Loadable:
                 else:
                     inputs.error['API Error'].append(message_)
             
-            ## temperature, correction factor
-            first_loading_port_ = 1
-            for o__, o_ in enumerate(inputs.loadable_json['cargoOperation']):
-                if c_['id'] == o_['cargoNominationId']:
-                    port_order_ = int(inputs.port.info['idPortOrder'][str(o_['portId'])])
-                    first_loading_port_ = min(first_loading_port_, port_order_)
-                    
-            ambient_ = []
-            for k_, v_ in inputs.port.info['ambientTemperature'].items():
-                if first_loading_port_ <= int(k_):
-                    ambient_.append(round(float(v_)*1.8+32,2))
-                    
-                
-            temp_F_, api_ = c_['temperature'], c_['api']
-            temp_F_ = max(temp_F_, inputs.air_temperature, max(ambient_))
+            if inputs.module == 'LOADABLE':
             
+                ## temperature, correction factor
+                first_loading_port_ = 1
+                for o__, o_ in enumerate(inputs.loadable_json['cargoOperation']):
+                    if c_['id'] == o_['cargoNominationId']:
+                        port_order_ = int(inputs.port.info['idPortOrder'][str(o_['portId'])])
+                        first_loading_port_ = min(first_loading_port_, port_order_)
+                        
+                ambient_ = []
+                for k_, v_ in inputs.port.info['ambientTemperature'].items():
+                    if first_loading_port_ <= int(k_):
+                        ambient_.append(round(float(v_)*1.8+32,2))
+                        
+                    
+                temp_F_, api_ = c_['temperature'], c_['api']
+                temp_F_ = max(temp_F_, inputs.air_temperature, max(ambient_))
+            
+            else:
+                temp_F_, api_ = c_['temperature'], c_['api']
+                
             sg_ = self._cal_density(api_,temp_F_)
             
             cargos_info_['parcel'][cargo_id_]['temperature'] = temp_F_
@@ -386,7 +406,7 @@ class Loadable:
         if float(inputs.cargoweight) < min_cargo_:
             inputs.error['Min Tolerance Error'] = ['Min cargo tolerance is more than loadable quantity!!']
         
-    def _create_man_operations(self,inputs):
+    def _create_man_operations(self, inputs):
         
         cargos_info_ = {}
         cargos_info_['cargoPort'] = {k_:[] for k_,v_ in inputs.port.info['idPortOrder'].items()}
@@ -590,7 +610,93 @@ class Loadable:
         self.info = {**self.info, **cargos_info_}     
              
   
+    
+    def _create_discharge_operations(self, inputs):
         
+        cargos_info_ = {}
+        cargos_info_['cargoPort'] = {k_:[] for k_,v_ in inputs.port.info['idPortOrder'].items()}
+        
+        for o__, o_ in enumerate(inputs.discharge_json['cargoOperation']):
+            # cargos_info_['cargoLastLoad']['P'+str(o_['cargoNominationId'])].append(inputs.port.info['idPortOrder'][str(o_['portId'])])
+            cargos_info_['cargoPort'][str(o_['portId'])].append('P'+str(o_['dscargoNominationId']))
+            
+        len_virtual_ports_ = len(inputs.port.info['portOrder'])*2 # without cargo rotation
+        cargos_info_['virtualArrDepPort'], cargos_info_['arrDepVirtualPort']  = {},{}
+        for l_ in range(int(len_virtual_ports_/2)):
+            virtual_port_ = 2*(l_)
+            cargos_info_['virtualArrDepPort'][str(virtual_port_)] = str(l_+1)+'A'
+            cargos_info_['virtualArrDepPort'][str(virtual_port_+1)] = str(l_+1)+'D'
+            
+            cargos_info_['arrDepVirtualPort'][str(l_+1)+'A'] = str(virtual_port_)
+            cargos_info_['arrDepVirtualPort'][str(l_+1)+'D'] = str(virtual_port_+1)
+            
+        
+        # sea water density ---------------------------------------------------------------------
+        cargos_info_['seawaterDensity'] = {}
+        for k_, v_ in cargos_info_['virtualArrDepPort'].items():
+            port_name_ = inputs.port.info['portOrder'][v_[:-1]]
+            cargos_info_['seawaterDensity'][k_] = inputs.port.info['portRotation'][port_name_]['seawaterDensity']
+                
+       
+        cargos_info_['operation'] = {k_:{}  for k_,v_ in self.info['parcel'].items()}
+        cargos_info_['toDischarge'] = {k_:0 for k_,v_ in self.info['parcel'].items()}
+        
+        max_virtual_port_ = len(cargos_info_['virtualArrDepPort'])
+        cargos_info_['lastVirtualPort'] = max_virtual_port_-1 # departure of last discharge port included
+        cargos_info_['toDischargePort'] = np.zeros(max_virtual_port_) # exact ports to virtual ports
+        
+        
+        # assume discharging only port
+        #
+        for o__, o_ in enumerate(inputs.discharge_json['cargoOperation']):
+            parcel_ = 'P'+str(o_['dscargoNominationId'])
+            qty_ = float(o_['quantity']) #if o_['operationId'] == 1 else -o_['quantity'] 
+            order_ = inputs.port.info['idPortOrder'][str(o_['portId'])]
+           
+            cargos_info_['toDischarge'][parcel_] += qty_
+            
+            virtual_order_ = 2*(int(order_)-1) + 1
+           
+            cargos_info_['toDischargePort'][int(virtual_order_)] -= qty_
+            cargos_info_['operation'][parcel_][virtual_order_] = -qty_
+            
+            
+        cargos_info_['numParcel'] = len(self.info['parcel'])
+        cargos_info_['toDischargePort1'] = {a__:a_ for a__, a_ in enumerate(cargos_info_['toDischargePort']) if a_ < 0} 
+        cargos_info_['toDischargePort'] = np.cumsum(cargos_info_['toDischargePort'])
+        
+        cargos_info_['manualOperation'] = {}
+        
+        
+        
+        if inputs.discharge_json['arrivalPlan']['loadableQuantityCommingleCargoDetails']:
+            inputs.error['Cargo Error'] = ['Commingle cargo not supported!!']
+            
+        cargos_info_['preloadOperation'] = {}
+        
+        for d__, d_  in enumerate(inputs.discharge_json['arrivalPlan']['loadablePlanStowageDetails']):
+            parcel_ = self.info['dscargoNominationId']['P' + str(d_['cargoNominationId'])]
+            wt_ = float(d_['quantity'])
+            tank_ = d_['tankId']
+            ## need to convert to tankName later
+            if parcel_ not in cargos_info_['preloadOperation']:
+                cargos_info_['preloadOperation'][parcel_] = {}
+                
+            cargos_info_['preloadOperation'][parcel_][tank_] = wt_
+            
+        
+        cargos_info_['ballastOperation'] = {}
+        cargos_info_['initialBallast'] = {}
+        for d__, d_  in enumerate(inputs.discharge_json['arrivalPlan']['loadablePlanBallastDetails']):
+            wt_ = float(d_['quantity'])
+            tank_ = d_['tankId']
+            cargos_info_['initialBallast'][tank_] = wt_
+        
+        
+        
+        self.info = {**self.info, **cargos_info_}         
+        
+    
     def _cal_density(self, api, temperature_F):
         
         # temperature = ((temperature_F - 32)*5/9*100+0.5)/100

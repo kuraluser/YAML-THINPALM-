@@ -146,7 +146,7 @@ class Check_plans:
                 
     def _check_plan(self, plan, virtual_port, seawater_density = 1.025):
 #        print(plan)
-#        print('seawater_density', seawater_density)
+        # print('seawater_density', seawater_density)
         result = {}
         
         lpp_ = self.input.vessel.info['LPP']

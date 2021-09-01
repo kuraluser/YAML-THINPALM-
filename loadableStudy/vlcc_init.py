@@ -109,6 +109,7 @@ class Process_input(object):
         if not self.error:
         # prepare dat file for AMPL
             self.port = Port(self)
+            
         if not self.error:
             self.loadable = Loadable(self) # basic info
             if self.mode in ['Auto']:

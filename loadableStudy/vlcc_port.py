@@ -29,9 +29,10 @@ class Port:
                 port_rotation_[order_-1]['portOrder'] = order_
                 order_ += 1
                 
-        
-        last_loading_port_ = max([p_['portOrder'] for p_ in port_rotation_ if p_["operationId"] in [1,3,4]])
-        
+        if inputs.module in ['LOADABLE']:
+            last_loading_port_ = max([p_['portOrder'] for p_ in port_rotation_ if p_["operationId"] in [1,3,4]])
+        else:
+            last_loading_port_ = 0
         
         ports_info_ = {}
         ports_info_['portRotation'] = {}
@@ -48,16 +49,21 @@ class Port:
                                        'seaWaterTemperature':p_.get('seaWaterTemperature', 0.),
                                        'ambientTemperature':p_.get('ambientTemperature', 0.)}
            
+        last_port_ = last_loading_port_ + 1 if inputs.module == 'LOADABLE' else len(port_rotation_) + 1
         for p__, p_ in enumerate(port_rotation_): #inputs.port_json['portRotation']):
-            if p_['portOrder'] <= last_loading_port_ + 1:
+            if p_['portOrder'] <= last_port_:
                 # print(p_['portId'])
                 detail_ = port_details_[p_['portId']]
                 ports_info_['portRotation'][detail_['code']] = {}
                 ports_info_['portRotation'][detail_['code']]['order'] = p_['portOrder']
-                ports_info_['portRotation'][detail_['code']]['maxDraft'] = p_['maxDraft'] - float(inputs.draftsag)/400
+                ports_info_['portRotation'][detail_['code']]['maxDraft'] = p_['maxDraft']
                 ports_info_['portRotation'][detail_['code']]['portId'] = p_['portId']
                 ports_info_['portRotation'][detail_['code']]['seawaterDensity'] = float(p_['seaWaterDensity']) if p_['seaWaterDensity'] not in ["",None] else 1.025
                 ports_info_['portRotation'][detail_['code']]['portRotationId'] = p_['id']
+                
+                
+                if inputs.module == 'LOADABLE':
+                    ports_info_['portRotation'][detail_['code']]['maxDraft'] = p_['maxDraft'] - float(inputs.draftsag)/400
                 
                 ports_info_['portOrder'][str(p_['portOrder'])] = detail_['code']
                 ports_info_['idPortOrder'][str(p_['portId'])] = str(p_['portOrder']) # id:order
@@ -70,7 +76,7 @@ class Port:
                 ports_info_['portRotation'][detail_['code']]['ambientTemperature'] = detail_['ambientTemperature']
                 ports_info_['portRotation'][detail_['code']]['seaWaterTemperature'] = detail_['seaWaterTemperature']
                 
-                if p_['portOrder'] == 1 and p_['operationId'] not in [1]:
+                if p_['portOrder'] == 1 and p_['operationId'] not in [1, 2]:
                     ports_info_['firstPortBunker'] = True
                     
                 if p_['portOrder'] == 2 and p_['operationId'] not in [1] and ports_info_['firstPortBunker']:
@@ -98,42 +104,43 @@ class Port:
                     
         self.info = ports_info_     
         
-		# error checking -----------------------------------------------------
-        discharge_port_ = False
-        for a_, (k_, v_) in enumerate(ports_info_['portOrder'].items()):
-            oper_ = ports_info_['portRotation'][v_]['operationId']
-            
-            if oper_ in ['2',2]:
-                discharge_port_ = True
+        if inputs.module == 'LOADABLE':
+    		# error checking -----------------------------------------------------
+            discharge_port_ = False
+            for a_, (k_, v_) in enumerate(ports_info_['portOrder'].items()):
+                oper_ = ports_info_['portRotation'][v_]['operationId']
                 
-            if oper_ in ['2',2] and int(k_) < ports_info_['lastLoadingPort']:
-                if 'Port Rotation Error' not in inputs.error.keys():
-                    inputs.error['Port Rotation Error'] = ['Discharging before loading!!']
-                else:
-                    inputs.error['Port Rotation Error'].append('Discharging before loading!!')
-                
-        if not discharge_port_:
-            if 'Port Rotation Error' not in inputs.error.keys():
-                inputs.error['Port Rotation Error'] = ['Discharging port not present!!']
-            else:
-                inputs.error['Port Rotation Error'].append('Discharging port not present!!')
-                
-        for k_, v_ in ports_info_['maxDraft'].items():
-            if v_ in [None]:
-                port_ =  ports_info_['portOrder'][ports_info_['idPortOrder'][k_]]
-                if 'Max Draft Error' not in inputs.error.keys():
-                    inputs.error['Max Draft Error'] = ['Max Draft Error at '+ port_ +'!!']
-                else:
-                    inputs.error['Max Draft Error'].append('Max Draft Error at '+ port_ +'!!')
+                if oper_ in ['2',2]:
+                    discharge_port_ = True
                     
-        port_order_ = list(ports_info_['portOrder'].keys())
-        for p__ in range(1,ports_info_['numPort']+1):
-            if str(p__)  not in  port_order_:
-                # print(v_)
-                if 'Port Order Error' not in inputs.error.keys():
-                    inputs.error['Port Order Error'] = ['Port order ' + str(p__) + ' is missing!!']
+                if oper_ in ['2',2] and int(k_) < ports_info_['lastLoadingPort']:
+                    if 'Port Rotation Error' not in inputs.error.keys():
+                        inputs.error['Port Rotation Error'] = ['Discharging before loading!!']
+                    else:
+                        inputs.error['Port Rotation Error'].append('Discharging before loading!!')
+                    
+            if not discharge_port_:
+                if 'Port Rotation Error' not in inputs.error.keys():
+                    inputs.error['Port Rotation Error'] = ['Discharging port not present!!']
                 else:
-                    inputs.error['Port Order Error'].append('Port order ' + str(p__) + ' is missing!!')
+                    inputs.error['Port Rotation Error'].append('Discharging port not present!!')
+                    
+            for k_, v_ in ports_info_['maxDraft'].items():
+                if v_ in [None]:
+                    port_ =  ports_info_['portOrder'][ports_info_['idPortOrder'][k_]]
+                    if 'Max Draft Error' not in inputs.error.keys():
+                        inputs.error['Max Draft Error'] = ['Max Draft Error at '+ port_ +'!!']
+                    else:
+                        inputs.error['Max Draft Error'].append('Max Draft Error at '+ port_ +'!!')
+                        
+            port_order_ = list(ports_info_['portOrder'].keys())
+            for p__ in range(1,ports_info_['numPort']+1):
+                if str(p__)  not in  port_order_:
+                    # print(v_)
+                    if 'Port Order Error' not in inputs.error.keys():
+                        inputs.error['Port Order Error'] = ['Port order ' + str(p__) + ' is missing!!']
+                    else:
+                        inputs.error['Port Order Error'].append('Port order ' + str(p__) + ' is missing!!')
                     
             
             
