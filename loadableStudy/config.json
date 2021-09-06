@@ -2,18 +2,26 @@
   "url": {
     "vessel-details": "https://cpdss-dev.alphaorimarine.com/cpdss/api/cloud/vessel-details/{vesselId}?enableValveSeq=true",
     "database": "postgresql://postgres:postgres@127.0.0.1:5432/postgres",
-    "LOADABLE":{
+    "LOADABLE": {
       "loadable-patterns": "http://mol.thinkpalm.info:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/loadable-studies/{loadableStudyId}/loadable-patterns",
       "loadable-study-status": "http://mol.thinkpalm.info:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/loadable-studies/{loadableStudyId}/loadable-study-status",
       "validate-patterns": "http://mol.thinkpalm.info:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/loadable-studies/{loadableStudyId}/loadable-patterns/{loadablePatternId}/pattern-validate-result"
     },
-    "LOADING":{
+    "LOADING": {
       "loading-patterns": "http://13.251.226.207:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/loading-info/{infoId}/loading-plan",
       "loading-status": "http://13.251.226.207:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/loading-info/{infoId}/loading-info-status"
+    },
+    "DISCHARGE": {
+      "discharge-patterns": "http://13.251.226.207:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/discharge-studies/{dischargeStudyId}/discharge-patterns",
+      "discharge-status": "http://13.251.226.207:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/discharge-studies/{dischargeStudyId}/discharge-study-status"
     }
   },
   "log": {
     "fileName": "main.log",
     "rotation": "1 week"
+  },
+  "vessel":{"1":{
+    
+    }
   }
 }

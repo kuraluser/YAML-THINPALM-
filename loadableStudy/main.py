@@ -164,12 +164,22 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
     elif data['module'] in ['DISCHARGE']:
         logger.info(uid + ": Discharge study completed")
         
+        status_url_ = config['url']['DISCHARGE']['discharge-status'].format(vesselId=data['discharge']['vesselId'],
+                                                                    voyageId=data['discharge']['voyageId'],
+                                                                    dischargeStudyId=data['discharge']['id'])
+        result_url_ = config['url']['DISCHARGE']['discharge-patterns'].format(vesselId=data['discharge']['vesselId'],
+                                                                    voyageId=data['discharge']['voyageId'],
+                                                                    dischargeStudyId=data['discharge']['id'])
+        
+        await post_response(status_url_, {"processId" : uid, "dischargeStudyStatusId" : 4}, uid)
+        
+        
     # print(result_url_)
     logger.info(uid + ": Upload result")
     
-    if data['module'] in ['LOADABLE', 'LOADING']:
+    # if data['module'] in ['LOADABLE', 'LOADING']:
         # print(result)
-        await post_response(result_url_, result, uid)
+    await post_response(result_url_, result, uid)
     
 def get_data(data, gID):
     
