@@ -18,7 +18,36 @@ DEC_PLACE = 3
 
 CONS = {'Condition01z': 'Min tolerance constraints violated!!',
         'Constr122': 'Priority constraints violated!!',
-        'Condition112d1': '1P and 1S cannot have same weight!!'}
+        'Condition112d1': '1P and 1S cannot have same weight!!',
+        'Condition114g1': 'Deballast amt during loading cargo issue!!',
+        'Constr13': 'Displacement bound issue!!',
+        'Constr13b': 'Deadweight bound issue!!',
+        'Constr16a': 'Trim lower bound issue!!',
+        'Constr16b': 'Trim upper bound issue!!',
+        'Condition20b': 'SF lower bound issue!!',
+        'Condition20c': 'SF upper bound issue!!',
+        'Condition21b': 'BM lower bound issue!!',
+        'Condition21c': 'BM upper bound issue!!',
+        'Condition111': "Load all cargo issue!!"
+        }
+
+FIXCONS = ['Condition0', 'Condition01', 'Condition03', 'Condition041', 'Condition052', 'Condition06', 'condition22',
+           'condition23', 'condition23a', 'condition23b',
+           'condition24', 'condition24a', 'condition25', 'condition27',
+           'Constr8', 'Constr11', 'Constr12a1',
+           'Condition112a', 'Condition112b', 'Condition112c1', 'Condition112c2', 'Condition112c3',
+           'Condition112a1', 'Condition112a2',
+           'Condition112b1', 'Condition112b2',
+           'Condition113d1', 'Condition113d2', 'Condition113d3',
+           'Condition114a1', 'Condition114a2', 'Condition114a3',
+           'Condition114e1', 'Condition114e2', 'Condition114e3', 'Condition114e4', 'Condition114e5', 'Condition114e6',
+           'Condition114f1',
+           'Constr17a', 'Constr13c1', 'Constr13c2',
+           'Constr13a',
+           'Constr15b1', 'Constr15b2', 'Constr15c1', 'Constr15c2', 'Constr153', 'Constr154',
+           'Constr16b1', 'Constr16b2', 'Constr161', 'Constr163', 'Constr164',
+           'Constr18a', 'Constr18b', 'Constr19a', 'Constr19b', 'Constr18d', 'Condition200a',
+           'Condition20a', 'Condition21a']
 
 DENSITY = {'DSWP':1.0, 'DWP':1.0, 'FWS':1.0, 'DSWS':1.0,
                    'FO2P':0.98, 'FO2S':0.98, 'FO1P':0.98, 'FO1S':0.98, 'BFOSV':0.98, 'FOST':0.98, 'FOSV':0.98,
@@ -126,6 +155,9 @@ class Generate_plan:
                 sls_ = ampl.getConstraint('Condition112g2')
                 slp_.drop()
                 sls_.drop()
+                
+               
+                
             elif self.input.module in ['DISCHARGE']:
                 cw_ = ampl.getConstraint('Constr13b')
                 cw_.drop()
@@ -187,7 +219,7 @@ class Generate_plan:
                     print('The following constraints are violated:')
                     for v_ in violated_cons:
                         if v_[1] not in ['non', '0']:
-                            print(cons[int(v_[0])-1][1])
+                            # print(cons[int(v_[0])-1][1])
                             
                             if cons[int(v_[0])-1][1].split('[')[0] not in violated_cons_:
                                 violated_cons_.append(cons[int(v_[0])-1][1].split('[')[0])
@@ -217,14 +249,20 @@ class Generate_plan:
                         
                     # print({'volatedConstraints':violated_cons_})
                     
+                    remove_ = True
+                    
                     for l_ in violated_cons_:
                         
                          con_ = CONS.get(l_,None)
                          if con_ not in [None]:
                              message.append(con_)
-                         else:
+                         elif remove_ and l_ not in FIXCONS:
                              message.append(l_ + ' violated!!')
-                         
+                         elif not remove_:
+                             message.append(l_ + ' violated!!')
+
+                             
+                    print(message)
                          
                     
            

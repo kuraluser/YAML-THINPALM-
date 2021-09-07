@@ -224,6 +224,11 @@ class Process_input(object):
                 # if len(self.loading.info['loading_order']) > 1:
                 #     exit()
                 
+                max_trim_ = self.loading_info_json['trimAllowed']['maximumTrim']
+                max_trim_ = max_trim_ if max_trim_ not in [None] else 3.0
+                
+                top_trim_ = self.loading_info_json['trimAllowed']['finalTrim']
+                top_trim_ = top_trim_ if top_trim_ not in [None] else 1.0
                 
                 
                 if d_ in self.loading.seq[c_]['fixBallast'] or (last_cargo_ and  d_[0:3] in ['Top']):
@@ -240,20 +245,21 @@ class Process_input(object):
                             self.loadable['ballastOperation'][k_][str(port_)] = v_[0]['quantityMT']
                         
                 if not last_cargo_ and d_ in [self.loading.seq[c_]['justBeforeTopping'] + str(c__+1)]:
-                    a_, b_ = 1.0, 0.0
-                    print(d_,'trim constraint:', b_, a_)
+                    a_, b_ = min(max_trim_, top_trim_), 0.0
+                    print(d_,'justBeforeTopping trim -- constraint:', b_, a_)
                     self.trim_upper[str(port_)] = a_
                     self.trim_lower[str(port_)] = b_
                     
                 elif not last_cargo_ and d_ in [self.loading.seq[c_]['lastStage'] + str(c__+1)]:
                     a_, b_ = 1.01, 0.99
-                    print(d_,'trim constraint:', b_, a_)
+                    print(d_,'lastStage -- trim constraint:', b_, a_)
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_
                     
                 elif  d_[0:3] in ['Max']:
-                    a_, b_ = 2.5, 1.05
-                    print(d_,'trim constraint:', b_, a_)
+                    
+                    a_, b_ = max_trim_, 0.0
+                    print(d_,'Max loading -- trim constraint:', b_, a_)
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_
                     
