@@ -39,19 +39,19 @@ class Process_input1(object):
         self.process_id  = data.get('processId',None)
         # self.loadline_id = data['loadable']['loadlineId']
         # self.draft_mark = data['loadable']['draftMark']
-        
+        self.config = data['config']
         self.module = data['module']
         
         print('module:', self.module)
         
-        self.solver = _SOLVER_
+        self.solver = self.config['solver'] #_SOLVER_
                 
         self.preloaded_cargo = []
         
         self.error = {}
         
         
-        self.deballast_percent = 0.4
+        self.deballast_percent = self.config['deballast_percent'] #0.4
         self.commingle_temperature = None
         
         self.has_loadicator = self.vessel_json['vessel']['vessel'].get('hasLoadicator',False)
@@ -77,7 +77,7 @@ class Process_input1(object):
         
     def get_stability_param(self, ballast_weight_ = 91800, sf_bm_frac = 0.95, trim_upper = 3.0, trim_lower = 2.5):
         
-        self.ballast_percent = 0.4 
+        self.ballast_percent = self.config['ballast_percent'] #0.4 
         lightweight_ = self.vessel.info['lightweight']['weight']
         max_deadweight_ = 1000*1000
         cont_weight_ = self.vessel.info['deadweightConst']['weight'] #+ self.vessel.info['onboard']['totalWeight']

@@ -30,7 +30,9 @@ class Vessel:
         vessel_info_ = {}
         
         vessel_info_['hasLoadicator'] = vessel_json['vessel'].get('hasLoadicator', False)
-        vessel_info_['banBallast'] = ['UFPT']   # 'AWBP','AWBS'
+        # vessel_info_['banBallast'] = ['UFPT']   ## config
+        vessel_info_['banBallast'] = inputs.config['ban_ballast']   
+        
         if hasattr(inputs, 'loadable'):
             vessel_info_['banCargo'] = {k_:[] for k_,v_ in inputs.loadable.info['parcel'].items()}
         else:
@@ -47,7 +49,7 @@ class Vessel:
         vessel_info_['loadingRate1'] = {l_['name']: [float(l__['value']) for l__ in l_['values'] if l__['type'] == 1][0]   for l_ in loadingRate_}
         
         ## 
-        vessel_info_['name'] = vessel_json['vessel']['name']
+        vessel_info_['name'] = vessel_json['vessel']['name'].replace(" ", "")
         
         ##
         vessel_info_['lightweight'] = {}
@@ -349,13 +351,9 @@ class Vessel:
                     
         if inputs.module in ['LOADABLE']:
             ## balllast -------------------------------------------------
-            self.info['initBallast'] = {'wt': {'LFPT':4800,
-                                      'WB1P':9000, 'WB1S':9000,
-                                      'WB2P':9000, 'WB2S':9000,
-                                      'WB3P':9000, 'WB3S':9000,
-                                      'WB4P':8900, 'WB4S':8900,
-                                      'WB5P':7600, 'WB5S':7600},
-                                        'dec':['APT','LFPT','WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S','AWBP','AWBS'],
+            ## config
+            self.info['initBallast'] = {'wt': inputs.config['initial_ballast'],
+                                        'dec':[t_ for t_ in self.info['ballastTanks'] if t_ not in self.info['banBallast']],
                                         'inc':[]}
             
             
@@ -371,7 +369,9 @@ class Vessel:
             else:
                 self.info['rotationVirtual'] = []  
             ## cargo tank requirements
-            tanks_ = ['SLS', '1P', '1S', '2P', '2S', '4P', '4S', '5P', '3P', '3S', '5S']
+            ## config all wing tank + slot tank
+            # tanks_ = ['SLS', '1P', '1S', '2P', '2S', '4P', '4S', '5P', '3P', '3S', '5S']
+            tanks_ = inputs.config['tanks_max_cargo']
             capacity_ = sum([0.98*v_['capacityCubm']  for k_,v_ in self.info['cargoTanks'].items() if k_ in tanks_])
             
             asym_ = True
@@ -383,9 +383,12 @@ class Vessel:
                         asym_ = False
                         self.info['maxCargo'].append(k_)
             
-            self.info['notSym'] = [('SLS','SLP')]
+            ## config
+            # self.info['notSym'] = [('SLS','SLP')]
+            self.info['notSym'] = [inputs.config['diff_cargo_slops']]
             if asym_ and inputs.mode in ['Auto']:
-                self.info['notSym'] += [('1P','1C'), ('2P','2C'), ('3P','3C'), ('4P','4C'), ('5P','5C')]
+                #self.info['notSym'] += [('1P','1C'), ('2P','2C'), ('3P','3C'), ('4P','4C'), ('5P','5C')]
+                self.info['notSym'] += inputs.config['diff_cargo_tanks']
                 
                 
     def _set_preloaded(self, inputs): 
@@ -397,6 +400,7 @@ class Vessel:
                 tank_ = self.info['tankId'][k_]
                 self.info['initBallast']['wt'][tank_] = v_
             
+            ## config for discharging 
             self.info['initBallast']['inc'] = ['LFPT','WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S']
             
         
@@ -413,10 +417,15 @@ class Vessel:
 
         
     def _get_onhand(self, inputs): 
-        ## virtual ports
-        DENSITY = {'DSWP':1.0, 'DWP':1.0, 'FWS':1.0, 'DSWS':1.0,
-                   'FO2P':0.98, 'FO2S':0.98, 'FO1P':0.98, 'FO1S':0.98, 'BFOSV':0.98, 'FOST':0.98, 'FOSV':0.98,
-                   'DO1S':0.88,  'DO2S':0.88, 'DOSV1':0.88, 'DOSV2':0.88}
+        # ## virtual ports ## config
+        # DENSITY = {'DSWP':1.0, 'DWP':1.0, 'FWS':1.0, 'DSWS':1.0,
+        #            'FO2P':0.98, 'FO2S':0.98, 'FO1P':0.98, 'FO1S':0.98, 'BFOSV':0.98, 'FOST':0.98, 'FOSV':0.98,
+        #            'DO1S':0.88,  'DO2S':0.88, 'DOSV1':0.88, 'DOSV2':0.88}
+        
+        # ROB_CHANGE = 200 ## config
+        
+        DENSITY = inputs.config['rob_density'] # default density of ROB
+        ROB_CHANGE = inputs.config['rob_change'] # change in ROB which required adjusting ballast b/w departure and arrival
         
         onhand_json = inputs.vessel_json['onHand']
         self.info['onhand'] = {} # ROB
@@ -470,7 +479,7 @@ class Vessel:
             wt1_ = sum([v_ for k_,v_ in self.info['onhand1'].get(p1_,{}).items()])
             wt2_ = sum([v_ for k_,v_ in self.info['onhand1'].get(p2_,{}).items()])
             
-            if abs(wt1_-wt2_) <= 200:
+            if abs(wt1_-wt2_) <= ROB_CHANGE:
             # if (self.info['onhand1'].get(p1_,{}) == self.info['onhand1'].get(p2_,{})) and (inputs.port.info['portRotation'][port1_]['seawaterDensity'] == inputs.port.info['portRotation'][port2_]['seawaterDensity']):
                 print('ROB:', p1_, p2_, inputs.loadable.info['arrDepVirtualPort'][p1_], inputs.loadable.info['arrDepVirtualPort'][p2_])
                 self.info['sameROB'].append((inputs.loadable.info['arrDepVirtualPort'][p1_],inputs.loadable.info['arrDepVirtualPort'][p2_]))
@@ -739,7 +748,7 @@ class Vessel:
         # with open('ullage_data.json', 'w') as f_:  
         #     json.dump({'data':vessel_info_['ullage']}, f_)
         
-        if not Path(vessel_info_['name']+'_ullage.pickle').is_file():
+        if not Path(vessel_info_['name'] +'_ullage.pickle').is_file():
             
             
             ullageDetails = pd.DataFrame(ullage_data['ullageDetails'], dtype=np.float)
@@ -763,9 +772,9 @@ class Vessel:
                 
                 yy_ = []
                 if k_ in vessel_info_['ballastTanks']:
-                    yy_ = ullage_['soundDepth']
+                    yy_ = ullage_['soundDepth'].astype('float')
                 elif k_ in vessel_info_['cargoTanks']:
-                    yy_ = ullage_['ullageDepth']
+                    yy_ = ullage_['ullageDepth'].astype('float')
                 
                 if len(yy_) >  0:
                     
@@ -779,6 +788,8 @@ class Vessel:
             
             vessel_info_['ullage']  = ullage_func
             vessel_info_['ullageCorr']  = ullage_corr
+            vessel_info_['ullageInvFunc']  = ullage_inv_func
+            
             
             with open(vessel_info_['name']  +'_ullage.pickle', 'wb') as fp_:
                 pickle.dump([ullage_func, ullage_corr, ullage_inv_func, ullage_data], fp_)     

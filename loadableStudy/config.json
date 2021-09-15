@@ -20,8 +20,242 @@
     "fileName": "main.log",
     "rotation": "1 week"
   },
-  "vessel":{"1":{
-    
+  "vessel": {
+    "1": {
+      "after_loading_trim": 1,
+      "ballast_percent": 0.4,
+      "ban_ballast": [
+        "UFPT"
+      ],
+      "deballast_percent": 0.4,
+      "diff_cargo_slops": [
+        "SLS",
+        "SLP"
+      ],
+      "diff_cargo_tanks": [
+        [
+          "1P",
+          "1C"
+        ],
+        [
+          "2P",
+          "2C"
+        ],
+        [
+          "3P",
+          "3C"
+        ],
+        [
+          "4P",
+          "4C"
+        ],
+        [
+          "5P",
+          "5C"
+        ]
+      ],
+      "initial_ballast": {
+        "LFPT": 4800,
+        "WB1P": 9000,
+        "WB1S": 9000,
+        "WB2P": 9000,
+        "WB2S": 9000,
+        "WB3P": 9000,
+        "WB3S": 9000,
+        "WB4P": 8900,
+        "WB4S": 8900,
+        "WB5P": 7600,
+        "WB5S": 7600
+      },
+      "last_loading_port_ballast_ban": [
+        "WB1P",
+        "WB1S",
+        "WB2P",
+        "WB2S",
+        "WB3P",
+        "WB3S",
+        "WB4P",
+        "WB4S",
+        "WB5P",
+        "WB5S"
+      ],
+      "min_draft_limit": 10.425,
+      "rob_density": {
+        "DSWP": 1.0,
+        "DWP": 1.0,
+        "FWS": 1.0,
+        "DSWS": 1.0,
+        "FO2P": 0.98,
+        "FO2S": 0.98,
+        "FO1P": 0.98,
+        "FO1S": 0.98,
+        "BFOSV": 0.98,
+        "FOST": 0.98,
+        "FOSV": 0.98,
+        "DO1S": 0.88,
+        "DO2S": 0.88,
+        "DOSV1": 0.88,
+        "DOSV2": 0.88
+      },
+      "rob_change": 200,
+      "solver": "AMPL",
+      "sym_vol_tanks": [
+        [
+          "1P",
+          "1S"
+        ],
+        [
+          "2P",
+          "2S"
+        ],
+        [
+          "SLS",
+          "SLP"
+        ],
+        [
+          "3P",
+          "3S"
+        ],
+        [
+          "4P",
+          "4S"
+        ],
+        [
+          "5P",
+          "5S"
+        ]
+      ],
+      "tanks_max_cargo": [
+        "SLS",
+        "1P",
+        "1S",
+        "2P",
+        "2S",
+        "4P",
+        "4S",
+        "5P",
+        "3P",
+        "3S",
+        "5S"
+      ]
+    },
+    "2": {
+      "after_loading_trim": 1,
+      "ballast_percent": 0.4,
+      "ban_ballast": [
+        "UFPT"
+      ],
+      "deballast_percent": 0.4,
+      "diff_cargo_slops": [
+        "SLS",
+        "SLP"
+      ],
+      "diff_cargo_tanks": [
+        [
+          "1P",
+          "1C"
+        ],
+        [
+          "2P",
+          "2C"
+        ],
+        [
+          "3P",
+          "3C"
+        ],
+        [
+          "4P",
+          "4C"
+        ],
+        [
+          "5P",
+          "5C"
+        ]
+      ],
+      "initial_ballast": {
+        "LFPT": 4800,
+        "WB1P": 9000,
+        "WB1S": 9000,
+        "WB2P": 9000,
+        "WB2S": 9000,
+        "WB3P": 9000,
+        "WB3S": 9000,
+        "WB4P": 8900,
+        "WB4S": 8900,
+        "WB5P": 7600,
+        "WB5S": 7600
+      },
+      "last_loading_port_ballast_ban": [
+        "WB1P",
+        "WB1S",
+        "WB2P",
+        "WB2S",
+        "WB3P",
+        "WB3S",
+        "WB4P",
+        "WB4S",
+        "WB5P",
+        "WB5S"
+      ],
+      "min_draft_limit": 10.425,
+      "rob_density": {
+        "DSWP": 1,
+        "DWP": 1,
+        "FWS": 1,
+        "DSWS": 1,
+        "FO2P": 0.98,
+        "FO2S": 0.98,
+        "FO1P": 0.98,
+        "FO1S": 0.98,
+        "BFOSV": 0.98,
+        "FOST": 0.98,
+        "FOSV": 0.98,
+        "DO1S": 0.88,
+        "DO2S": 0.88,
+        "DOSV1": 0.88,
+        "DOSV2": 0.88
+      },
+      "rob_change": 200,
+      "solver": "AMPL",
+      "sym_vol_tanks": [
+        [
+          "1P",
+          "1S"
+        ],
+        [
+          "2P",
+          "2S"
+        ],
+        [
+          "SLS",
+          "SLP"
+        ],
+        [
+          "3P",
+          "3S"
+        ],
+        [
+          "4P",
+          "4S"
+        ],
+        [
+          "5P",
+          "5S"
+        ]
+      ],
+      "tanks_max_cargo": [
+        "SLS",
+        "1P",
+        "1S",
+        "2P",
+        "2S",
+        "4P",
+        "4S",
+        "5P",
+        "3P",
+        "3S",
+        "5S"
+      ]
     }
   }
 }

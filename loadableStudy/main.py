@@ -201,18 +201,23 @@ def get_data(data, gID):
             print('auto mode!!!')
             data_['loadable'] = data
             
+        vessel_id_ = data_['loadable']['vesselId']
+            
     elif data_['module'] in ['LOADING']:
         data_['loading'] = data
         data_['loading']['infoId'] = data["loadingInformation"]["loadingInfoId"]
         
+        vessel_id_ = data_['loading']['vesselId']
+        
     elif data_['module'] in ['DISCHARGE']:
         # print('DISCHARGE MODULE')
         data_['discharge'] = data
+        vessel_id_ = data_['discharge']['vesselId']
     
         
     data_['vessel'] = None
     data_['processId'] = gID
-    
+    data_['config'] = config["vessel"][str(vessel_id_)]
     
     print('module', data_['module'])
     

@@ -233,7 +233,12 @@ class Loading_seq:
                                                                                                               "timeEnd": info["timeEnd"]}
             
             
-            info["toLoadicator"] = True
+            info["toLoadicator"] = True            
+            info['simIniDeballastingRateM3_Hr'] = {}
+            info['simIniBallastingRateM3_Hr'] = {}
+            info['iniDeballastingRateM3_Hr'] = {}
+            info['iniBallastingRateM3_Hr'] = {}
+            
             pre_port_ = self.pre_port
             # print('self.pre_port', self.pre_port)
             # {1: 'MaxLoading11', 2: 'MaxLoading21', 3: 'MaxLoading31', 4: 'MaxLoading41', 5: 'MaxLoading51', 6: 'MaxLoading61', 7: 'Topping61', 8: 'MaxLoading12', 9: 'MaxLoading22', 10: 'MaxLoading32', 11: 'Topping42'}
@@ -503,6 +508,12 @@ class Loading_seq:
             info_['ullage'] = str(round(abs(v_[0]['corrUllage']),3))
             info_['cargoNominationId'] = int(v_[0]['parcel'][1:])
             
+            info_['cargoId'] = self.plans.input.loading.info['cargoId'][v_[0]['parcel']]
+            info_['colorCode'] = self.plans.input.loading.info['colorCode'][v_[0]['parcel']]
+            info_['abbreviation'] = self.plans.input.loading.info['abbreviation'][v_[0]['parcel']]
+            
+            
+            
             if v_[0]['parcel'] not in plan["cargoVol"]:
                 plan["cargoVol"][v_[0]['parcel']] = v_[0]['wt']/v_[0]['SG']
             else:
@@ -527,6 +538,10 @@ class Loading_seq:
             info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
             info_['sounding'] = str(round(v_[0]['corrLevel'],3))
             
+            info_['sg'] = str(v_[0]['SG'])
+            info_['colorCode'] = self.plans.input.loading.ballast_color[k_]
+            
+            
             plan["ballastVol"] += v_[0]['vol']
             
             plan["loadablePlanBallastDetails"].append(info_)
@@ -539,6 +554,10 @@ class Loading_seq:
             info_['tankId'] = int(self.plans.input.vessel.info['tankName'][k_])
             info_['quantityMT'] = str(round(abs(v_[0]['wt']),2))
             info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
+            
+            info_['density'] = str(self.plans.input.config['rob_density'][k_])
+            info_['colorCode'] = self.plans.input.loading.rob_color[k_]
+            
             
             plan["loadablePlanRoBDetails"].append(info_)
             

@@ -176,7 +176,7 @@ class Check_plans:
             v_mom_ += v_[0]['wt']*self.input.vessel.info[type_][k_]['vcg']
             t_mom_ += v_[0]['wt']*v_[0]['tcg']
             
-            # if type_ in ['cargoTanks'] and abs(self.input.vessel.info[type_][k_]['lcg'] - v_[0]['lcg']) > 0.01:
+            # if type_ in ['cargoTanks', 'ballastTanks'] and abs(self.input.vessel.info[type_][k_]['lcg'] - v_[0]['lcg']) > 0.01:
             #       print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'], v_[0].get('wt',0), v_[0]['fillRatio'])
             # print(k_, v_[0]['wt'], v_[0]['tcg'], v_[0]['wt']*v_[0]['tcg'])
             # print(k_, v_[0]['wt'], self.input.vessel.info[type_][k_]['lcg'], v_[0]['wt']*self.input.vessel.info[type_][k_]['lcg'])

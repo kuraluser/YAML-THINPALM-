@@ -25,7 +25,7 @@ class LoadingOperations(object):
     
     def __init__(self, data):
         
-        
+        self.ballast_color, self.rob_color = {}, {}
         self.vessel = data.vessel
         
         self.time_interval = data.loading_info_json['loadingStages']['stageDuration']*60 # in 60*4 min
@@ -70,6 +70,7 @@ class LoadingOperations(object):
         self.seawater_density = float(data.port_json['portDetails'][0]['seawaterDensity'])
         
         self.preloaded_cargos, self.to_load_cargos = [], []
+        self.commingle_loading, self.commingle_preloaded = False, False
         
          
         cargo_info_ = {}
@@ -96,9 +97,18 @@ class LoadingOperations(object):
         # cargo_info_['loading_order'] = ['P'+str(d_['cargoNominationId']) for d_ in data.loading_info_json['loadingSequences']['loadingDelays'] if d_['cargoNominationId'] not in [0]]
         
         # for the whole voyage
-        cargo_info_['loading_order1'] = {'P'+str(d_['cargoNominationId']): d_['loadingOrder']  for d_ in data.loading_info_json['loadableQuantityCargoDetails']}
+        # cargo_info_['loading_order1'] = {'P'+str(d_['cargoNominationId']): d_['loadingOrder']  for d_ in data.loading_info_json['loadableQuantityCargoDetails']}
+        cargo_info_['loading_order1'], order_ = {}, 1
+        for d_ in data.loading_info_json['loadingSequences']['loadingDelays']:
+            if d_['cargoNominationId'] in [0]:
+                pass
+            else:
+                cargo_ = 'P'+str(d_['cargoNominationId'])
+                cargo_info_['loading_order1'][cargo_] = order_
+                order_ += 1
+                        
         cargo_info_['timing_delay1'] = [0 for d_ in range(len(cargo_info_['loading_order1']))]
-        
+        # cumsum
         for d_ in data.loading_info_json['loadingSequences']['loadingDelays']:
             if d_['cargoNominationId'] in [0]:
                 cargo_info_['timing_delay1'][0] +=  d_['duration']
@@ -112,12 +122,15 @@ class LoadingOperations(object):
         # add plans -------------------------------------------------------------------------
         cargo_info_['cargo_plans'] = []
         cargo_info_['cargo_tank'] = {}
-        cargo_info_['density'] = {}
         cargo_info_['density'], cargo_info_['api'], cargo_info_['temperature'] = {}, {}, {}
+        cargo_info_['cargoId'], cargo_info_['colorCode'], cargo_info_['abbreviation'] = {}, {}, {}
+        cargo_info_['commingle'] = {}
         
         # initial plan
         self._get_plan(data.loadable_json['planDetails']['arrivalCondition']['loadablePlanStowageDetails'],
-                       cargo_info_, data.loading_info_json['loadableQuantityCargoDetails'], initial = True)
+                       cargo_info_, data.loading_info_json['loadableQuantityCargoDetails'], 
+                       commingleDetails = data.loadable_json['planDetails']['arrivalCondition']['loadablePlanCommingleDetails'],
+                       initial = True)
         
         
         cargo_info_['pre_cargo'] = [k_ for k_,v_ in cargo_info_['cargo_tank'].items()]
@@ -128,7 +141,7 @@ class LoadingOperations(object):
                 cargo_info_['loading_order'][v_-1] = k_
                 cargo_info_['timing_delay'][v_-1] = cargo_info_['timing_delay1'][v_-1]
         
-        # remove -1 
+        # remove -1; info only for current loading in this port
         cargo_info_['loading_order'] = [d_ for d_ in cargo_info_['loading_order'] if d_ not in [-1]]
         cargo_info_['timing_delay'] = [d_ for d_ in cargo_info_['timing_delay'] if d_ not in [-1]]
         
@@ -140,12 +153,16 @@ class LoadingOperations(object):
             not_cargo_ = cargo_info_['loading_order'][o__+1:]
             # print(not_cargo_)
             self._get_plan(data.loadable_json['planDetails']['departureCondition']['loadablePlanStowageDetails'],
-                       cargo_info_, data.loading_info_json['loadableQuantityCargoDetails'], initial = False, not_cargo = not_cargo_)
+                       cargo_info_, data.loading_info_json['loadableQuantityCargoDetails'], 
+                       commingleDetails = data.loadable_json['planDetails']['departureCondition']['loadablePlanCommingleDetails'],
+                       initial = False, not_cargo = not_cargo_)
                     
             
         # final plan 
         self._get_plan(data.loadable_json['planDetails']['departureCondition']['loadablePlanStowageDetails'],
-                       cargo_info_, data.loading_info_json['loadableQuantityCargoDetails'], initial = False)
+                       cargo_info_, data.loading_info_json['loadableQuantityCargoDetails'], 
+                       commingleDetails = data.loadable_json['planDetails']['departureCondition']['loadablePlanCommingleDetails'],
+                       initial = False)
         
                 
         self.info = cargo_info_
@@ -160,10 +177,11 @@ class LoadingOperations(object):
             # print(o_['tankName'])
             tankName_ = o_['tankName']
             
-            
-            
             tcg_data_ = self.vessel.info['tankTCG']['tcg'][tankName_] # tcg_data
             lcg_data_ = self.vessel.info['tankLCG']['lcg'][tankName_] # lcg_data
+            color_ = o_.get('colorCode', None)
+            
+            self.rob_color[tankName_] = color_
                 
             if o_['arrivalQuantity'] > 0:
                 
@@ -178,7 +196,7 @@ class LoadingOperations(object):
                 plan_i_[tankName_] =  [{'quantityMT': float(wt_), 
                                 'quantityM3': vol_,
                                 'tankId':tank_,
-                                'tcg':tcg_, 'lcg':lcg_}]
+                                'tcg':tcg_, 'lcg':lcg_, 'colorCode':color_}]
                 
                 
             if o_['departureQuantity'] > 0:
@@ -193,7 +211,7 @@ class LoadingOperations(object):
                 plan_f_[tankName_] =  [{'quantityMT': float(wt_), 
                                 'quantityM3': vol_,
                                 'tankId':tank_,
-                                'tcg':tcg_, 'lcg':lcg_}]
+                                'tcg':tcg_, 'lcg':lcg_, 'colorCode':color_}]
                 
         cargo_info_['ROB'] = [plan_i_, plan_f_]
     
@@ -240,6 +258,10 @@ class LoadingOperations(object):
         for d_ in ballast:
             tank_, wt_ = d_['tankId'], d_['quantityMT']
             tankName_ = self.vessel.info['tankId'][tank_]
+            color_ = d_.get('colorCode', None)
+            
+            self.ballast_color[tankName_] = color_
+            
             if wt_ not in [None, '0', 'null']:
                vol_ = float(wt_)/density_
                
@@ -250,21 +272,22 @@ class LoadingOperations(object):
                lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
                 
                tank_ = self.vessel.info['tankName'][tankName_]
+               
                 
                plan_[tankName_] =  [{'quantityMT': float(wt_), 
                                      'quantityM3': vol_,
                                 'tankId':tank_,
-                                'tcg':tcg_, 'lcg':lcg_,'density':density_}]
+                                'tcg':tcg_, 'lcg':lcg_,'density':density_, 'colorCode':color_}]
         
         cargo_info_['ballast'].append(plan_)
                 
                 
                 
         
-    def _get_plan(self, loadablePlanStowageDetails, cargo_info_, loadableQuantityCargoDetails, initial = True, not_cargo = []):
+    def _get_plan(self, stowageDetails, cargo_info_, cargoDetails, commingleDetails = [], initial = True, not_cargo = []):
         
         plan_ = {}
-        for d_ in loadablePlanStowageDetails:
+        for d_ in stowageDetails:
             
             
             if not d_.get('cargoNominationId', None):
@@ -272,61 +295,140 @@ class LoadingOperations(object):
             elif 'P'+str(d_['cargoNominationId']) in not_cargo:
                 continue
             
-            cargo_, tank_, wt_ = 'P'+str(d_['cargoNominationId']), d_['tankId'], d_['quantityMT']
+            self._get_plan1(d_["cargoNominationId"], d_["tankId"], d_["quantityMT"], 
+                            d_.get('cargoId',None), d_.get('colorCode',None), d_.get('abbreviation',None),
+                            plan_, cargo_info_, cargoDetails, initial)
             
-            if cargo_ not in cargo_info_['density']:
-                i_ = [j_ for j_ in loadableQuantityCargoDetails if j_["cargoNominationId"] == d_["cargoNominationId"]][0]
-                cargo_info_['density'][cargo_] = self._cal_density(float(i_['estimatedAPI']),float(i_['estimatedTemp']))
-                cargo_info_['api'][cargo_] = float(i_['estimatedAPI'])
-                cargo_info_['temperature'][cargo_] = float(i_['estimatedTemp'])
+        for d_ in commingleDetails:
             
-            tankName_ = self.vessel.info['tankId'][tank_]
-            
-            vol_ = float(wt_)/cargo_info_['density'][cargo_]
-            
-            tcg_ = 0.
-            if tankName_ in self.vessel.info['tankTCG']['tcg']:
-                tcg_ = np.interp(vol_, self.vessel.info['tankTCG']['tcg'][tankName_]['vol'],
-                                       self.vessel.info['tankTCG']['tcg'][tankName_]['tcg'])
-            
-            lcg_ = 0.
-            if tankName_ in self.vessel.info['tankLCG']['lcg']:
-                lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tankName_]['vol'],
-                                      self.vessel.info['tankLCG']['lcg'][tankName_]['lcg'])
-                
-            tankId_ = self.vessel.info['tankName'][tankName_]     
-            try:
-                corrLevel_ = self.vessel.info['ullage'][str(tankId_)](vol_).tolist()
-            except:
-                print(tankName_, vol_, ': correctLevel not available!!')
-                corrLevel_ = 0.
-                        
-            plan_[tankName_] = [{'quantityMT': float(wt_), 'cargo':cargo_, 
-                                'quantityM3': vol_,
-                                'SG':cargo_info_['density'][cargo_],
-                                'tankId':tank_,
-                                'api':cargo_info_['api'][cargo_],
-                                'temperature':cargo_info_['temperature'][cargo_],
-                                'tcg':tcg_, 'lcg':lcg_, 'corrUallage':corrLevel_}]
-            
-            if tankName_[-1] == 'C' or tankName_ in ['SLS', 'SLP']:
-                tank1_ = tankName_ 
+            if initial:
+                self.commingle_preloaded = True 
             else:
-                tank1_ = tankName_[:-1] + 'W'
-                
+                self.commingle_loading = True
             
-            if cargo_ not in cargo_info_['cargo_tank']:
-                cargo_info_['cargo_tank'][cargo_] = [tank1_]
-            elif tank1_ not in cargo_info_['cargo_tank'][cargo_]:
-                cargo_info_['cargo_tank'][cargo_].append(tank1_)
-                
-            if initial and cargo_ not in self.preloaded_cargos :
-                self.preloaded_cargos.append(cargo_)
-            elif (cargo_ not in self.to_load_cargos) and (cargo_ not in self.preloaded_cargos):
-                self.to_load_cargos.append(cargo_)
+            self._get_plan2(d_, plan_, cargo_info_, cargoDetails, initial, not_cargo)
+            
                 
         cargo_info_['cargo_plans'].append(plan_)
-                
+        
+    def _get_plan1(self, cargoNominationId, tankId, quantityMT, cargoId, color, abbrev, plan_, cargo_info_, cargoDetails, initial):
+        
+        cargo_, tank_, wt_ = 'P'+str(cargoNominationId), tankId, quantityMT
+            
+        if cargo_ not in cargo_info_['density']:
+            i_ = [j_ for j_ in cargoDetails if j_["cargoNominationId"] == cargoNominationId][0]
+            cargo_info_['density'][cargo_] = self._cal_density(float(i_['estimatedAPI']),float(i_['estimatedTemp']))
+            cargo_info_['api'][cargo_] = float(i_['estimatedAPI'])
+            cargo_info_['temperature'][cargo_] = float(i_['estimatedTemp'])
+            cargo_info_['cargoId'][cargo_] = cargoId
+            cargo_info_['colorCode'][cargo_] = color
+            cargo_info_['abbreviation'][cargo_] = abbrev
+            
+        
+        tankName_ = self.vessel.info['tankId'][tank_]
+        
+    
+        
+        vol_ = float(wt_)/cargo_info_['density'][cargo_]
+        
+        tcg_ = 0.
+        if tankName_ in self.vessel.info['tankTCG']['tcg']:
+            tcg_ = np.interp(vol_, self.vessel.info['tankTCG']['tcg'][tankName_]['vol'],
+                                   self.vessel.info['tankTCG']['tcg'][tankName_]['tcg'])
+        
+        lcg_ = 0.
+        if tankName_ in self.vessel.info['tankLCG']['lcg']:
+            lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tankName_]['vol'],
+                                  self.vessel.info['tankLCG']['lcg'][tankName_]['lcg'])
+            
+        tankId_ = self.vessel.info['tankName'][tankName_]     
+        try:
+            corrLevel_ = self.vessel.info['ullage'][str(tankId_)](vol_).tolist()
+        except:
+            print(tankName_, vol_, ': correctLevel not available!!')
+            corrLevel_ = 0.
+            
+        info_ = {'quantityMT': float(wt_), 'cargo':cargo_, 
+                            'quantityM3': vol_,
+                            'SG':cargo_info_['density'][cargo_],
+                            'tankId':tank_,
+                            'api':cargo_info_['api'][cargo_],
+                            'temperature':cargo_info_['temperature'][cargo_],
+                            'tcg':tcg_, 'lcg':lcg_, 'corrUallage':corrLevel_,
+                            'cargoId':cargo_info_['cargoId'][cargo_], 
+                            'colorCode':cargo_info_['colorCode'][cargo_], 
+                            'abbreviation':cargo_info_['abbreviation'][cargo_] 
+                            }
+        
+        if tankName_ not in plan_.keys():
+            plan_[tankName_] = [info_]
+        else:
+            plan_[tankName_].append(info_)
+            
+        
+        if tankName_[-1] == 'C' or tankName_ in ['SLS', 'SLP']:
+            tank1_ = tankName_ 
+        else:
+            tank1_ = tankName_[:-1] + 'W'
+            
+        
+        if cargo_ not in cargo_info_['cargo_tank']:
+            cargo_info_['cargo_tank'][cargo_] = [tank1_]
+        elif tank1_ not in cargo_info_['cargo_tank'][cargo_]:
+            cargo_info_['cargo_tank'][cargo_].append(tank1_)
+            
+        if initial and cargo_ not in self.preloaded_cargos :
+            self.preloaded_cargos.append(cargo_)
+        elif (cargo_ not in self.to_load_cargos) and (cargo_ not in self.preloaded_cargos):
+            self.to_load_cargos.append(cargo_)
+        
+    def _get_plan2(self, d_, plan_, cargo_info_, cargoDetails, initial, not_cargo):
+        
+        cargo1_, cargo2_ = 'P'+str(d_['cargo1NominationId']), 'P'+str(d_['cargo2NominationId'])
+        
+        if cargo1_ not in not_cargo:
+            # load cargo 1
+            self._get_plan1(d_["cargo1NominationId"], d_["tankId"], d_["cargo1QuantityMT"],
+                            d_.get('cargoId',None), d_.get('colorCode',None), d_.get('abbreviation',None),
+                            plan_, cargo_info_, cargoDetails, initial)
+        
+        if cargo2_ not in not_cargo:
+            # load cargo 2
+            self._get_plan1(d_["cargo2NominationId"], d_["tankId"], d_["cargo2QuantityMT"],
+                            d_.get('cargoId',None), d_.get('colorCode',None), d_.get('abbreviation',None),
+                            plan_, cargo_info_, cargoDetails, initial)
+            
+            
+        if cargo1_ not in not_cargo and cargo2_ not in not_cargo:
+            # update commingle
+            print(cargo1_, cargo2_, 'commingle')
+            cargo_info_['commingle'] = {k_:v_  for k_, v_ in d_.items() if k_ in ['tankId', 'cargo1QuantityMT', 'cargo2QuantityMT', 'cargo1NominationId', 'cargo2NominationId']}
+            
+            api__ = [cargo_info_['api'][cargo1_], cargo_info_['api'][cargo2_]]
+            wt__ = [float(cargo_info_['commingle']['cargo1QuantityMT']), float(cargo_info_['commingle']['cargo2QuantityMT'])]
+            temp__ = [cargo_info_['temperature'][cargo1_], cargo_info_['temperature'][cargo2_]]
+            api_, temp_ = self._get_commingleAPI(api__, wt__, temp__)
+            
+            density_ = self._cal_density(round(api_,2), round(temp_,1))
+            cargo_info_['commingle']['density'] = density_
+            cargo_info_['commingle']['tankName'] = self.vessel.info['tankId'][cargo_info_['commingle']['tankId']]
+            
+            
+            
+        
+    def _get_commingleAPI(self, api, weight, temp):
+        weight_api_ , weight_temp_ = 0., 0.
+        
+        sg60_ = [141.5/(a_+131.5) for a_ in api]
+        t13_ = [(535.1911/(a_+131.5)-0.0046189)*0.042 for a_ in api]
+        vol_bbls_60_ = [w_/t_ for (w_,t_) in zip(weight,t13_)]
+        
+        weight_sg60_ = sum([v_*s_ for (v_,s_) in zip(vol_bbls_60_,sg60_)])/sum(vol_bbls_60_)
+        weight_api_ = 141.5/weight_sg60_ - 131.5
+        
+        weight_temp_ = sum([v_*s_ for (v_,s_) in zip(vol_bbls_60_,temp)])/sum(vol_bbls_60_)
+        
+        return weight_api_, weight_temp_
         
     def _gen_topping(self):
         
@@ -335,13 +437,15 @@ class LoadingOperations(object):
         self.seq = {}
         # self.seq['cargo'] =[]
         
+        
         start_time_ = 0 # 
         
         for p__, p_ in enumerate(self.info['cargo_plans'][:-1]):
             
+            
+            
             df_ = pd.DataFrame(index=INDEX)
             
-            print(p__, 'cargo topping')
             df_['Initial'] = None
             df_['Initial']['Time'] = 0
             
@@ -351,6 +455,9 @@ class LoadingOperations(object):
             
             self.seq[cargo_to_load_] = {}
             
+            
+            
+            print(p__, cargo_to_load_,'cargo topping')
             # for each cargo volume
             for k_, v_ in p_.items(): #self.info['plans'][p__+1].items():
                 # set time 0
@@ -364,8 +471,27 @@ class LoadingOperations(object):
                     else:
                         df_['Initial'][tank_] = (v_[0]['cargo'], v_[0]['quantityM3'] + df_['Initial'][tank_][-1])
                         
-            # open first tank
-            first_tank_ = [t_ for t_ in OPEN_TANKS if t_ in self.info['cargo_tank'][cargo_to_load_]][0] ### fixed
+                        
+            empty_ = []
+            for t_ in self.info['cargo_tank'][cargo_to_load_]:
+                if df_['Initial'][t_] in [None]:
+                    empty_.append(True)
+                else:
+                    empty_.append(False)
+                    
+            self.commingle_loading1 = True if False in empty_ else False # at cargo level
+                        
+            # open first tank ---------------------------------
+            first_tank__ = [t_ for t_ in OPEN_TANKS if t_ in self.info['cargo_tank'][cargo_to_load_]] ### fixed
+            first_tank_, t_ = False, 0
+            while not first_tank_:
+                tank_ = first_tank__[t_]
+                if df_['Initial'][tank_] in [None]: # incase the tank is preloaded
+                    first_tank_ = tank_
+                    break
+                t_ += 1
+                
+            # first_tank_ = first_tank__[0]
             
             self.seq[cargo_to_load_]['firstTank'] = first_tank_     
             # copy self.load_param
@@ -402,10 +528,11 @@ class LoadingOperations(object):
             
             stages_['openAllTanks'] = (df_['InitialRate']['Time'], df_['OpenAll']['Time'])
             
-            
-            
             total_tank_ = 0
             for t_ in self.info['cargo_tank'][cargo_to_load_]:
+                if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
+                    continue # not counting commingle tank
+                
                 if 'W' not in t_:
                     total_tank_ += 1
                 else:
@@ -415,6 +542,10 @@ class LoadingOperations(object):
             cargo_loaded_per_tank_ = cargo_loaded_/total_tank_
             # should have used same ullage but used uniform volume instead
             for t_ in self.info['cargo_tank'][cargo_to_load_]:
+                
+                if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
+                    continue # not counting commingle tank
+                
                 if t_[-1] == 'C' or t_ in ['SLS','SLP']:
                     df_['OpenAll'][t_] = (cargo_to_load_, cargo_loaded_per_tank_)
                 else:
@@ -433,6 +564,9 @@ class LoadingOperations(object):
             df_inc_max_['IncMax'] = None
             
             for t_ in self.info['cargo_tank'][cargo_to_load_]:
+                if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
+                    continue # not counting commingle tank
+                
                 if t_[-1] == 'C' or t_ in ['SLS','SLP']:
                     df_['IncMax'][t_] = (cargo_to_load_, cargo_loaded_per_tank_)
                     df_inc_max_['IncMax'][t_] = cargo_loaded_per_tank_
@@ -470,7 +604,13 @@ class LoadingOperations(object):
                 # print(k_, v_)
                 if v_[0]['cargo'] == cargo_to_load_:
                     if k_[-1] == 'C' or k_ in ['SLS', 'SLP']:
-                        staggering_rate_['TotalVol'][k_] = v_[0]['quantityM3']
+                        if k_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
+                            print('use commingle density instead')
+                            wt_ = [v__['quantityMT'] for v__ in v_ if v__['cargo'] == cargo_to_load_][0]
+                            vol_ =  wt_/self.info['commingle']['density']   
+                            staggering_rate_['TotalVol'][k_] = round(vol_,2)
+                        else:
+                            staggering_rate_['TotalVol'][k_] = v_[0]['quantityM3']
                         # staggering_rate_['TotalWeight'][k_[1]] = staggering_rate_['TotalVol'][k_[1]]*self.info['density'][cargo_to_load_]
                         
                     else:
@@ -503,7 +643,7 @@ class LoadingOperations(object):
             time_incmax_ = df_['IncMax']['Time']
             
             ballast_ = [(0, 'Initial')]
-            ballast_stop_ = []
+            ballast_stop_, before_topping_ = [], 'MaxLoading' + str(stage_)
             while time_ < topping_start_:
                 # print(time_)
                 ss_ = 'MaxLoading' + str(stage_)
@@ -519,7 +659,7 @@ class LoadingOperations(object):
                 time_ += time_interval_
                 stage_ += 1
             
-            next_time_ = time_
+            next_time_ = time_ # next interval
             time_ = topping_start_
             ss_ = 'MaxLoading' + str(stage_)
             just_before_topping_ = ss_
@@ -617,12 +757,24 @@ class LoadingOperations(object):
                 # if interval < 2hrs more time might be needed
                 time_ = df_[self.seq[c_]['justBeforeTopping']]['Time'] - df_[self.seq[c_]['beforeTopping']]['Time']
                 print('Duration of last max loading interval:', time_ )
-                if self.info['eduction'] and  time_ < TIME_EDUCTING:
-                    print('Eduction needed', self.seq[c_]['beforeTopping']+str(c__+1))
-                    fixed_ballast_.append(self.seq[c_]['beforeTopping']+str(c__+1))
-                    for k_, v_ in self.info['ballast'][-1].items():
-                        df_[self.seq[c_]['beforeTopping']][k_] = v_[0]['quantityMT']
+                if self.info['eduction']:
+                    if time_ > 0 and time_ < TIME_EDUCTING:
+                        print('Eduction needed', self.seq[c_]['beforeTopping']+str(c__+1))
+                        fixed_ballast_.append(self.seq[c_]['beforeTopping']+str(c__+1))
+                        # fixed at departure ballast
+                        for k_, v_ in self.info['ballast'][-1].items():
+                            df_[self.seq[c_]['beforeTopping']][k_] = v_[0]['quantityMT']
+                    
+                    elif time_ == 0:
+                        print('Only one maxloading stage')
+                        time__ = df_['MaxLoading1']['Time']
+                        if time__ > TIME_EDUCTING:
+                            print('Fix ballast at MaxLoading1 for educting!!')
+                        else:
+                            print('No time for eduction!!')
+                            return
                         
+                # fixed at departure ballast            
                 fixed_ballast_.append(self.seq[c_]['justBeforeTopping']+str(c__+1))
                 for k_, v_ in self.info['ballast'][-1].items():
                     df_[self.seq[c_]['justBeforeTopping']][k_] = v_[0]['quantityMT']
@@ -663,7 +815,7 @@ class LoadingOperations(object):
                                 ddf_[col_][i_] = (c_, j_[1])
                                 wt_ += round(j_[1]*density_[c_],10)
                                 
-                    ddf_[col_]['Weight'] = wt_            
+                    ddf_[col_]['Weight'] = wt_ # cargo added in this stage           
                     
                     
                           

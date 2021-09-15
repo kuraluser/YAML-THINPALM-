@@ -195,8 +195,6 @@ set dischargePort default {};
 param dischargePortAmt{p in dischargePort} default 0;
 param ballastPercent default 0.4;
 
-
-
 ## ballast tanks
 set TB; #set of ballast tanks
 set TB1; # set of ballast tanks with no pw tcg details
@@ -212,13 +210,11 @@ param B_locked{TB,Pbar} default 0;
 set fixBallastPort; 
 set sameBallastPort;
 
-
 set P_stable0 default P1;  # loading P1 = 1..NP-1 # discharge P = 1..NP
 set P_stable = P_stable0 diff fixBallastPort diff sameBallastPort; # stable port
 
 # for departure of last discharging port min draft constraint
 set P_stable1 =  P_stable diff {NP}; 
-
 
 param capacityCargoTank{t in T} >= 0; # cargo tank capacity (in m3)
 param densityCargoTank{t in T} >= 0 default 1.0; # cargo tank density (in t/m3)
@@ -264,7 +260,6 @@ set decTB;  # TB to dec
 set lastLoadingPortBallastBan;
 
 set ballastBan default {};
-
 
 param minCargoLoad{c in C} default 0;
 param toLoad{c in C} default 0;
@@ -429,7 +424,7 @@ var MTCp {p in P} default 0;
 # extra amout (w.r.t. metric tone) of cargo c that the tank can take in
 #var extraWeight{c in C, t in T} = x[c,t]*min((upperBound[t]*capacityCargoTank[t]-sum{p in P_last_loading}q[c,t,p]*densityCargo_Low[c]/density_up[c])*density_up[c],(min(1,highDensityOn*densityCargoTank[t]/densityCargo_High[c])*capacityCargoTank[t]-sum{p in P_last_loading}q[c,t,p]*densityCargo_Low[c]/densityCargo_High[c])*densityCargo_High[c]); 
 
-var delta{c in C  diff C_locked, p in P_dis} binary;
+var delta{c in C diff C_locked, p in P_dis} binary;
 
 # BM and SF
 var displacement{p in P} >=0; # displacement
@@ -646,7 +641,6 @@ subject to Condition114h1 {t in TB, p in zeroBallastPort}: xB[t, p] = 0;
 # banned ballast
 subject to Condition114i1 {t in ballastBan, p in P}: xB[t, p] = 0;
 
-
 ### ship stabilty ------------------------------------------------------------
 # assume the ship satisfies all the stability conditions when entering the first port, and ballast tank allocation will be refreshed before leaving each port.
 subject to Constr17a {t in T, p in P}: wC[t,p] = sum{c in C} qw[c,t,p] + onboard[t];
@@ -682,7 +676,6 @@ subject to Constr16b1 {t in TB diff TB2, p in P_stable}: TB_lmom[t,p] = 1000 * (
 subject to Constr16b2 {t in TB2, p in P_stable}: TB_lmom[t,p] = wB[t,p]*LCGt[t];
 
 subject to Constr161 {p in P_stable}: L_mom[p] = sum{t in T} wC[t,p]*LCGt[t] + sum{t in TB} TB_lmom[t,p] + sum{t in OtherTanks} weightOtherTank[t,p]*LCGtp[t,p] + lightWeight*LCGship + deadweightConst*LCGdw;
-
 
 subject to Constr163 {p in P_stable}: LCBp[p] = (<<{s in 1..pwLCB-1} bLCB[s]; {s in 1..pwLCB} mLCB[s]>> displacement1[p])*densitySeaWater[p]/1.025  + adjLCB;
 

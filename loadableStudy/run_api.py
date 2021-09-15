@@ -78,9 +78,14 @@ fname = 'loading_information_request_144v4.json'
 fname = 'loading_loadicator_25.json'
 
 
+
+
 # fname1 = 'loadableStudy_10155.json'
 # fname1 = 'loadableStudy_10129.json'
 fname1 = 'loading_information_request_165.json'
+
+
+fname1 = 'dischargeStudy_25b.json' # fully discharge
 
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #

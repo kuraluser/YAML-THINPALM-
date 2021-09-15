@@ -37,9 +37,9 @@ class Process_input(object):
                                   "loadingMachinesInUses":data['loading']['loadingInformation']["machineryInUses"]["loadingMachinesInUses"]
                                   }
         
-        
+        self.config = data['config']
         self.error = {}
-        self.solver = SOLVER
+        self.solver = self.config['solver'] #_SOLVER_ ## config
         
         self.process_id = data['processId']
         self.information_id = data['loading']['loadingInformation']['loadingInfoId']
@@ -120,10 +120,6 @@ class Process_input(object):
             self.loadable['preloadOperation'][cargo_][k_] = v_[0]['quantityMT']
             wt_ += v_[0]['quantityMT']
             
-                
-            
-            
-        
         
         self.loadable['stages'], self.loadable['stageTimes'] = {}, {}
         self.loadable['toLoadPort'] = {0:round(wt_,1)} ###
@@ -257,7 +253,6 @@ class Process_input(object):
                     self.trim_lower[str(port_)] =  b_
                     
                 elif  d_[0:3] in ['Max']:
-                    
                     a_, b_ = max_trim_, 0.0
                     print(d_,'Max loading -- trim constraint:', b_, a_)
                     self.trim_upper[str(port_)] =  a_

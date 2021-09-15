@@ -1060,20 +1060,20 @@ class Generate_plan:
                 if e_ in ['loadingAtMaxRate']:
                     for d__, d_ in enumerate(info_['sequence'][1:-1]):
                         # print(d_['stage'])
-                        info_['sequence'][d__+1]['deballastingRateM3_Hr'] = info1_['iniDeballastingRateM3_Hr']
-                        info_['sequence'][d__+1]['ballastingRateM3_Hr'] = info1_['iniBallastingRateM3_Hr']
+                        info_['sequence'][d__+1]['deballastingRateM3_Hr'] = info1_.get('iniDeballastingRateM3_Hr', {})
+                        info_['sequence'][d__+1]['ballastingRateM3_Hr'] = info1_.get('iniBallastingRateM3_Hr', {})
                         
-                        info2_ = {'simIniDeballastingRateM3_Hr': deepcopy(info1_['simIniDeballastingRateM3_Hr']),
-                                  'simIniBallastingRateM3_Hr': deepcopy(info1_['simIniBallastingRateM3_Hr'])}
+                        info2_ = {'simIniDeballastingRateM3_Hr': deepcopy(info1_.get('simIniDeballastingRateM3_Hr', {})),
+                                  'simIniBallastingRateM3_Hr': deepcopy(info1_.get('simIniBallastingRateM3_Hr', {}))}
                         
-                        
-                        for k_, v_ in info2_['simIniDeballastingRateM3_Hr'][0].items():
-                            info2_['simIniDeballastingRateM3_Hr'][0][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
-                            info2_['simIniDeballastingRateM3_Hr'][0][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
-                            
-                        for k_, v_ in info2_['simIniBallastingRateM3_Hr'][0].items():
-                            info2_['simIniBallastingRateM3_Hr'][0][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
-                            info2_['simIniBallastingRateM3_Hr'][0][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                        if len(info2_['simIniDeballastingRateM3_Hr']) > 0:
+                            for k_, v_ in info2_['simIniDeballastingRateM3_Hr'][0].items():
+                                info2_['simIniDeballastingRateM3_Hr'][0][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                                info2_['simIniDeballastingRateM3_Hr'][0][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                                
+                            for k_, v_ in info2_['simIniBallastingRateM3_Hr'][0].items():
+                                info2_['simIniBallastingRateM3_Hr'][0][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                                info2_['simIniBallastingRateM3_Hr'][0][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
                              
                         
                         
