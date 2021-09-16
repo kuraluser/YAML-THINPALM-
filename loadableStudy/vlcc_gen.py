@@ -1143,6 +1143,7 @@ class Generate_plan:
                 plan_ = {}
                 plan_['portId'] = int(self.input.port.info['portRotation'][p_]['portId'])
                 plan_['portCode'] = p_
+                plan_['portRotationId'] = int(self.input.port.info['portRotation'][p_]['portRotationId'])
                 
                 # arrival
                 plan_['arrivalCondition'] = {"dischargeQuantityCargoDetails":[],
