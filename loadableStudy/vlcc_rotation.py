@@ -146,7 +146,7 @@ class Check_rotations:
             ## set positive trim < 2
             print('set 0 < trim <= 2')
             # new_input.trim_upper = {str(p_):str(2) for p_ in range(1,new_input.loadable.info['lastVirtualPort']) if str(p_) not in new_input.loadable.info['fixedBallastPort']}
-            new_input._set_trim(2, 0)
+            new_input._set_trim(trim_load_upper = 2.0, trim_load_lower = 0.0)
             new_input.write_dat_file(file = dat_file, IIS = False)
         
             new_output = Generate_plan(new_input)

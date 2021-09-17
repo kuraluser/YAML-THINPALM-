@@ -582,10 +582,10 @@ subject to Condition112h3 {c in C_max}: x[c,'3P'] + x[c,'3C'] >= 1;
 subject to Condition112h4 {c in C_max}: x[c,'4P'] + x[c,'4C'] >= 1;
 subject to Condition112h5 {c in C_max}: x[c,'5P'] + x[c,'5C'] >= 1;
 # C_max cannot occupy 2 consecutive rows
-subject to Condition112i1 {c in C_max}: x[c,'1P'] + x[c,'1C'] + x[c,'1P'] + x[c,'2P'] + x[c,'2C'] + x[c,'2S'] <= 5;
-subject to Condition112i2 {c in C_max}: x[c,'2P'] + x[c,'2C'] + x[c,'2P'] + x[c,'3P'] + x[c,'3C'] + x[c,'3S'] <= 5;
-subject to Condition112i3 {c in C_max}: x[c,'3P'] + x[c,'3C'] + x[c,'3P'] + x[c,'4P'] + x[c,'4C'] + x[c,'4S'] <= 5;
-subject to Condition112i4 {c in C_max}: x[c,'4P'] + x[c,'4C'] + x[c,'4P'] + x[c,'5P'] + x[c,'5C'] + x[c,'5S'] <= 5;
+subject to Condition112i1 {c in C_max}: x[c,'1P'] + x[c,'1C'] + x[c,'1S'] + x[c,'2P'] + x[c,'2C'] + x[c,'2S'] <= 5;
+subject to Condition112i2 {c in C_max}: x[c,'2P'] + x[c,'2C'] + x[c,'2S'] + x[c,'3P'] + x[c,'3C'] + x[c,'3S'] <= 5;
+subject to Condition112i3 {c in C_max}: x[c,'3P'] + x[c,'3C'] + x[c,'3S'] + x[c,'4P'] + x[c,'4C'] + x[c,'4S'] <= 5;
+subject to Condition112i4 {c in C_max}: x[c,'4P'] + x[c,'4C'] + x[c,'4S'] + x[c,'5P'] + x[c,'5C'] + x[c,'5S'] <= 5;
 
 # first discharge cargo
 subject to Condition112j {c in firstDisCargo}: x[c,'SLS'] + x[c,'SLP'] >= 1;

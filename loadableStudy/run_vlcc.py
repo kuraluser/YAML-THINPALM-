@@ -191,21 +191,46 @@ fname = 'pattern_validate_0713.json' # fully manual mode
 # fname = 'loadableStudy_6436.json'     # min tank 3 cargos 3 ports
 # fname = 'loadableStudy_10242.json' # min tank 3 cargos 2 ports
 
-# fname = 'loadableStudy_10155.json'
+fname = 'loadableStudy_10155.json'
 # fname = 'loadableStudy_10129.json' # infeasbible 
 
-# fname = 'loadableStudy_8593.json' # Bunkering port as the first port 
-# fname = 'loadableStudy_8594.json' # Bunkering port in between two loading ports 
-# fname = 'loadableStudy_8595.json' # Bunkering port after last loading ports
+fname = 'loadableStudy_8593.json' # Bunkering port as the first port 
+fname = 'loadableStudy_8594.json' # Bunkering port in between two loading ports 
+fname = 'loadableStudy_8595.json' # Bunkering port after last loading ports
 
 # fname = 'loadableStudy_8621.json' # 3 cargos 3 ports
 
 # fname = 'loadableStudy_7872.json' # 2 port 2 cargos each port
 
+# fname = 'dischargeStudy_25a.json'
+# fname = 'dischargeStudy_25b.json' # fully discharge
+
+
+# fname = 'loadableStudy_10880.json'
+# fname = 'loadableStudy_10881.json'
+# fname = 'loadableStudy_10882.json'
+
+# fname = 'ls_1.json' # ATLANTIC PIONEER
+fname = 'loadable_study_200000021.json' # ATLANTIC PIONEER
+# fname = 'all_rules.json'
+
+# fname = 'discharge_study_111.json'
+
+fname = 'loadableStudy_100000351.json'
+
+## load configuration --------------------------------------------------------
+with open('config.json', "r") as f_:
+   config = json.load(f_)
+   
 ## to be modified in main.py --------------------------------------------
-data = {}
 with open(fname) as f_:
     data_ = json.load(f_)
+
+data = {}
+data['module'] = data_.get('module', 'LOADABLE')
+
+if data['module'] in ['LOADABLE']:
+    # print('LOADABLE MODULE')
     if data_.get('loadableStudy', []):
         # manual mode
         data['loadable'] = data_['loadableStudy']
@@ -213,19 +238,27 @@ with open(fname) as f_:
         data['caseNumber'] = data_.get('caseNumber', None)
         data['loadable']['loadablePatternId'] = data_.get('loadablePatternId',111)
     else:
+        # auto mode
         data['loadable'] = data_
         
+    vessel_id_ = data['loadable']['vesselId']
         
-with open('vessel_info.json') as f_:    
+elif data['module'] in ['DISCHARGE']:
+    # print('DISCHARGE MODULE')
+    data['discharge'] = data_ 
+    
+    vessel_id_ = data['discharge']['vesselId']
+    
+    
+
+        
+        
+with open('vessel_info'+str(vessel_id_)+'.json') as f_:    
     data['vessel'] = json.load(f_)
 
 data['processId'] = str(uuid4())
 data['ballastEdited'] = data_.get('ballastEdited',False)
-data['module'] = data_.get('module', 'LOADABLE')
-
-
-
-
+data['config'] = config["vessel"][str(vessel_id_)]
 
 
 if __name__ == "__main__":

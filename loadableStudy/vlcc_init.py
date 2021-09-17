@@ -183,7 +183,7 @@ class Process_input(object):
         
         cont_weight_ = self.vessel.info['deadweightConst']['weight'] + self.vessel.info['onboard']['totalWeight']
         
-        self._set_trim(trim_upper, trim_lower, trim_load)
+        self._set_trim(trim_upper=trim_upper, trim_lower=trim_lower, trim_load_upper=trim_load, trim_load_lower=trim_load)
         
         ballast_ = ballast_weight_
         for p_ in range(1, self.loadable.info['lastVirtualPort']+1):  # exact to virtual
@@ -306,7 +306,7 @@ class Process_input(object):
         print('base draft:', self.base_draft)
             
             
-    def _set_trim(self, trim_upper, trim_lower, trim_load):
+    def _set_trim(self, trim_upper = 0, trim_lower = 0, trim_load_upper = 1, trim_load_lower = 1):
         
         if trim_upper == trim_lower:
             trim_upper_ = trim_upper + 1e-4
@@ -320,8 +320,8 @@ class Process_input(object):
         
         for p_ in self.loadable.info.get('rotationVirtual',[]):
             for p__ in p_[:-1]:
-                self.trim_upper[str(p__)] = trim_load + 1e-4
-                self.trim_lower[str(p__)] = trim_load - 1e-4
+                self.trim_upper[str(p__)] = trim_load_upper + 1e-4
+                self.trim_lower[str(p__)] = max(0.0001, trim_load_lower - 1e-4)
                 
                
                 
