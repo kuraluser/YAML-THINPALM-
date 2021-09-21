@@ -41,6 +41,7 @@ class Process_input(object):
         self.error = {}
         self.solver = self.config['solver'] #_SOLVER_ ## config
         
+        self.vessel_id   = data['loading']['vesselId']
         self.process_id = data['processId']
         self.information_id = data['loading']['loadingInformation']['loadingInfoId']
         

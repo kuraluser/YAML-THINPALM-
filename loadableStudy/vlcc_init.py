@@ -1339,8 +1339,17 @@ class Process_input(object):
                 print(';', file=text_file)
                 
                 str1 = 'param IIS := ' 
-                str1 += '1' if IIS else '0'
+                str1 += '1;' if IIS else '0;'
                 print(str1, file=text_file)
+                
+                print('# adjustment for LCB, MTC and draft ',file=text_file)#                
+                str1 = 'param adjLCB := ' + str(self.config['adj_LCB'])
+                print(str1+';', file=text_file)
+                str1 = 'param adjMeanDraft := ' + str(self.config['adj_mean_draft'])
+                print(str1+';', file=text_file)
+                str1 = 'param adjMTC := ' + str(self.config['adj_MTC'])
+                print(str1+';', file=text_file)
+               
                 
                 
         

@@ -69,7 +69,7 @@ class DbList(BaseModel):
 class DbDelete(BaseModel):
     id: str = Field(..., example="Enter the id")
 
-async def get_vessel_details(url, gID):
+async def get_vessel_details(url, gID, vesselId):
     try:
         async with httpx.AsyncClient() as client:
             resp_ = await client.get(url)
@@ -82,7 +82,7 @@ async def get_vessel_details(url, gID):
         # print('>>>> get vessel FILE')
         logger.info(gID + ": " + f"HTTP Exception - {err}")
         logger.info(gID + ": Get vessel FILE")
-        with open('vessel_info.json') as json_file: 
+        with open('vessel_info'+vesselId+'.json') as json_file: 
             response_json = json.load(json_file) 
             
     return response_json
@@ -255,8 +255,8 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
         # print('LOADING', vesselId_)
         
     vessel_url_ = config['url']['vessel-details'].format(vesselId=vesselId_)
-    # print(vessel_url_)
-    data_['vessel'] = await get_vessel_details(vessel_url_, gID)
+#    print(vessel_url_)
+    data_['vessel'] = await get_vessel_details(vessel_url_, gID, str(vesselId_))
         
     # print('>>>> add new loadable')
     

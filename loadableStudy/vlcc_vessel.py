@@ -14,12 +14,6 @@ import json
 from scipy.interpolate import interp1d, interp2d
 plt.style.use('seaborn-whitegrid')
 
-# tank_info_ = {'DSWP':-1, 'DWP':-1, 'FWS':1, 'DSWS':1, 
-#               'FO2P':-1, 'FO2S':1, 'FO1P':-1, 'FO1S':1, 'BFOSV':1, 'FOST':1, 'FOSV':1,
-#               'DO1S':1,  'DO2S':1, 'DOSV1':1, 'DOSV2':1,
-#               'SLS':1, '2C':1, '1P':-1, '1S':1, '2P':-1, '2S':1,  '5C':1, '1C':1, '3C':1, '4C':1, '3P':-1, '3S':1, '4P':-1, '4S':1, '5P':-1, '5S':1, 'SLP':-1,
-#               'UFPT':1, 'LFPT':1, 'WB1P':-1,'WB1S':1, 'WB2P':-1, 'WB2S':1, 'WB3P':-1, 'WB3S':1, 'WB4P':-1, 'WB4S':1, 'WB5P':-1, 'WB5S':1, 'AWBP':-1, 'AWBS':1, 'APT':-1, 'FPTU':1, 
-#                }
 
 
 class Vessel:
@@ -82,6 +76,7 @@ class Vessel:
         vessel_info_['tankId'], vessel_info_['tankName'], vessel_info_['category'] = {}, {}, {}
         for t_ in vessel_json['vesselTanks']:
             if t_['categoryId'] in categoryid_.keys():
+                
                 vessel_info_[categoryid_[t_['categoryId']]][t_['shortName']] = {'lcg': float(t_['lcg']), 'vcg': float(t_['vcg']), 
                                                                                      'tcg': t_['tcg'], 
                                                                                      'capacityCubm': t_['fullCapcityCubm'],
@@ -89,7 +84,7 @@ class Vessel:
                                                                                      'tankId': t_['id'],
                                                                                      'name':t_['name'],
                                                                                      'inLoadicator':t_['isLoadicatorUsing']
-                                                                                    }
+                                                                                   }
                 if t_['isLoadicatorUsing']:
                     vessel_info_['tankId'][t_['id']] = t_['shortName'] 
                     vessel_info_['tankName'][t_['shortName']] = t_['id'] 
@@ -127,59 +122,51 @@ class Vessel:
         
         ## 
         vessel_info_['hydrostatic'] = {}
-        vessel_info_['hydrostatic']['draft'], vessel_info_['hydrostatic']['displacement'] = [], []
-        vessel_info_['hydrostatic']['lcf'], vessel_info_['hydrostatic']['mtc'], vessel_info_['hydrostatic']['lcb'], vessel_info_['hydrostatic']['tkm'] = [], [], [], []
+        # vessel_info_['hydrostatic']['draft'], vessel_info_['hydrostatic']['displacement'] = [], []
+        # vessel_info_['hydrostatic']['lcf'], vessel_info_['hydrostatic']['mtc'], vessel_info_['hydrostatic']['lcb'], vessel_info_['hydrostatic']['tkm'] = [], [], [], []
         
-        for d_ in vessel_json['hydrostaticDatas']:
-            #print(d_)
-            vessel_info_['hydrostatic']['draft'].append(float(d_['draft']))
-            vessel_info_['hydrostatic']['displacement'].append(float(d_['displacement']))
-            vessel_info_['hydrostatic']['lcf'].append(float(d_['lcf']))
-            vessel_info_['hydrostatic']['mtc'].append(float(d_['mtc']))
-            vessel_info_['hydrostatic']['lcb'].append(float(d_['lcb']))
-            vessel_info_['hydrostatic']['tkm'].append(float(d_['tkm']))
-            
         
-        ind_ = np.argsort(vessel_info_['hydrostatic']['displacement'])
-        vessel_info_['hydrostatic']['draft'] = np.array(vessel_info_['hydrostatic']['draft'])[ind_]
-        vessel_info_['hydrostatic']['displacement'] = np.array(vessel_info_['hydrostatic']['displacement'])[ind_]
-        vessel_info_['hydrostatic']['lcf'] = np.array(vessel_info_['hydrostatic']['lcf'])[ind_]
-        vessel_info_['hydrostatic']['mtc'] = np.array(vessel_info_['hydrostatic']['mtc'])[ind_]
-        vessel_info_['hydrostatic']['lcb'] = np.array(vessel_info_['hydrostatic']['lcb'])[ind_]
-        vessel_info_['hydrostatic']['tkm'] = np.array(vessel_info_['hydrostatic']['tkm'])[ind_]
+        df_ = pd.DataFrame(vessel_json['hydrostaticDatas'], dtype=float)
+        df_ = df_.sort_values(by="draft", ascending=True)
+        vessel_info_['hydrostatic']['draft'] = df_['draft'].to_numpy()
+        vessel_info_['hydrostatic']['displacement'] = df_['displacement'].to_numpy()
+        vessel_info_['hydrostatic']['lcf'] = df_['lcf'].to_numpy()
+        vessel_info_['hydrostatic']['mtc'] = df_['mtc'].to_numpy()
+        vessel_info_['hydrostatic']['lcb'] = df_['lcb'].to_numpy()
+        vessel_info_['hydrostatic']['tkm'] = df_['tkm'].to_numpy()
+        
+        
+        
         
         ## pw linear approx LCB x disp
         self._get_lcb_parameters(vessel_info_)    
-            
+       
         ##
         tcg_details_, lcg_details_ = {}, {}
-        for d_ in vessel_json['vesselTankTCGs']:
-            tank_name_ = vessel_info_['tankId'].get(d_['tankId'],None)
+        
+        df_ = pd.DataFrame(vessel_json['vesselTankTCGs'], dtype=float)
+        tank_record_ = df_['tankId'].unique()
+        for t_ in tank_record_:
+            tank_name_ = vessel_info_['tankId'].get(int(t_),None)
             if tank_name_:
-                if tank_name_ not in tcg_details_.keys():
+                if tank_name_ in vessel_info_['cargoTanks']:
+                    type_ = 'cargo'
+                elif tank_name_ in vessel_info_['ballastTanks']:
+                    type_ = 'ballast'
+                else:
+                    type_ = 'other'
                     
-                    if tank_name_ in vessel_info_['cargoTanks']:
-                        type_ = 'cargo'
-                    elif tank_name_ in vessel_info_['ballastTanks']:
-                        type_ = 'ballast'
-                    else:
-                        type_ = 'other'
-                    
-                    tcg_details_[tank_name_] = {'tcg':[], 'vol':[],'type':type_}
-                    lcg_details_[tank_name_] = {'lcg':[], 'vol':[],'type':type_}
+                df__ = df_.loc[df_['tankId'] == t_]
+                df__ = df__.sort_values(by="capacity", ascending=True)
                 
-                # tcg_details_[tank_name_]['tcg'].append(float(d_['tcg']) * tank_info_[tank_name_])
-                tcg_details_[tank_name_]['tcg'].append(float(d_['tcg']))
-                tcg_details_[tank_name_]['vol'].append(float(d_['capacity']))
+                tcg_details_[tank_name_], lcg_details_[tank_name_] = {'type':type_}, {'type':type_}
+                tcg_details_[tank_name_]['tcg'] = df__['tcg'].to_numpy()
+                tcg_details_[tank_name_]['vol'] = df__['capacity'].to_numpy()
                 
-                lcg_details_[tank_name_]['lcg'].append(float(d_['lcg']))
-                lcg_details_[tank_name_]['vol'].append(float(d_['capacity']))
+                lcg_details_[tank_name_]['lcg'] = df__['lcg'].to_numpy()
+                lcg_details_[tank_name_]['vol'] = df__['capacity'].to_numpy()
                 
                 
-            else:
-                # print(tank_name_,d_['tankId'])
-                pass
-            
         ## pw linear approx TCG x weight
         vessel_info_['tankTCG'] = {}
         vessel_info_['tankTCG']['tcg'] = tcg_details_
@@ -226,8 +213,8 @@ class Vessel:
             
         
         for d_ in vessel_json['bmandSF']['minMaxValuesForBMAndSfs']:
-            vessel_info_['SFlimits'][str(int(float(d_['frameNumber'])))] = [d_['minSf'], d_['maxSf']]
-            vessel_info_['BMlimits'][str(int(float(d_['frameNumber'])))] = [d_['minBm'], d_['maxBm']]
+            vessel_info_['SFlimits'][str(int(float(d_['frameNumber'])))] = [float(d_['minSf']), float(d_['maxSf'])]
+            vessel_info_['BMlimits'][str(int(float(d_['frameNumber'])))] = [float(d_['minBm']), float(d_['maxBm'])]
             
         ## max BM 
         for d_ in vessel_json['bmandSF']['stationValues']:
@@ -508,7 +495,7 @@ class Vessel:
                     intercepts = my_pwlf.intercepts
                     
                     ## predict for the determined points
-                    xHat = np.linspace(min(v_['vol']), max(v_['vol']), num=1000)
+                    xHat = np.linspace(min(v_['vol']), max(v_['vol']), num=1000)*1.025
                     yHat = np.zeros(len(xHat))
                     
                     for i__,i_ in enumerate(xHat):
@@ -528,7 +515,7 @@ class Vessel:
                     ax.set_title(vessel_info_['name'] + ' Tank: ' + k_)
                     ax.set_xlabel("volume")
                     ax.set_ylabel("LCGMoment")
-                    fig_name = vessel_info_['name'] + '_Tank_'+ k_
+                    fig_name = vessel_info_['name'] + '_Tank_LCG_'+ k_
                     fig.savefig(fig_name + '.png')
                     plt.close(fig)
                         
@@ -594,7 +581,7 @@ class Vessel:
                     ax.set_title(vessel_info_['name'] + ' Tank: ' + k_)
                     ax.set_xlabel("volume")
                     ax.set_ylabel("TCGMoment")
-                    fig_name = vessel_info_['name'] + '_Tank_'+ k_
+                    fig_name = vessel_info_['name'] + '_Tank_TCG_'+ k_
                     fig.savefig(fig_name + '.png')
                     plt.close(fig)
                         
@@ -627,7 +614,7 @@ class Vessel:
             disp_  = vessel_info_['hydrostatic']['displacement']
             mtc_   = vessel_info_['hydrostatic']['mtc']
             
-            with open('hydro_data.json', 'w') as f_:  
+            with open(vessel_info_['name']  + '_hydro_data.json', 'w') as f_:  
                 json.dump({'draft':draft_.tolist(), 'lcb':lcb_.tolist(), 'disp':disp_.tolist(), 'mtc':mtc_.tolist() }, f_)
 
             
@@ -664,7 +651,7 @@ class Vessel:
             ax.set_title('LCB')
             ax.set_xlabel("disp")
             ax.set_ylabel("Disp x LCB")
-            fig.savefig('LCB.png')
+            fig.savefig(vessel_info_['name']  + '_LCB.png')
             plt.close(fig)
             
             print('LCB approximation done!!')
@@ -696,7 +683,7 @@ class Vessel:
             ax.set_title('MTC')
             ax.set_xlabel("disp")
             ax.set_ylabel("MTC")
-            fig.savefig('MTC.png')
+            fig.savefig(vessel_info_['name']  + '_MTC.png')
             plt.close(fig)
             
             print('MTC approximation done!!')
@@ -729,7 +716,7 @@ class Vessel:
             ax.set_title('Draft')
             ax.set_xlabel("disp")
             ax.set_ylabel("Draft")
-            fig.savefig('Draft.png')
+            fig.savefig(vessel_info_['name']  + '_Draft.png')
             plt.close(fig)
             
             print('Draft approximation done!!')

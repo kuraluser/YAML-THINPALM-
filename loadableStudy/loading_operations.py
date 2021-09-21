@@ -59,8 +59,11 @@ class LoadingOperations(object):
         
         loading_rate_ = min(data.loading_info_json['loadingRates']['maxLoadingRate'], data.loading_info_json['loadingRates']['shoreLoadingRate'])
         print('loading rate (max):', loading_rate_)
+        min_loading_rate_ = data.loading_info_json['loadingRates']['minLoadingRate']
+        print('loading rate (min):', min_loading_rate_)
         
         self.staggering_param = {'maxShoreRate': loading_rate_, ####  11129
+                                 'minLoadingRate': min_loading_rate_,
                                  'wingTank': 2*self.vessel.info['loadingRate6']['WingTankBranchLine'], # 7900
                                  'centerTank': self.vessel.info['loadingRate6']['CentreTankBranchLine'], #5790,
                                  'slopTank': self.vessel.info['loadingRate6']['SlopTankBranchLine'], #3435,
@@ -506,7 +509,7 @@ class LoadingOperations(object):
                     
             loading_rate_ = self._cal_max_rate(load_param)
             
-            print('initial rate: ', loading_rate_) # m3/hr
+            print('initial rate: ', loading_rate_, first_tank_) # m3/hr
             self.seq[cargo_to_load_]['initialRate'] = loading_rate_     
             
             # Open one tank
@@ -716,15 +719,17 @@ class LoadingOperations(object):
             self.seq[cargo_to_load_]['beforeTopping'] = before_topping_ # 2nd last stage before topping
             self.seq[cargo_to_load_]['justBeforeTopping'] = just_before_topping_ # last stage before topping
             self.seq[cargo_to_load_]['stageInterval'] = stages_ # time duration for each stage
-            self.seq[cargo_to_load_]['startTime'] = start_time_ # time duration for each stage
+            self.seq[cargo_to_load_]['startTime'] = start_time_ # start time without delay
             self.seq[cargo_to_load_]['ballastStop'] = list(ballast_stop_) # need to get ballast for these stages
             self.seq[cargo_to_load_]['lastStage'] = ss_
             self.seq[cargo_to_load_]['loadingRateM3Min'] = staggering_rate_['LoadingRateM3Min'] 
+            self.seq[cargo_to_load_]['timeNeeded'] = df_[ss_]['Time']
             
             
-            start_time_ = df_[ss_]['Time']
+            start_time_ += df_[ss_]['Time']
             
             print(df_.columns.to_list()[5:]) # 'MaxLoading1', 'MaxLoading2', ...
+            print(start_time_-df_[ss_]['Time'], start_time_)
                 
             
     def _get_ballast_requirements(self):
@@ -858,10 +863,15 @@ class LoadingOperations(object):
                         stages_[t__+1][r_] = rate_
         
         df_ = pd.DataFrame(index=INDEX[1:])
+        len_stages_ = len(stages_[1])
+        
         for k_, v_ in stages_.items():
             total_ = sum([v__ for k__,v__ in v_.items()])
             # print(k_, total_)
-            maxRate_ = min(total_, param['maxShoreRate'])
+            if (len_stages_ - k_) >= 4: # reduce rate 1hr before topping complete
+                maxRate_ = min(total_, param['maxShoreRate'])
+            else:
+                maxRate_ = param['minLoadingRate']
             
             df_[k_] = None
             for k__,v__ in v_.items():
