@@ -60,6 +60,7 @@ class LoadingOperations(object):
         loading_rate_ = min(data.loading_info_json['loadingRates']['maxLoadingRate'], data.loading_info_json['loadingRates']['shoreLoadingRate'])
         print('loading rate (max):', loading_rate_)
         min_loading_rate_ = data.loading_info_json['loadingRates']['minLoadingRate']
+        min_loading_rate_ = min_loading_rate_ if min_loading_rate_ not in [None, ""] else 1000.
         print('loading rate (min):', min_loading_rate_)
         
         self.staggering_param = {'maxShoreRate': loading_rate_, ####  11129
@@ -81,7 +82,7 @@ class LoadingOperations(object):
         # initial and final ROB
         self._get_rob(data.vessel_json['onHand'], cargo_info_)
                 
-                
+        cargo_info_['cargoTanksUsed'], cargo_info_['ballastTanksUsed'] = [], []
         # initial Ballast, final Ballast
         cargo_info_['ballast'] = []
         self._get_ballast(data.loadable_json['planDetails']['arrivalCondition']['loadablePlanBallastDetails'], cargo_info_)
@@ -263,6 +264,11 @@ class LoadingOperations(object):
             tankName_ = self.vessel.info['tankId'][tank_]
             color_ = d_.get('colorCode', None)
             
+            if tankName_ not in cargo_info_['ballastTanksUsed'] and tankName_ not in self.vessel.info['banBallast']:
+                cargo_info_['ballastTanksUsed'].append(tankName_)
+                # print(tankName_)
+                
+            
             self.ballast_color[tankName_] = color_
             
             if wt_ not in [None, '0', 'null']:
@@ -329,7 +335,8 @@ class LoadingOperations(object):
             
         
         tankName_ = self.vessel.info['tankId'][tank_]
-        
+        if tankName_ not in cargo_info_['cargoTanksUsed']:
+            cargo_info_['cargoTanksUsed'].append(tankName_)
     
         
         vol_ = float(wt_)/cargo_info_['density'][cargo_]

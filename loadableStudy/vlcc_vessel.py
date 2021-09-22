@@ -117,6 +117,8 @@ class Vessel:
             k1_ = str(vessel_info_['tankName'][k_])
             if k_ not in vessel_info_['banBallast']:
                 vessel_info_['ullage30cm'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](0.3))*1.025,3)
+                
+        
         
         # self._get_ullage_corr(vessel_info_, vessel_json['ullageTrimCorrections'])
         
@@ -746,6 +748,8 @@ class Vessel:
             ullage_inv_func = {}
             ullage_corr = {}
             ullage_data = {}
+            ullage_empty = {}
+            
             
             for k_, v_ in vessel_info_['tankName'].items():
                 
@@ -769,6 +773,8 @@ class Vessel:
                     ullage_inv_func[str(v_)] = interp1d(yy_, ullage_['evenKeelCapacityCubm'])
                     ullage_corr[str(v_)] = ullage_corr_.values.tolist()
                     ullage_data[str(v_)] = ullage_.values.tolist()
+                    ullage_empty[str(v_)] = float(ullage_func[str(v_)](ullage_['evenKeelCapacityCubm'].min()))
+                    
                     
                 else:
                     print(k_,v_, 'is empty or not needed!!')
@@ -776,15 +782,17 @@ class Vessel:
             vessel_info_['ullage']  = ullage_func
             vessel_info_['ullageCorr']  = ullage_corr
             vessel_info_['ullageInvFunc']  = ullage_inv_func
+            vessel_info_['ullageEmpty']  = ullage_empty
+            
             
             
             with open(vessel_info_['name']  +'_ullage.pickle', 'wb') as fp_:
-                pickle.dump([ullage_func, ullage_corr, ullage_inv_func, ullage_data], fp_)     
+                pickle.dump([ullage_func, ullage_corr, ullage_inv_func, ullage_empty], fp_)     
                 
         else:
             
             with open(vessel_info_['name']  +'_ullage.pickle', 'rb') as fp_:
-                vessel_info_['ullage'], vessel_info_['ullageCorr'], vessel_info_['ullageInvFunc'], _ = pickle.load(fp_)
+                vessel_info_['ullage'], vessel_info_['ullageCorr'], vessel_info_['ullageInvFunc'], vessel_info_['ullageEmpty'] = pickle.load(fp_)
             
     # def _get_ullage_corr(self, vessel_info_, ullageCorrDetails):
         
