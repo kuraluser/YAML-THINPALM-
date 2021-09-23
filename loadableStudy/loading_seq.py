@@ -494,7 +494,7 @@ class Loading_seq:
         plan["ballastVol"] = 0.
         plan["cargoVol"] = {}
         
-        cargo_tanks_added_, ballast_tanks_added_ = [], []
+        cargo_tanks_added_, ballast_tanks_added_, other_tanks_added_ = [], [], []
         
         for k_, v_ in cargo_.items():
             #print(k_, v_)
@@ -524,7 +524,8 @@ class Loading_seq:
             plan["loadablePlanStowageDetails"].append(info_)
             
         ##
-        empty_ = set(self.plans.input.loading.info['cargoTanksUsed']) - set(cargo_tanks_added_)
+        empty_ = set(self.plans.input.vessel.info['cargoTankNames']) - set(cargo_tanks_added_)
+#        print(empty_)
         for k_ in empty_:
             info_ = {}
             info_['tankName'] = k_
@@ -567,8 +568,8 @@ class Loading_seq:
             
             
         ##
-        empty_ = set(self.plans.input.loading.info['ballastTanksUsed']) - set(ballast_tanks_added_)
-        
+        empty_ = set(self.plans.input.vessel.info['ballastTankNames']) - set(ballast_tanks_added_) - set(self.plans.input.vessel.info['banBallast'])
+#        print(empty_)
         for k_ in empty_:
             info_ = {}
             info_['tankName'] = k_
@@ -583,7 +584,8 @@ class Loading_seq:
             
             
         plan["ballastVol"] = str(round(plan["ballastVol"],2))    
-            
+        
+        
         for k_, v_ in other_weight_.items():
             info_ = {}
             info_['tankName'] = k_
@@ -594,8 +596,25 @@ class Loading_seq:
             info_['density'] = str(self.plans.input.config['rob_density'][k_])
             info_['colorCode'] = self.plans.input.loading.rob_color[k_]
             
+            if k_ not in other_tanks_added_:
+                other_tanks_added_.append(k_)
             
             plan["loadablePlanRoBDetails"].append(info_)
+            
+            
+        empty_ = set(self.plans.input.vessel.info['otherTankNames']) - set(other_tanks_added_)
+#        print(empty_)
+        for k_ in empty_:
+            info_ = {}
+            info_['tankName'] = k_
+            info_['tankId'] = int(self.plans.input.vessel.info['tankName'][k_])
+            info_['quantityMT'] = str("0.00")
+            info_['quantityM3'] = str("0.00")
+            
+            info_['density'] = None
+            info_['colorCode'] = None
+            plan["loadablePlanRoBDetails"].append(info_)
+            
             
         
         
