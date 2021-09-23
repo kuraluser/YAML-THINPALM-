@@ -1,0 +1,1656 @@
+{
+  "module": "LOADING",
+  "vesselId": 1,
+  "voyageId": 2265,
+  "portId": 2116,
+  "loadablePlanPortWiseDetails": [
+    {
+      "portId": 2355,
+      "portCode": "SAJUT",
+      "portRotationId": 114285,
+      "arrivalCondition": {
+        "loadablePlanStowageDetails": [],
+        "loadablePlanBallastDetails": [
+          {
+            "id": 62894,
+            "tankId": 25597,
+            "quantityMT": "4800.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62895,
+            "tankId": 25598,
+            "quantityMT": "9000.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62896,
+            "tankId": 25599,
+            "quantityMT": "9000.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62897,
+            "tankId": 25600,
+            "quantityMT": "9000.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62898,
+            "tankId": 25601,
+            "quantityMT": "9000.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62899,
+            "tankId": 25602,
+            "quantityMT": "9000.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62900,
+            "tankId": 25603,
+            "quantityMT": "9000.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62901,
+            "tankId": 25604,
+            "quantityMT": "8900.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62902,
+            "tankId": 25605,
+            "quantityMT": "8900.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62903,
+            "tankId": 25606,
+            "quantityMT": "7600.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62904,
+            "tankId": 25607,
+            "quantityMT": "7600.0000",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          }
+        ],
+        "loadablePlanCommingleDetails": []
+      },
+      "departureCondition": {
+        "loadablePlanStowageDetails": [
+          {
+            "id": 183475,
+            "tankId": 25585,
+            "cargoNominationId": 17759,
+            "quantityMT": "17365.9000"
+          },
+          {
+            "id": 183485,
+            "tankId": 25582,
+            "cargoNominationId": 17760,
+            "quantityMT": "23011.4000"
+          },
+          {
+            "id": 183486,
+            "tankId": 25584,
+            "cargoNominationId": 17760,
+            "quantityMT": "27518.4000"
+          },
+          {
+            "id": 183487,
+            "tankId": 25596,
+            "cargoNominationId": 17760,
+            "quantityMT": "3359.5000"
+          },
+          {
+            "id": 183476,
+            "tankId": 25586,
+            "cargoNominationId": 17759,
+            "quantityMT": "17365.9000"
+          },
+          {
+            "id": 183477,
+            "tankId": 25581,
+            "cargoNominationId": 17759,
+            "quantityMT": "23548.1000"
+          },
+          {
+            "id": 183478,
+            "tankId": 25589,
+            "cargoNominationId": 17759,
+            "quantityMT": "16942.7000"
+          },
+          {
+            "id": 183479,
+            "tankId": 25590,
+            "cargoNominationId": 17759,
+            "quantityMT": "16942.7000"
+          },
+          {
+            "id": 183480,
+            "tankId": 25583,
+            "cargoNominationId": 17759,
+            "quantityMT": "23548.1000"
+          },
+          {
+            "id": 183481,
+            "tankId": 25593,
+            "cargoNominationId": 17759,
+            "quantityMT": "14426.5000"
+          },
+          {
+            "id": 183482,
+            "tankId": 25594,
+            "cargoNominationId": 17759,
+            "quantityMT": "14426.5000"
+          },
+          {
+            "id": 183483,
+            "tankId": 25595,
+            "cargoNominationId": 17759,
+            "quantityMT": "3437.9000"
+          },
+          {
+            "id": 183484,
+            "tankId": 25580,
+            "cargoNominationId": 17760,
+            "quantityMT": "24666.1000"
+          }
+        ],
+        "loadablePlanBallastDetails": [
+          {
+            "id": 62905,
+            "tankId": 25597,
+            "quantityMT": "2396.6600",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62906,
+            "tankId": 25598,
+            "quantityMT": "434.0900",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62907,
+            "tankId": 25599,
+            "quantityMT": "508.1500",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          }
+        ],
+        "loadablePlanCommingleDetails": []
+      }
+    },
+    {
+      "portId": 736,
+      "portCode": "SDG",
+      "portRotationId": 114288,
+      "arrivalCondition": {
+        "loadablePlanStowageDetails": [
+          {
+            "id": 183525,
+            "tankId": 25594,
+            "cargoNominationId": 17759,
+            "quantityMT": "14426.5000"
+          },
+          {
+            "id": 183518,
+            "tankId": 25585,
+            "cargoNominationId": 17759,
+            "quantityMT": "17365.9000"
+          },
+          {
+            "id": 183519,
+            "tankId": 25586,
+            "cargoNominationId": 17759,
+            "quantityMT": "17365.9000"
+          },
+          {
+            "id": 183520,
+            "tankId": 25581,
+            "cargoNominationId": 17759,
+            "quantityMT": "23548.1000"
+          },
+          {
+            "id": 183521,
+            "tankId": 25589,
+            "cargoNominationId": 17759,
+            "quantityMT": "16942.7000"
+          },
+          {
+            "id": 183522,
+            "tankId": 25590,
+            "cargoNominationId": 17759,
+            "quantityMT": "16942.7000"
+          },
+          {
+            "id": 183523,
+            "tankId": 25583,
+            "cargoNominationId": 17759,
+            "quantityMT": "23548.1000"
+          },
+          {
+            "id": 183524,
+            "tankId": 25593,
+            "cargoNominationId": 17759,
+            "quantityMT": "14426.5000"
+          },
+          {
+            "id": 183526,
+            "tankId": 25595,
+            "cargoNominationId": 17759,
+            "quantityMT": "3437.9000"
+          },
+          {
+            "id": 183527,
+            "tankId": 25580,
+            "cargoNominationId": 17760,
+            "quantityMT": "24666.1000"
+          },
+          {
+            "id": 183528,
+            "tankId": 25582,
+            "cargoNominationId": 17760,
+            "quantityMT": "23011.4000"
+          },
+          {
+            "id": 183529,
+            "tankId": 25584,
+            "cargoNominationId": 17760,
+            "quantityMT": "27518.4000"
+          },
+          {
+            "id": 183530,
+            "tankId": 25596,
+            "cargoNominationId": 17760,
+            "quantityMT": "3359.5000"
+          },
+          {
+            "id": 183531,
+            "tankId": 25587,
+            "cargoNominationId": 17761,
+            "quantityMT": "16984.0000"
+          },
+          {
+            "id": 183532,
+            "tankId": 25588,
+            "cargoNominationId": 17761,
+            "quantityMT": "16984.0000"
+          },
+          {
+            "id": 183533,
+            "tankId": 25591,
+            "cargoNominationId": 17761,
+            "quantityMT": "16984.0000"
+          },
+          {
+            "id": 183534,
+            "tankId": 25592,
+            "cargoNominationId": 17761,
+            "quantityMT": "16984.0000"
+          }
+        ],
+        "loadablePlanBallastDetails": [
+          {
+            "id": 62914,
+            "tankId": 25610,
+            "quantityMT": "2612.3700",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62915,
+            "tankId": 25608,
+            "quantityMT": "875.5300",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62916,
+            "tankId": 25609,
+            "quantityMT": "974.4600",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          }
+        ],
+        "loadablePlanCommingleDetails": []
+      },
+      "departureCondition": {
+        "loadablePlanStowageDetails": [],
+        "loadablePlanBallastDetails": [],
+        "loadablePlanCommingleDetails": []
+      }
+    },
+    {
+      "portId": 2116,
+      "portCode": "MAH",
+      "portRotationId": 114286,
+      "arrivalCondition": {
+        "loadablePlanStowageDetails": [
+          {
+            "id": 183488,
+            "tankId": 25585,
+            "cargoNominationId": 17759,
+            "quantityMT": "17365.9000"
+          },
+          {
+            "id": 183489,
+            "tankId": 25586,
+            "cargoNominationId": 17759,
+            "quantityMT": "17365.9000"
+          },
+          {
+            "id": 183490,
+            "tankId": 25581,
+            "cargoNominationId": 17759,
+            "quantityMT": "23548.1000"
+          },
+          {
+            "id": 183491,
+            "tankId": 25589,
+            "cargoNominationId": 17759,
+            "quantityMT": "16942.7000"
+          },
+          {
+            "id": 183492,
+            "tankId": 25590,
+            "cargoNominationId": 17759,
+            "quantityMT": "16942.7000"
+          },
+          {
+            "id": 183493,
+            "tankId": 25583,
+            "cargoNominationId": 17759,
+            "quantityMT": "23548.1000"
+          },
+          {
+            "id": 183494,
+            "tankId": 25593,
+            "cargoNominationId": 17759,
+            "quantityMT": "14426.5000"
+          },
+          {
+            "id": 183495,
+            "tankId": 25594,
+            "cargoNominationId": 17759,
+            "quantityMT": "14426.5000"
+          },
+          {
+            "id": 183496,
+            "tankId": 25595,
+            "cargoNominationId": 17759,
+            "quantityMT": "3437.9000"
+          },
+          {
+            "id": 183497,
+            "tankId": 25580,
+            "cargoNominationId": 17760,
+            "quantityMT": "24666.1000"
+          },
+          {
+            "id": 183498,
+            "tankId": 25582,
+            "cargoNominationId": 17760,
+            "quantityMT": "23011.4000"
+          },
+          {
+            "id": 183499,
+            "tankId": 25584,
+            "cargoNominationId": 17760,
+            "quantityMT": "27518.4000"
+          },
+          {
+            "id": 183500,
+            "tankId": 25596,
+            "cargoNominationId": 17760,
+            "quantityMT": "3359.5000"
+          }
+        ],
+        "loadablePlanBallastDetails": [
+          {
+            "id": 62908,
+            "tankId": 25597,
+            "quantityMT": "2396.6600",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62909,
+            "tankId": 25598,
+            "quantityMT": "434.0900",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 62910,
+            "tankId": 25599,
+            "quantityMT": "508.1500",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          }
+        ],
+        "loadablePlanCommingleDetails": []
+      },
+      "departureCondition": {
+        "loadablePlanStowageDetails": [
+          {
+            "id": 76273,
+            "tankId": 25585,
+            "cargoNominationId": 17759,
+            "quantityMT": "17365.9"
+          },
+          {
+            "id": 76274,
+            "tankId": 25586,
+            "cargoNominationId": 17759,
+            "quantityMT": "17365.9"
+          },
+          {
+            "id": 76275,
+            "tankId": 25581,
+            "cargoNominationId": 17759,
+            "quantityMT": "23548.1"
+          },
+          {
+            "id": 76276,
+            "tankId": 25589,
+            "cargoNominationId": 17759,
+            "quantityMT": "16942.7"
+          },
+          {
+            "id": 76277,
+            "tankId": 25590,
+            "cargoNominationId": 17759,
+            "quantityMT": "16942.7"
+          },
+          {
+            "id": 76278,
+            "tankId": 25583,
+            "cargoNominationId": 17759,
+            "quantityMT": "23548.1"
+          },
+          {
+            "id": 76279,
+            "tankId": 25593,
+            "cargoNominationId": 17759,
+            "quantityMT": "14426.5"
+          },
+          {
+            "id": 76280,
+            "tankId": 25594,
+            "cargoNominationId": 17759,
+            "quantityMT": "14426.5"
+          },
+          {
+            "id": 76281,
+            "tankId": 25595,
+            "cargoNominationId": 17759,
+            "quantityMT": "3437.9"
+          },
+          {
+            "id": 76282,
+            "tankId": 25580,
+            "cargoNominationId": 17760,
+            "quantityMT": "24666.1"
+          },
+          {
+            "id": 76283,
+            "tankId": 25582,
+            "cargoNominationId": 17760,
+            "quantityMT": "23011.4"
+          },
+          {
+            "id": 76284,
+            "tankId": 25584,
+            "cargoNominationId": 17760,
+            "quantityMT": "27518.4"
+          },
+          {
+            "id": 76285,
+            "tankId": 25596,
+            "cargoNominationId": 17760,
+            "quantityMT": "3359.5"
+          },
+          {
+            "id": 76286,
+            "tankId": 25587,
+            "cargoNominationId": 17761,
+            "quantityMT": "16984.0"
+          },
+          {
+            "id": 76287,
+            "tankId": 25588,
+            "cargoNominationId": 17761,
+            "quantityMT": "16984.0"
+          },
+          {
+            "id": 76288,
+            "tankId": 25591,
+            "cargoNominationId": 17761,
+            "quantityMT": "16984.0"
+          },
+          {
+            "id": 76289,
+            "tankId": 25592,
+            "cargoNominationId": 17761,
+            "quantityMT": "16984.0"
+          }
+        ],
+        "loadablePlanBallastDetails": [
+          {
+            "id": 11698,
+            "tankId": 25610,
+            "quantityMT": "2612.37",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 11699,
+            "tankId": 25608,
+            "quantityMT": "875.53",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          },
+          {
+            "id": 11700,
+            "tankId": 25609,
+            "quantityMT": "974.46",
+            "rdgLevel": null,
+            "correctionFactor": null,
+            "correctedUllage": null,
+            "sg": null,
+            "tankName": null,
+            "fillingRatio": null
+          }
+        ],
+        "loadablePlanCommingleDetails": []
+      }
+    }
+  ],
+  "loadingInformation": {
+    "loadingInfoId": 167,
+    "loadingDetails": {
+      "timeOfSunrise": "04:06",
+      "timeOfSunset": "",
+      "startTime": "19:51",
+      "trimAllowed": {
+        "initialTrim": 2,
+        "maximumTrim": 2,
+        "finalTrim": 2
+      }
+    },
+    "loadingRates": {
+      "maxLoadingRate": 20500,
+      "reducedLoadingRate": null,
+      "minDeBallastingRate": 3333,
+      "maxDeBallastingRate": 6666,
+      "noticeTimeRateReduction": null,
+      "noticeTimeStopLoading": null,
+      "lineContentRemaining": null,
+      "minLoadingRate": null,
+      "shoreLoadingRate": 7500,
+      "id": 167
+    },
+    "berthDetails": [
+      {
+        "id": 15035,
+        "portId": null,
+        "loadingInfoId": 167,
+        "maxShpChannel": null,
+        "berthName": null,
+        "loadingBerthId": 112,
+        "maxShipDepth": null,
+        "hoseConnections": "",
+        "airDraftLimitation": 48,
+        "maxManifoldHeight": 0,
+        "regulationAndRestriction": "",
+        "maxLoa": null,
+        "maxDraft": null,
+        "itemsToBeAgreedWith": "",
+        "controllingDepth": "21.0000",
+        "underKeelClearance": "10% of Draft",
+        "seawaterDensity": "1.0250"
+      },
+      {
+        "id": 15031,
+        "portId": null,
+        "loadingInfoId": 167,
+        "maxShpChannel": null,
+        "berthName": null,
+        "loadingBerthId": 111,
+        "maxShipDepth": null,
+        "hoseConnections": "",
+        "airDraftLimitation": 45.41,
+        "maxManifoldHeight": 0,
+        "regulationAndRestriction": "",
+        "maxLoa": null,
+        "maxDraft": null,
+        "itemsToBeAgreedWith": "",
+        "controllingDepth": "21.0000",
+        "underKeelClearance": "10% of Draft",
+        "seawaterDensity": "1.0250"
+      }
+    ],
+    "machineryInUses": {
+      "loadingMachinesInUses": [
+        {
+          "id": 216,
+          "loadingInfoId": 167,
+          "machineId": 1,
+          "machineName": "Manifold 1",
+          "capacity": 0,
+          "machineTypeId": 2,
+          "machineTypeName": "MANIFOLD"
+        },
+        {
+          "id": 217,
+          "loadingInfoId": 167,
+          "machineId": 2,
+          "machineName": "Manifold 2",
+          "capacity": 0,
+          "machineTypeId": 2,
+          "machineTypeName": "MANIFOLD"
+        },
+        {
+          "id": 218,
+          "loadingInfoId": 167,
+          "machineId": 3,
+          "machineName": "Manifold 3",
+          "capacity": 0,
+          "machineTypeId": 2,
+          "machineTypeName": "MANIFOLD"
+        },
+        {
+          "id": 219,
+          "loadingInfoId": 167,
+          "machineId": 1,
+          "machineName": "Bottom Line 1",
+          "capacity": 0,
+          "machineTypeId": 3,
+          "machineTypeName": "BOTTOM_LINE"
+        },
+        {
+          "id": 220,
+          "loadingInfoId": 167,
+          "machineId": 2,
+          "machineName": "Bottom Line 2",
+          "capacity": 0,
+          "machineTypeId": 3,
+          "machineTypeName": "BOTTOM_LINE"
+        },
+        {
+          "id": 221,
+          "loadingInfoId": 167,
+          "machineId": 3,
+          "machineName": "Bottom Line 3",
+          "capacity": 0,
+          "machineTypeId": 3,
+          "machineTypeName": "BOTTOM_LINE"
+        },
+        {
+          "id": 222,
+          "loadingInfoId": 167,
+          "machineId": 4,
+          "machineName": "BP1",
+          "capacity": 3500,
+          "machineTypeId": 1,
+          "machineTypeName": "VESSEL_PUMP"
+        },
+        {
+          "id": 223,
+          "loadingInfoId": 167,
+          "machineId": 5,
+          "machineName": "BP2",
+          "capacity": 3500,
+          "machineTypeId": 1,
+          "machineTypeName": "VESSEL_PUMP"
+        }
+      ]
+    },
+    "loadingStages": {
+      "id": null,
+      "trackStartEndStage": true,
+      "trackGradeSwitch": true,
+      "stageOffset": 4,
+      "stageDuration": 4
+    },
+    "loadingSequences": {
+      "reasonForDelays": [
+        {
+          "id": 2,
+          "reason": "Reason 2"
+        },
+        {
+          "id": 1,
+          "reason": "Tank Switching"
+        },
+        {
+          "id": 3,
+          "reason": "Reason 3"
+        }
+      ],
+      "loadingDelays": [
+        {
+          "id": 146,
+          "loadingInfoId": 167,
+          "reasonForDelayIds": [
+            1,
+            1
+          ],
+          "duration": 0,
+          "cargoId": 33,
+          "cargoNominationId": 17759,
+          "quantity": 7737711
+        },
+        {
+          "id": 147,
+          "loadingInfoId": 167,
+          "reasonForDelayIds": [
+            1,
+            1
+          ],
+          "duration": 0,
+          "cargoId": 32,
+          "cargoNominationId": 17760,
+          "quantity": 4239729
+        },
+        {
+          "id": 148,
+          "loadingInfoId": 167,
+          "reasonForDelayIds": [
+            1,
+            1
+          ],
+          "duration": 0,
+          "cargoId": 202,
+          "cargoNominationId": 17761,
+          "quantity": 3529837
+        }
+      ]
+    },
+    "toppingOffSequence": [
+      {
+        "id": 990,
+        "loadingInfoId": 167,
+        "orderNumber": 4,
+        "tankId": 25581,
+        "cargoId": 33,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.2435,
+        "quantity": 23548.1,
+        "fillingRatio": 98
+      },
+      {
+        "id": 991,
+        "loadingInfoId": 167,
+        "orderNumber": 5,
+        "tankId": 25585,
+        "cargoId": 33,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.3109,
+        "quantity": 17365.9,
+        "fillingRatio": 98
+      },
+      {
+        "id": 992,
+        "loadingInfoId": 167,
+        "orderNumber": 5,
+        "tankId": 25586,
+        "cargoId": 33,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.3109,
+        "quantity": 17365.9,
+        "fillingRatio": 98
+      },
+      {
+        "id": 993,
+        "loadingInfoId": 167,
+        "orderNumber": 2,
+        "tankId": 25593,
+        "cargoId": 33,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.4494,
+        "quantity": 14426.5,
+        "fillingRatio": 98
+      },
+      {
+        "id": 994,
+        "loadingInfoId": 167,
+        "orderNumber": 3,
+        "tankId": 25583,
+        "cargoId": 33,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.2486,
+        "quantity": 23548.1,
+        "fillingRatio": 98
+      },
+      {
+        "id": 995,
+        "loadingInfoId": 167,
+        "orderNumber": 6,
+        "tankId": 25589,
+        "cargoId": 33,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.378,
+        "quantity": 16942.7,
+        "fillingRatio": 98
+      },
+      {
+        "id": 996,
+        "loadingInfoId": 167,
+        "orderNumber": 6,
+        "tankId": 25590,
+        "cargoId": 33,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.378,
+        "quantity": 16942.7,
+        "fillingRatio": 98
+      },
+      {
+        "id": 997,
+        "loadingInfoId": 167,
+        "orderNumber": 2,
+        "tankId": 25594,
+        "cargoId": 33,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.4494,
+        "quantity": 14426.5,
+        "fillingRatio": 98
+      },
+      {
+        "id": 998,
+        "loadingInfoId": 167,
+        "orderNumber": 1,
+        "tankId": 25595,
+        "cargoId": 33,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.3479,
+        "quantity": 3437.9,
+        "fillingRatio": 98
+      },
+      {
+        "id": 999,
+        "loadingInfoId": 167,
+        "orderNumber": 1,
+        "tankId": 25596,
+        "cargoId": 32,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.3481,
+        "quantity": 3359.5,
+        "fillingRatio": 98
+      },
+      {
+        "id": 1000,
+        "loadingInfoId": 167,
+        "orderNumber": 3,
+        "tankId": 25580,
+        "cargoId": 32,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.2347,
+        "quantity": 24666.1,
+        "fillingRatio": 98
+      },
+      {
+        "id": 1001,
+        "loadingInfoId": 167,
+        "orderNumber": 4,
+        "tankId": 25582,
+        "cargoId": 32,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.2076,
+        "quantity": 23011.4,
+        "fillingRatio": 98
+      },
+      {
+        "id": 1002,
+        "loadingInfoId": 167,
+        "orderNumber": 2,
+        "tankId": 25584,
+        "cargoId": 32,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.1301,
+        "quantity": 27518.4,
+        "fillingRatio": 98
+      },
+      {
+        "id": 1003,
+        "loadingInfoId": 167,
+        "orderNumber": 2,
+        "tankId": 25587,
+        "cargoId": 202,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.379,
+        "quantity": 16984,
+        "fillingRatio": 98
+      },
+      {
+        "id": 1004,
+        "loadingInfoId": 167,
+        "orderNumber": 2,
+        "tankId": 25588,
+        "cargoId": 202,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.379,
+        "quantity": 16984,
+        "fillingRatio": 98
+      },
+      {
+        "id": 1005,
+        "loadingInfoId": 167,
+        "orderNumber": 1,
+        "tankId": 25591,
+        "cargoId": 202,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.385,
+        "quantity": 16984,
+        "fillingRatio": 98
+      },
+      {
+        "id": 1006,
+        "loadingInfoId": 167,
+        "orderNumber": 1,
+        "tankId": 25592,
+        "cargoId": 202,
+        "shortName": null,
+        "cargoName": "",
+        "cargoAbbreviation": "",
+        "colourCode": "",
+        "remark": "",
+        "ullage": 1.385,
+        "quantity": 16984,
+        "fillingRatio": 98
+      }
+    ],
+    "loadableQuantityCargoDetails": [
+      {
+        "loadingOrder": 1,
+        "estimatedAPI": "30.8000",
+        "estimatedTemp": "105.4000",
+        "cargoId": 33,
+        "cargoNominationId": 17759
+      },
+      {
+        "loadingOrder": 2,
+        "estimatedAPI": "33.4000",
+        "estimatedTemp": "118.8000",
+        "cargoId": 32,
+        "cargoNominationId": 17760
+      },
+      {
+        "loadingOrder": 3,
+        "estimatedAPI": "30.3000",
+        "estimatedTemp": "107.1000",
+        "cargoId": 202,
+        "cargoNominationId": 17761
+      }
+    ]
+  },
+  "onHandQuantity": [
+    {
+      "id": 171044,
+      "portId": 2116,
+      "fuelTypeId": 5,
+      "fuelTypeName": "Fuel Oil Tank",
+      "fuelTypeShortName": "FOT",
+      "tankId": 25614,
+      "tankName": "FO2P",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#c60a09",
+      "density": 0,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171050,
+      "portId": 2116,
+      "fuelTypeId": 5,
+      "fuelTypeName": "Fuel Oil Tank",
+      "fuelTypeShortName": "FOT",
+      "tankId": 25615,
+      "tankName": "FO2S",
+      "arrivalVolume": 1,
+      "arrivalQuantity": 5,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 1,
+      "departureQuantity": 5,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#c60a09",
+      "density": 5,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171056,
+      "portId": 2116,
+      "fuelTypeId": 5,
+      "fuelTypeName": "Fuel Oil Tank",
+      "fuelTypeShortName": "FOT",
+      "tankId": 25619,
+      "tankName": "BFOSV",
+      "arrivalVolume": 1.6,
+      "arrivalQuantity": 8,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 1.6,
+      "departureQuantity": 8,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#c60a09",
+      "density": 5,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171049,
+      "portId": 2116,
+      "fuelTypeId": 6,
+      "fuelTypeName": "Diesel Oil Tank",
+      "fuelTypeShortName": "DOT",
+      "tankId": 25624,
+      "tankName": "DOSV1",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#fa8424",
+      "density": 0,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171057,
+      "portId": 2116,
+      "fuelTypeId": 6,
+      "fuelTypeName": "Diesel Oil Tank",
+      "fuelTypeShortName": "DOT",
+      "tankId": 25625,
+      "tankName": "DOSV2",
+      "arrivalVolume": 1,
+      "arrivalQuantity": 4,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 1,
+      "departureQuantity": 4,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#fa8424",
+      "density": 4,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171051,
+      "portId": 2116,
+      "fuelTypeId": 6,
+      "fuelTypeName": "Diesel Oil Tank",
+      "fuelTypeShortName": "DOT",
+      "tankId": 25622,
+      "tankName": "DO1S",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#fa8424",
+      "density": 0,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171058,
+      "portId": 2116,
+      "fuelTypeId": 3,
+      "fuelTypeName": "Fresh Water Tank",
+      "fuelTypeShortName": "FWT",
+      "tankId": 25636,
+      "tankName": "DWP",
+      "arrivalVolume": 1.75,
+      "arrivalQuantity": 7,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 1.75,
+      "departureQuantity": 7,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#5aa1a3",
+      "density": 4,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171053,
+      "portId": 2116,
+      "fuelTypeId": 3,
+      "fuelTypeName": "Fresh Water Tank",
+      "fuelTypeShortName": "FWT",
+      "tankId": 25637,
+      "tankName": "FWS",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#5aa1a3",
+      "density": 0,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171054,
+      "portId": 2116,
+      "fuelTypeId": 3,
+      "fuelTypeName": "Fresh Water Tank",
+      "fuelTypeShortName": "FWT",
+      "tankId": 25638,
+      "tankName": "DSWP",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#5aa1a3",
+      "density": 0,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171055,
+      "portId": 2116,
+      "fuelTypeId": 3,
+      "fuelTypeName": "Fresh Water Tank",
+      "fuelTypeShortName": "FWT",
+      "tankId": 25639,
+      "tankName": "DSWS",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#5aa1a3",
+      "density": 0,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171045,
+      "portId": 2116,
+      "fuelTypeId": 5,
+      "fuelTypeName": "Fuel Oil Tank",
+      "fuelTypeShortName": "FOT",
+      "tankId": 25612,
+      "tankName": "FO1P",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#c60a09",
+      "density": 0,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171046,
+      "portId": 2116,
+      "fuelTypeId": 5,
+      "fuelTypeName": "Fuel Oil Tank",
+      "fuelTypeShortName": "FOT",
+      "tankId": 25613,
+      "tankName": "FO1S",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#c60a09",
+      "density": 0,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171047,
+      "portId": 2116,
+      "fuelTypeId": 5,
+      "fuelTypeName": "Fuel Oil Tank",
+      "fuelTypeShortName": "FOT",
+      "tankId": 25616,
+      "tankName": "FOSV",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#c60a09",
+      "density": 0,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171048,
+      "portId": 2116,
+      "fuelTypeId": 5,
+      "fuelTypeName": "Fuel Oil Tank",
+      "fuelTypeShortName": "FOT",
+      "tankId": 25617,
+      "tankName": "FOST",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#c60a09",
+      "density": 0,
+      "portRotationId": 114286
+    },
+    {
+      "id": 171052,
+      "portId": 2116,
+      "fuelTypeId": 6,
+      "fuelTypeName": "Diesel Oil Tank",
+      "fuelTypeShortName": "DOT",
+      "tankId": 25623,
+      "tankName": "DO2S",
+      "arrivalVolume": 0,
+      "arrivalQuantity": 0,
+      "actualArrivalQuantity": 0,
+      "departureVolume": 0,
+      "departureQuantity": 0,
+      "actualDepartureQuantity": 0,
+      "colorCode": "#fa8424",
+      "density": 0,
+      "portRotationId": 114286
+    }
+  ],
+  "onBoardQuantity": [
+    {
+      "id": 0,
+      "tankId": 25580,
+      "tankName": "1C",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25581,
+      "tankName": "2C",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25582,
+      "tankName": "3C",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25583,
+      "tankName": "4C",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25584,
+      "tankName": "5C",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25585,
+      "tankName": "1P",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25586,
+      "tankName": "1S",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25587,
+      "tankName": "2P",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25588,
+      "tankName": "2S",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25589,
+      "tankName": "3P",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25590,
+      "tankName": "3S",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25591,
+      "tankName": "4P",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25592,
+      "tankName": "4S",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25593,
+      "tankName": "5P",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25594,
+      "tankName": "5S",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25595,
+      "tankName": "SLP",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    },
+    {
+      "id": 0,
+      "tankId": 25596,
+      "tankName": "SLS",
+      "sounding": 0,
+      "quantity": 0,
+      "actualWeight": 0,
+      "volume": 0,
+      "colorCode": "#442222",
+      "abbreviation": "KWE",
+      "api": 30.2,
+      "temperature": 108.16
+    }
+  ],
+  "portTideDetails": [],
+  "loadingRules": {
+    "plan": []
+  }
+}

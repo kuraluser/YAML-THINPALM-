@@ -1,0 +1,817 @@
+{
+  "cargoNomination": [
+    {
+      "id": 18609,
+      "loadableStudyId": 8487,
+      "priority": 1,
+      "color": "#0b13f4",
+      "cargoId": 390,
+      "abbreviation": "UPZM",
+      "quantity": 67853.5055,
+      "maxTolerance": 5.0000,
+      "minTolerance": -5.0000,
+      "api": 33.9000,
+      "temperature": 85.5000,
+      "segregationId": 1
+    },
+    {
+      "id": 18610,
+      "loadableStudyId": 8487,
+      "priority": 2,
+      "color": "#f24207",
+      "cargoId": 271,
+      "abbreviation": "ORIE",
+      "quantity": 213578.6258,
+      "maxTolerance": 10.0000,
+      "minTolerance": 0.0000,
+      "api": 31.4000,
+      "temperature": 103.4000,
+      "segregationId": 1
+    }
+  ],
+  "cargoNominationOperationDetails": [
+    {
+      "id": 18118,
+      "cargoNominationId": 18609,
+      "portId": 2356,
+      "quantity": "67853.5055"
+    },
+    {
+      "id": 18119,
+      "cargoNominationId": 18610,
+      "portId": 2115,
+      "quantity": "213578.6258"
+    }
+  ],
+  "cargoToBeDischargeFirstId": null,
+  "charterer": "Reliance",
+  "commingleCargos": [
+    {
+      "id": 2455,
+      "loadableStudyXId": 8487,
+      "purposeXid": 1,
+      "tankIds": "",
+      "cargo1Id": 390,
+      "cargo1Percentage": null,
+      "cargo2Id": 271,
+      "cargo2Percentage": null,
+      "quantity": null,
+      "isSlopOnly": false,
+      "priority": 1,
+      "cargoNomination1Id": 18609,
+      "cargoNomination2Id": 18610
+    }
+  ],
+  "details": "Adjust bunker quantity",
+  "draftMark": "20.9430",
+  "draftRestriction": "20.0000",
+  "estimatedMaxSG": null,
+  "id": 8487,
+  "loadOnTop": false,
+  "loadableQuantity": {
+    "id": 2556,
+    "tpc": "183.9000",
+    "estSagging": "20.0000",
+    "deadWeight": "293071.0000",
+    "sgCorrection": "0.0000",
+    "saggingDeduction": "919.5000",
+    "estFOOnBoard": "2420.0000",
+    "estDOOnBoard": "240.0000",
+    "estFreshWaterOnBoard": "414.0000",
+    "constant": "593.0000",
+    "otherIfAny": "0.0000",
+    "totalQuantity": "287702.5000",
+    "distanceFromLastPort": null,
+    "vesselAverageSpeed": null,
+    "foConsumptionPerDay": null,
+    "portId": 113975,
+    "sg": null,
+    "boilerWaterOnBoard": "414.0000",
+    "ballast": "368.0000",
+    "runningHours": null,
+    "runningDays": null,
+    "foConInSZ": null,
+    "draftRestriction": "20.0000",
+    "totalFoConsumption": null
+  },
+  "loadableStudyPortRotation": [
+    {
+      "id": 113976,
+      "loadableStudyId": 8487,
+      "portId": 2356,
+      "berthId": null,
+      "operationId": 1,
+      "seaWaterDensity": 1.0300,
+      "distanceBetweenPorts": null,
+      "timeOfStay": null,
+      "maxDraft": 21.0000,
+      "maxAirDraft": 99.0000,
+      "eta": null,
+      "etd": null,
+      "layCanFrom": "2021-06-30",
+      "layCanTo": "2021-06-30",
+      "portOrder": 1
+    },
+    {
+      "id": 113977,
+      "loadableStudyId": 8487,
+      "portId": 504,
+      "berthId": null,
+      "operationId": 3,
+      "seaWaterDensity": 1.0250,
+      "distanceBetweenPorts": null,
+      "timeOfStay": null,
+      "maxDraft": 56.0000,
+      "maxAirDraft": 99.0000,
+      "eta": null,
+      "etd": null,
+      "layCanFrom": null,
+      "layCanTo": null,
+      "portOrder": 2
+    },
+    {
+      "id": 113978,
+      "loadableStudyId": 8487,
+      "portId": 2115,
+      "berthId": null,
+      "operationId": 1,
+      "seaWaterDensity": 1.0250,
+      "distanceBetweenPorts": null,
+      "timeOfStay": null,
+      "maxDraft": 21.5000,
+      "maxAirDraft": 100.0000,
+      "eta": null,
+      "etd": null,
+      "layCanFrom": null,
+      "layCanTo": null,
+      "portOrder": 3
+    },
+    {
+      "id": 113979,
+      "loadableStudyId": 8487,
+      "portId": 807,
+      "berthId": null,
+      "operationId": 2,
+      "seaWaterDensity": 1.0250,
+      "distanceBetweenPorts": null,
+      "timeOfStay": null,
+      "maxDraft": 20.0000,
+      "maxAirDraft": 99.0000,
+      "eta": null,
+      "etd": null,
+      "layCanFrom": null,
+      "layCanTo": null,
+      "portOrder": 4
+    }
+  ],
+  "loadlineId": 7,
+  "maxAirTemp": "32.0000",
+  "maxTempExpected": null,
+  "maxWaterTemp": "32.0000",
+  "name": "KY03-01-02",
+  "onBoardQuantity": [],
+  "onHandQuantity": [
+    {
+      "id": 163461,
+      "portId": 2356,
+      "fueltypeId": 5,
+      "tankId": 25619,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163462,
+      "portId": 2356,
+      "fueltypeId": 6,
+      "tankId": 25624,
+      "arrivalVolume": "23.5294",
+      "arrivalQuantity": "20.0000",
+      "departureVolume": "23.5294",
+      "departureQuantity": "20.0000"
+    },
+    {
+      "id": 163463,
+      "portId": 2356,
+      "fueltypeId": 3,
+      "tankId": 25636,
+      "arrivalVolume": "144.0000",
+      "arrivalQuantity": "134.0000",
+      "departureVolume": "134.0000",
+      "departureQuantity": "134.0000"
+    },
+    {
+      "id": 163465,
+      "portId": 2356,
+      "fueltypeId": 5,
+      "tankId": 25615,
+      "arrivalVolume": "612.2449",
+      "arrivalQuantity": "600.0000",
+      "departureVolume": "591.8367",
+      "departureQuantity": "580.0000"
+    },
+    {
+      "id": 163466,
+      "portId": 2356,
+      "fueltypeId": 5,
+      "tankId": 25612,
+      "arrivalVolume": "0.0000",
+      "arrivalQuantity": "0.0000",
+      "departureVolume": "0.0000",
+      "departureQuantity": "0.0000"
+    },
+    {
+      "id": 163467,
+      "portId": 2356,
+      "fueltypeId": 5,
+      "tankId": 25613,
+      "arrivalVolume": "0.0000",
+      "arrivalQuantity": "0.0000",
+      "departureVolume": "0.0000",
+      "departureQuantity": "0.0000"
+    },
+    {
+      "id": 163468,
+      "portId": 2356,
+      "fueltypeId": 5,
+      "tankId": 25616,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163469,
+      "portId": 2356,
+      "fueltypeId": 6,
+      "tankId": 25625,
+      "arrivalVolume": "23.5294",
+      "arrivalQuantity": "20.0000",
+      "departureVolume": "23.5294",
+      "departureQuantity": "20.0000"
+    },
+    {
+      "id": 163470,
+      "portId": 2356,
+      "fueltypeId": 6,
+      "tankId": 25622,
+      "arrivalVolume": "117.6471",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "117.6471",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163471,
+      "portId": 2356,
+      "fueltypeId": 6,
+      "tankId": 25623,
+      "arrivalVolume": "117.6471",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "117.6471",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163472,
+      "portId": 2356,
+      "fueltypeId": 3,
+      "tankId": 25637,
+      "arrivalVolume": "100.0000",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "100.0000",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163473,
+      "portId": 2356,
+      "fueltypeId": 3,
+      "tankId": 25639,
+      "arrivalVolume": "80.0000",
+      "arrivalQuantity": "80.0000",
+      "departureVolume": "80.0000",
+      "departureQuantity": "80.0000"
+    },
+    {
+      "id": 163474,
+      "portId": 2356,
+      "fueltypeId": 5,
+      "tankId": 25617,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163475,
+      "portId": 2356,
+      "fueltypeId": 3,
+      "tankId": 25638,
+      "arrivalVolume": "100.0000",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "100.0000",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163476,
+      "portId": 504,
+      "fueltypeId": 5,
+      "tankId": 25619,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163477,
+      "portId": 504,
+      "fueltypeId": 6,
+      "tankId": 25624,
+      "arrivalVolume": "23.5294",
+      "arrivalQuantity": "20.0000",
+      "departureVolume": "23.5294",
+      "departureQuantity": "20.0000"
+    },
+    {
+      "id": 163478,
+      "portId": 504,
+      "fueltypeId": 3,
+      "tankId": 25636,
+      "arrivalVolume": "144.0000",
+      "arrivalQuantity": "134.0000",
+      "departureVolume": "134.0000",
+      "departureQuantity": "134.0000"
+    },
+    {
+      "id": 163479,
+      "portId": 504,
+      "fueltypeId": 5,
+      "tankId": 25614,
+      "arrivalVolume": "0.0000",
+      "arrivalQuantity": "0.0000",
+      "departureVolume": "1134.0206",
+      "departureQuantity": "1100.0000"
+    },
+    {
+      "id": 163480,
+      "portId": 504,
+      "fueltypeId": 5,
+      "tankId": 25615,
+      "arrivalVolume": "510.2041",
+      "arrivalQuantity": "500.0000",
+      "departureVolume": "1224.4898",
+      "departureQuantity": "1200.0000"
+    },
+    {
+      "id": 163481,
+      "portId": 504,
+      "fueltypeId": 5,
+      "tankId": 25612,
+      "arrivalVolume": "0.0000",
+      "arrivalQuantity": "0.0000",
+      "departureVolume": "0.0000",
+      "departureQuantity": "0.0000"
+    },
+    {
+      "id": 163482,
+      "portId": 504,
+      "fueltypeId": 5,
+      "tankId": 25613,
+      "arrivalVolume": "0.0000",
+      "arrivalQuantity": "0.0000",
+      "departureVolume": "0.0000",
+      "departureQuantity": "0.0000"
+    },
+    {
+      "id": 163483,
+      "portId": 504,
+      "fueltypeId": 5,
+      "tankId": 25616,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163484,
+      "portId": 504,
+      "fueltypeId": 6,
+      "tankId": 25625,
+      "arrivalVolume": "23.5294",
+      "arrivalQuantity": "20.0000",
+      "departureVolume": "23.5294",
+      "departureQuantity": "20.0000"
+    },
+    {
+      "id": 163485,
+      "portId": 504,
+      "fueltypeId": 6,
+      "tankId": 25622,
+      "arrivalVolume": "117.6471",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "117.6471",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163486,
+      "portId": 504,
+      "fueltypeId": 6,
+      "tankId": 25623,
+      "arrivalVolume": "117.6471",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "117.6471",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163487,
+      "portId": 504,
+      "fueltypeId": 3,
+      "tankId": 25637,
+      "arrivalVolume": "100.0000",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "100.0000",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163488,
+      "portId": 504,
+      "fueltypeId": 3,
+      "tankId": 25639,
+      "arrivalVolume": "80.0000",
+      "arrivalQuantity": "80.0000",
+      "departureVolume": "80.0000",
+      "departureQuantity": "80.0000"
+    },
+    {
+      "id": 163489,
+      "portId": 504,
+      "fueltypeId": 5,
+      "tankId": 25617,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163490,
+      "portId": 504,
+      "fueltypeId": 3,
+      "tankId": 25638,
+      "arrivalVolume": "100.0000",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "100.0000",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163491,
+      "portId": 2115,
+      "fueltypeId": 5,
+      "tankId": 25619,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163492,
+      "portId": 2115,
+      "fueltypeId": 6,
+      "tankId": 25624,
+      "arrivalVolume": "23.5294",
+      "arrivalQuantity": "20.0000",
+      "departureVolume": "23.5294",
+      "departureQuantity": "20.0000"
+    },
+    {
+      "id": 163493,
+      "portId": 2115,
+      "fueltypeId": 3,
+      "tankId": 25636,
+      "arrivalVolume": "144.0000",
+      "arrivalQuantity": "134.0000",
+      "departureVolume": "134.0000",
+      "departureQuantity": "134.0000"
+    },
+    {
+      "id": 163494,
+      "portId": 2115,
+      "fueltypeId": 5,
+      "tankId": 25614,
+      "arrivalVolume": "1237.1134",
+      "arrivalQuantity": "1100.0000",
+      "departureVolume": "1134.0206",
+      "departureQuantity": "1100.0000"
+    },
+    {
+      "id": 163495,
+      "portId": 2115,
+      "fueltypeId": 5,
+      "tankId": 25615,
+      "arrivalVolume": "1224.4898",
+      "arrivalQuantity": "1200.0000",
+      "departureVolume": "1224.4898",
+      "departureQuantity": "1200.0000"
+    },
+    {
+      "id": 163496,
+      "portId": 2115,
+      "fueltypeId": 5,
+      "tankId": 25612,
+      "arrivalVolume": "0.0000",
+      "arrivalQuantity": "0.0000",
+      "departureVolume": "0.0000",
+      "departureQuantity": "0.0000"
+    },
+    {
+      "id": 163497,
+      "portId": 2115,
+      "fueltypeId": 5,
+      "tankId": 25613,
+      "arrivalVolume": "0.0000",
+      "arrivalQuantity": "0.0000",
+      "departureVolume": "0.0000",
+      "departureQuantity": "0.0000"
+    },
+    {
+      "id": 163498,
+      "portId": 2115,
+      "fueltypeId": 5,
+      "tankId": 25616,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163499,
+      "portId": 2115,
+      "fueltypeId": 6,
+      "tankId": 25625,
+      "arrivalVolume": "23.5294",
+      "arrivalQuantity": "20.0000",
+      "departureVolume": "23.5294",
+      "departureQuantity": "20.0000"
+    },
+    {
+      "id": 163500,
+      "portId": 2115,
+      "fueltypeId": 6,
+      "tankId": 25622,
+      "arrivalVolume": "117.6471",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "117.6471",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163501,
+      "portId": 2115,
+      "fueltypeId": 6,
+      "tankId": 25623,
+      "arrivalVolume": "117.6471",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "117.6471",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163502,
+      "portId": 2115,
+      "fueltypeId": 3,
+      "tankId": 25637,
+      "arrivalVolume": "100.0000",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "100.0000",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163503,
+      "portId": 2115,
+      "fueltypeId": 3,
+      "tankId": 25639,
+      "arrivalVolume": "80.0000",
+      "arrivalQuantity": "80.0000",
+      "departureVolume": "80.0000",
+      "departureQuantity": "80.0000"
+    },
+    {
+      "id": 163504,
+      "portId": 2115,
+      "fueltypeId": 5,
+      "tankId": 25617,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163505,
+      "portId": 2115,
+      "fueltypeId": 3,
+      "tankId": 25638,
+      "arrivalVolume": "100.0000",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "100.0000",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163506,
+      "portId": 807,
+      "fueltypeId": 5,
+      "tankId": 25619,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163507,
+      "portId": 807,
+      "fueltypeId": 6,
+      "tankId": 25624,
+      "arrivalVolume": "23.5294",
+      "arrivalQuantity": "20.0000",
+      "departureVolume": "23.5294",
+      "departureQuantity": "20.0000"
+    },
+    {
+      "id": 163508,
+      "portId": 807,
+      "fueltypeId": 3,
+      "tankId": 25636,
+      "arrivalVolume": "144.0000",
+      "arrivalQuantity": "134.0000",
+      "departureVolume": "134.0000",
+      "departureQuantity": "134.0000"
+    },
+    {
+      "id": 163509,
+      "portId": 807,
+      "fueltypeId": 5,
+      "tankId": 25614,
+      "arrivalVolume": "1237.1134",
+      "arrivalQuantity": "1100.0000",
+      "departureVolume": "1134.0206",
+      "departureQuantity": "1100.0000"
+    },
+    {
+      "id": 163510,
+      "portId": 807,
+      "fueltypeId": 5,
+      "tankId": 25615,
+      "arrivalVolume": "1224.4898",
+      "arrivalQuantity": "1200.0000",
+      "departureVolume": "1224.4898",
+      "departureQuantity": "1200.0000"
+    },
+    {
+      "id": 163511,
+      "portId": 807,
+      "fueltypeId": 5,
+      "tankId": 25612,
+      "arrivalVolume": "0.0000",
+      "arrivalQuantity": "0.0000",
+      "departureVolume": "0.0000",
+      "departureQuantity": "0.0000"
+    },
+    {
+      "id": 163512,
+      "portId": 807,
+      "fueltypeId": 5,
+      "tankId": 25613,
+      "arrivalVolume": "0.0000",
+      "arrivalQuantity": "0.0000",
+      "departureVolume": "0.0000",
+      "departureQuantity": "0.0000"
+    },
+    {
+      "id": 163513,
+      "portId": 807,
+      "fueltypeId": 5,
+      "tankId": 25616,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163514,
+      "portId": 807,
+      "fueltypeId": 6,
+      "tankId": 25625,
+      "arrivalVolume": "23.5294",
+      "arrivalQuantity": "20.0000",
+      "departureVolume": "23.5294",
+      "departureQuantity": "20.0000"
+    },
+    {
+      "id": 163515,
+      "portId": 807,
+      "fueltypeId": 6,
+      "tankId": 25622,
+      "arrivalVolume": "117.6471",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "117.6471",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163516,
+      "portId": 807,
+      "fueltypeId": 6,
+      "tankId": 25623,
+      "arrivalVolume": "117.6471",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "117.6471",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163517,
+      "portId": 807,
+      "fueltypeId": 3,
+      "tankId": 25637,
+      "arrivalVolume": "100.0000",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "100.0000",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163518,
+      "portId": 807,
+      "fueltypeId": 3,
+      "tankId": 25639,
+      "arrivalVolume": "80.0000",
+      "arrivalQuantity": "80.0000",
+      "departureVolume": "80.0000",
+      "departureQuantity": "80.0000"
+    },
+    {
+      "id": 163519,
+      "portId": 807,
+      "fueltypeId": 5,
+      "tankId": 25617,
+      "arrivalVolume": "40.8163",
+      "arrivalQuantity": "40.0000",
+      "departureVolume": "40.8163",
+      "departureQuantity": "40.0000"
+    },
+    {
+      "id": 163520,
+      "portId": 807,
+      "fueltypeId": 3,
+      "tankId": 25638,
+      "arrivalVolume": "100.0000",
+      "arrivalQuantity": "100.0000",
+      "departureVolume": "100.0000",
+      "departureQuantity": "100.0000"
+    },
+    {
+      "id": 163464,
+      "portId": 2356,
+      "fueltypeId": 5,
+      "tankId": 25614,
+      "arrivalVolume": "0.0000",
+      "arrivalQuantity": "0.0000",
+      "departureVolume": "1134.0206",
+      "departureQuantity": "1100.0000"
+    }
+  ],
+  "portDetails": [
+    {
+      "id": 807,
+      "name": "YOKKAICHI",
+      "code": "YKC",
+      "averageTideHeight": "2.0000",
+      "tideHeight": "2.0000",
+      "densitySeaWater": "1.0250",
+      "countryName": "JAPAN"
+    },
+    {
+      "id": 2356,
+      "name": "ZIRKU ISLAND",
+      "code": "AEZUR",
+      "averageTideHeight": "",
+      "tideHeight": "",
+      "densitySeaWater": "1.0300",
+      "countryName": "UAE"
+    },
+    {
+      "id": 2115,
+      "name": "MINA AL FAHAL",
+      "code": "OMMFH",
+      "averageTideHeight": "",
+      "tideHeight": "",
+      "densitySeaWater": "1.0250",
+      "countryName": "OMAN"
+    },
+    {
+      "id": 504,
+      "name": "FUJAIRAH",
+      "code": "AEFJR",
+      "averageTideHeight": "",
+      "tideHeight": "",
+      "densitySeaWater": "1.0250",
+      "countryName": "UAE"
+    }
+  ],
+  "subCharterer": "Roland Petroleum Ltd",
+  "vesselId": 1,
+  "voyageId": 2473,
+  "voyageNo": "KY03"
+}

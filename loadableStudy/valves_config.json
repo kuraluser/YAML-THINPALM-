@@ -1,0 +1,66 @@
+{
+  "loading": {
+    "initialCondition": {},
+    "openSingleTank": {
+      "startOfLoading": {
+        "valveSeqCount": -1,
+        "valveSeqInterval": -1
+      }
+    },
+    "initialRate": {},
+    "openAllTanks": {
+      "fullLoadingRate": {
+        "valveSeqCount": -1,
+        "valveSeqInterval": -1
+      }
+    },
+    "increaseToMaxRate": {},
+    "loadingAtMaxRate": {},
+    "topping": {
+      "toppingOff": {
+        "valveSeqCount": 1,
+        "valveSeqInterval": 1
+      },
+      "shuttingSequence": {
+        "valveSeqCount": 1,
+        "valveSeqInterval": 1
+      }
+    }
+  },
+  "deballasting": {
+    "gravity": {
+      "valveSeq": 0,
+      "valveSeqInterval": 1
+    },
+    "floodPumps": {
+      "valveSeq": 0,
+      "valveSeqInterval": 1
+    },
+    "pumpsAfterGravity": {
+      "valveSeq": 0,
+      "valveSeqInterval": 1
+    },
+    "pumps": {
+      "valveSeq": 0,
+      "valveSeqInterval": 1
+    },
+    "seaToSea1": {
+      "valveSeq": 0,
+      "valveSeqInterval": 1
+    },
+    "eductor": {
+      "valveSeq": 0,
+      "valveSeqInterval": 1
+    },
+    "seaToSea2": {
+      "valveSeq": 0,
+      "valveSeqInterval": 1
+    },
+    "shutting": {
+      "valveSeq": 0,
+      "valveSeqInterval": 1
+    }
+  },
+  "discharging": {},
+  "ballasting": {}
+}
