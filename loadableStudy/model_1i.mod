@@ -352,9 +352,9 @@ param bDraft{p in 1..pwDraft-1}  default 0;
 
 param disp0 default 123177.0;
 # stability - SF and BM
-param adjMeanDraft default 0.166895;
-param adjLCB default -13665.8;
-param adjMTC default 2239.64;
+param adjMeanDraft default 0.166895; # KAZUSA 0.166895 AP 0.131300
+param adjLCB default -13665.8; # KAZUSA -13665.8 AP -68197.25
+param adjMTC default 2239.64; # KAZUSA 2239.64 AP 2393.987
 
 param Fr >= 0 integer, default 1; #frame
 set Frames := 0..Fr;

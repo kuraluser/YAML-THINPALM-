@@ -1101,6 +1101,7 @@ class Generate_plan:
         
         data["plans"] = {'arrival':loading_seq.initial_plan, 'departure':loading_seq.final_plan}
         data["stages"] = loading_seq.stages
+        data["loadingInformation"] = self.input.loading_information
         
         data['message'] = {'limits':self.input.limits}
         

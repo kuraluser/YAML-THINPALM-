@@ -36,7 +36,7 @@ def loading(data: dict) -> dict:
     gen_output.run(num_plans=1)
     
     # with open('result.pickle', 'wb') as fp_:
-    #    pickle.dump(gen_output, fp_)  
+    #     pickle.dump(gen_output, fp_)  
     
     # with open('result.pickle', 'rb') as fp_:
     #     gen_output = pickle.load(fp_)
@@ -78,7 +78,6 @@ def loadicator1(data, limits):
         info_["calculatedTrimPlanned"] = u_["trimValue"]
         info_["blindSector"] = None
         info_["list"] = str(u_["heelValue"])
-        info_["deflection"] = None
         info_['airDraft'] = u_['airDraftValue']
         info_['deflection'] = u_.get("deflection", None) 
         
@@ -86,7 +85,11 @@ def loadicator1(data, limits):
         info_['BM'] = v_["bendingMomentPersentValue"]
         info_['errorDetails'] = [u_["errorDetails"], v_["errorDetails"]]
         
-        sag_ = float(u_.get('deflection', 0.))/400
+        if info_['deflection'] in [None, ""]:
+            sag_ = 0.
+        else:
+            sag_ = float(u_.get('deflection', 0.))/400
+            
         mid_ship_draft_ = float(u_["meanDraftValue"]) + sag_
         info_['judgement'] = []
         # max permissible draft

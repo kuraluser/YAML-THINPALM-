@@ -177,8 +177,10 @@ class Check_plans:
             t_mom_ += v_[0]['wt']*v_[0]['tcg']
             
             # if type_ in ['cargoTanks', 'ballastTanks'] and abs(self.input.vessel.info[type_][k_]['lcg'] - v_[0]['lcg']) > 0.01:
-            #       print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'], v_[0].get('wt',0), v_[0]['fillRatio'])
-            # print(k_, v_[0]['wt'], v_[0]['tcg'], v_[0]['wt']*v_[0]['tcg'])
+            #     print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'], v_[0].get('wt',0), v_[0]['fillRatio'])
+            #print(k_, v_[0]['wt'], v_[0]['tcg'], v_[0]['wt']*v_[0]['tcg'])
+            # print(k_, v_[0]['wt'], v_[0]['lcg'], v_[0]['wt']*v_[0]['lcg'])
+            
             # print(k_, v_[0]['wt'], self.input.vessel.info[type_][k_]['lcg'], v_[0]['wt']*self.input.vessel.info[type_][k_]['lcg'])
             
             total_[type_] +=  v_[0]['wt']
@@ -270,13 +272,17 @@ class Check_plans:
         
         df_ = draft_ -  (0.5*lpp_ + lcf_)/lpp_*trim_
         da_ = df_ + trim_
+        dm_ = (df_ + da_)/2
         
         # print(df_,da_,dm_,trim_)
 
-
+        if self.input.vessel_id in [1]:
+            sdraft_ = da_ 
+        elif self.input.vessel_id in [2]:
+            sdraft_ = dm_
         
         base_drafts, indx = np.unique(self.input.vessel.info['SSTable']['baseDraft'].to_numpy(dtype=np.float), return_index=True)
-        ind_ = np.where(da_ >= base_drafts)
+        ind_ = np.where(sdraft_ >= base_drafts)
         if len(ind_[0]) > 0:
             base_draft_ = base_drafts[ind_[0][-1]]
             
@@ -317,20 +323,21 @@ class Check_plans:
                     w_ += w__
                     m__ = w__ * lcg_
                     m_ += m__
-                
-    #                print(k_, 'wi:', w__, 'mi:', w__ ,'x', lcg_,'=',m__)
+                    
+                    # if load_ > 0:
+                    #     print(k_, 'wi:', w__, 'mi:', w__ ,'x', lcg_,'=',m__)
             
                 W_[f__] = w_ + W0_
                 W0_ += w_ 
                 M_[f__] = m_ + M0_
                 M0_ += m_ 
             
-    #            print('sum wi:',W_[f__], 'sum mi:',M_[f__] )
+                # print('sum wi:',W_[f__], 'sum mi:',M_[f__] )
                 
                 # SF
                 df_ = df_sf_[df_sf_["frameNumber"].isin([float(f_)])]  
                 df_ = df_[df_['baseDraft'].isin([base_draft_])]
-                ss_ = df_['baseValue'].to_numpy()[0] + (da_ -  base_draft_)*df_['draftCorrection'].to_numpy()[0] + trim_*df_['trimCorrection'].to_numpy()[0]
+                ss_ = df_['baseValue'].to_numpy()[0] + (sdraft_ -  base_draft_)*df_['draftCorrection'].to_numpy()[0] + trim_*df_['trimCorrection'].to_numpy()[0]
            
                 SF_[f__] = (ss_ - W_[f__])*1000
                 SF_limits_[f__] = SFlimits_[str(f_)][0] if SF_[f__] < 0 else SFlimits_[str(f_)][1]
@@ -341,7 +348,7 @@ class Check_plans:
                 df_ = df_bm_[df_bm_["frameNumber"].isin([float(f_)])]
                 df_ = df_[df_['baseDraft'].isin([base_draft_])]
                 # print(df_)
-                sb_ = df_['baseValue'].to_numpy()[0] + (da_-base_draft_)*df_['draftCorrection'].to_numpy()[0] + trim_*df_['trimCorrection'].to_numpy()[0]
+                sb_ = df_['baseValue'].to_numpy()[0] + (sdraft_-base_draft_)*df_['draftCorrection'].to_numpy()[0] + trim_*df_['trimCorrection'].to_numpy()[0]
                 # print(f_, ss_, sb_)
                 BM_[f__] = (W_[f__] * tankGroupLCG_[str(f__+1)] - sb_ + M_[f__])*1000
                 BM_limits_[f__] = BMlimits_[str(f_)][0] if BM_[f__] < 0 else BMlimits_[str(f_)][1]
@@ -370,85 +377,87 @@ class Check_plans:
             
 #        #
 #        ##
-            zero_crossing = np.where(np.diff(np.sign(SF_)))[0]
-            # print(SF_)
-            # print(zero_crossing)
-            max_BM_ = 0
-            for z_ in zero_crossing:
-                
-                frm_ = str(frames_[z_]) + '-' + str(frames_[z_+1])
-                dist_ = float(dist_station_[frm_])
-                SFA, SFF = SF_[frames_.index(frames_[z_+1])], SF_[frames_.index(frames_[z_])]
-                L1 = abs(SFA)/(abs(SFA) + abs(SFF)) * dist_
-                L2 = dist_ - L1
-                
-                if 0 < L1 < dist_/3:
-                    max_BM = BM_[z_+1] + 0.5*SFA*L1
-                elif 0 < L2 < dist_/3:
-                    max_BM = BM_[z_] + 0.5*SFA*L2
-                else:
-                    max_BM = 0.5*(BM_[z_+1] + BM_[z_])
-            
-                
-                if max_BM > 0:
-                    max_BM = max_BM/830000.*100
-                else:
-                    max_BM = max_BM/-770800.*100
+            if self.input.vessel_id in [1]:
+                zero_crossing = np.where(np.diff(np.sign(SF_)))[0]
+                # print(SF_)
+                # print(zero_crossing)
+                max_BM_ = 0
+                for z_ in zero_crossing:
                     
-                # print(z_,'max_BM:', max_BM)
-                if max_BM_ < max_BM:
-                    max_BM_ = max_BM
+                    frm_ = str(frames_[z_]) + '-' + str(frames_[z_+1])
+                    dist_ = float(dist_station_[frm_])
+                    SFA, SFF = SF_[frames_.index(frames_[z_+1])], SF_[frames_.index(frames_[z_])]
+                    L1 = abs(SFA)/(abs(SFA) + abs(SFF)) * dist_
+                    L2 = dist_ - L1
                     
-            if max_BM_ >= 90:
-                print(max_bm_,max_BM_)
+                    if 0 < L1 < dist_/3:
+                        max_BM = BM_[z_+1] + 0.5*SFA*L1
+                    elif 0 < L2 < dist_/3:
+                        max_BM = BM_[z_] + 0.5*SFA*L2
+                    else:
+                        max_BM = 0.5*(BM_[z_+1] + BM_[z_])
+                
                     
-            ##
+                    if max_BM > 0:
+                        max_BM = max_BM/830000.*100
+                    else:
+                        max_BM = max_BM/-770800.*100
+                        
+                    # print(z_,'max_BM:', max_BM)
+                    if max_BM_ < max_BM:
+                        max_BM_ = max_BM
+                        
+                if max_BM_ >= 90:
+                    print(max_bm_,max_BM_)
+                    
+            ## -------------------------------------------------------------------------------
             BSF_limits_ = np.zeros(len(locations_))
             BSF_ = np.zeros(len(locations_))
             BSF_percent = np.zeros(len(locations_))
             max_bsf_ = [0.,0.]
             bsf_ = {}
-            # print('BSF----------------------------------------------------')
-            for t__, t_ in enumerate(zip(center_tanks_, wing_tanks_, ballast_tanks_)):
-                loc_ = locations_[t__]
-            
-                sf_ = SF_[frames_.index(loc_[:-1])]*9.8
-                x3_ = sf_*alpha_[t__]
-                # print(sf_,x3_)
-                # centre tanks
-                load_ = sum([plan.get(i_,{})[0].get('wt',0.) if plan.get(i_,{}) else 0. for i_ in t_[0]['tanks']])*9.8
-                x6_ = load_*t_[0]['C1']
-                # print(load_,x6_)
-                # wing_tanks
-                load_ = sum([plan.get(i_,{})[0].get('wt',0.) if plan.get(i_,{}) else 0. for i_ in t_[1]['tanks']])*9.8
-                x9_ = load_*t_[1]['C2']
-                # print(load_,x9_)
-                # ballast_tanks
-                load_ = sum([plan.get(i_,{})[0].get('wt',0.) if plan.get(i_,{}) else 0. for i_ in t_[2]['tanks']])*9.8
-                x12_ = load_*t_[2]['C3']
-                # print(load_,x12_)
+            if self.input.vessel_id in [1]:
+                # print('BSF----------------------------------------------------')
+                for t__, t_ in enumerate(zip(center_tanks_, wing_tanks_, ballast_tanks_)):
+                    loc_ = locations_[t__]
                 
-                x13_ = BWCorr_[t__]
-                draft_ = da_ - trim_*dist_AP_[t__]/lpp_
-                x16_ = draft_*C4_[t__]
-                
-                if load_ > 0:
-                    x17_ = x6_ + x9_ + x12_ + x13_ + x16_
-                else:
-                    x17_ = x6_ + x9_ + x16_
+                    sf_ = SF_[frames_.index(loc_[:-1])]*9.8
+                    x3_ = sf_*alpha_[t__]
+                    # print(sf_,x3_)
+                    # centre tanks
+                    load_ = sum([plan.get(i_,{})[0].get('wt',0.) if plan.get(i_,{}) else 0. for i_ in t_[0]['tanks']])*9.8
+                    x6_ = load_*t_[0]['C1']
+                    # print(load_,x6_)
+                    # wing_tanks
+                    load_ = sum([plan.get(i_,{})[0].get('wt',0.) if plan.get(i_,{}) else 0. for i_ in t_[1]['tanks']])*9.8
+                    x9_ = load_*t_[1]['C2']
+                    # print(load_,x9_)
+                    # ballast_tanks
+                    load_ = sum([plan.get(i_,{})[0].get('wt',0.) if plan.get(i_,{}) else 0. for i_ in t_[2]['tanks']])*9.8
+                    x12_ = load_*t_[2]['C3']
+                    # print(load_,x12_)
                     
-                # print(x17_)
-                fl_ = x3_ + x17_
-                # print(fl_)
-                
-                BSF_[t__] = fl_
-                BSF_limits_[t__] = BSFLimits_[loc_][0] if fl_ < 0 else BSFLimits_[loc_][1]
-                BSF_percent[t__] = BSF_[t__]/BSF_limits_[t__]*100
-                bsf_[loc_] = BSF_percent[t__]
-                if BSF_percent[t__] > max_bsf_[1]:
-                    max_bsf_ = [loc_, BSF_percent[t__]]
+                    x13_ = BWCorr_[t__]
+                    draft_ = da_ - trim_*dist_AP_[t__]/lpp_
+                    x16_ = draft_*C4_[t__]
                     
-            result['BSF'] = bsf_ 
+                    if load_ > 0:
+                        x17_ = x6_ + x9_ + x12_ + x13_ + x16_
+                    else:
+                        x17_ = x6_ + x9_ + x16_
+                        
+                    # print(x17_)
+                    fl_ = x3_ + x17_
+                    # print(fl_)
+                    
+                    BSF_[t__] = fl_
+                    BSF_limits_[t__] = BSFLimits_[loc_][0] if fl_ < 0 else BSFLimits_[loc_][1]
+                    BSF_percent[t__] = BSF_[t__]/BSF_limits_[t__]*100
+                    bsf_[loc_] = BSF_percent[t__]
+                    if BSF_percent[t__] > max_bsf_[1]:
+                        max_bsf_ = [loc_, BSF_percent[t__]]
+                        
+                result['BSF'] = bsf_ 
             
         return result
         

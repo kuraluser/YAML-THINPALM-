@@ -494,7 +494,7 @@ class Loading_seq:
         plan["ballastVol"] = 0.
         plan["cargoVol"] = {}
         
-        
+        cargo_tanks_added_, ballast_tanks_added_ = [], []
         
         for k_, v_ in cargo_.items():
             #print(k_, v_)
@@ -512,8 +512,9 @@ class Loading_seq:
             info_['colorCode'] = self.plans.input.loading.info['colorCode'][v_[0]['parcel']]
             info_['abbreviation'] = self.plans.input.loading.info['abbreviation'][v_[0]['parcel']]
             
-            
-            
+            if k_ not in cargo_tanks_added_:
+                cargo_tanks_added_.append(k_)
+                
             if v_[0]['parcel'] not in plan["cargoVol"]:
                 plan["cargoVol"][v_[0]['parcel']] = v_[0]['wt']/v_[0]['SG']
             else:
@@ -522,12 +523,28 @@ class Loading_seq:
             
             plan["loadablePlanStowageDetails"].append(info_)
             
+        ##
+        empty_ = set(self.plans.input.loading.info['cargoTanksUsed']) - set(cargo_tanks_added_)
+        for k_ in empty_:
+            info_ = {}
+            info_['tankName'] = k_
+            info_['tankId'] = int(self.plans.input.vessel.info['tankName'][k_])
+            info_['quantityMT'] = "0.0"
+            info_['quantityM3'] = "0.0"
+            info_['api'] = None 
+            info_['temperature'] = None
+            info_['ullage'] = str(round(self.plans.input.vessel.info['ullageEmpty'][str(info_['tankId'])],3))
+            info_['cargoNominationId'] = None
+            
+            info_['cargoId'] = None
+            info_['colorCode'] = None
+            info_['abbreviation'] = None
+            
+            plan["loadablePlanStowageDetails"].append(info_)
+            
+                
         for k_, v_ in plan["cargoVol"].items():
             plan["cargoVol"][k_] = str(round(v_,2))
-            
-            
-        
-            
             
         for k_, v_ in ballast_.items():
             # print(k_, v_)
@@ -541,10 +558,29 @@ class Loading_seq:
             info_['sg'] = str(v_[0]['SG'])
             info_['colorCode'] = self.plans.input.loading.ballast_color[k_]
             
-            
+            if k_ not in ballast_tanks_added_:
+                ballast_tanks_added_.append(k_)
+                
             plan["ballastVol"] += v_[0]['vol']
             
             plan["loadablePlanBallastDetails"].append(info_)
+            
+            
+        ##
+        empty_ = set(self.plans.input.loading.info['ballastTanksUsed']) - set(ballast_tanks_added_)
+        
+        for k_ in empty_:
+            info_ = {}
+            info_['tankName'] = k_
+            info_['tankId'] = int(self.plans.input.vessel.info['tankName'][k_])
+            info_['quantityMT'] = "0.00"
+            info_['quantityM3'] = "0.00"
+            info_['sounding'] = str(round(self.plans.input.vessel.info['ullageEmpty'][str(info_['tankId'])],3))
+            
+            info_['sg'] = None
+            info_['colorCode'] = None
+            plan["loadablePlanBallastDetails"].append(info_)
+            
             
         plan["ballastVol"] = str(round(plan["ballastVol"],2))    
             
@@ -561,7 +597,8 @@ class Loading_seq:
             
             plan["loadablePlanRoBDetails"].append(info_)
             
-            
+        
+        
         ##
         plan["foreDraft"] = self.stability[str(port)]['forwardDraft']
         plan["meanDraft"] = self.stability[str(port)]['meanDraft']
