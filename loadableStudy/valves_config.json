@@ -17,9 +17,9 @@
     "increaseToMaxRate": {},
     "loadingAtMaxRate": {},
     "topping": {
-      "toppingOff": {
-        "valveSeqCount": 1,
-        "valveSeqInterval": 1
+      "shuttingSequence_5": {
+        "valveSeqCount": -1,
+        "valveSeqInterval": -1
       },
       "shuttingSequence": {
         "valveSeqCount": 1,
