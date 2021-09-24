@@ -70,6 +70,7 @@ class Vessel:
         
         
         ## tanks
+        vessel_info_['cargoTankNames'], vessel_info_['ballastTankNames'], vessel_info_['otherTankNames'] = [], [], []
         vessel_info_['cargoTanks'], vessel_info_['ballastTanks']  = {}, {}
         vessel_info_['fuelTanks'], vessel_info_['dieselTanks'], vessel_info_['freshWaterTanks']  = {}, {}, {}
         categoryid_ = {1:'cargoTanks', 2:'ballastTanks', 3:'freshWaterTanks', 5:'fuelTanks', 6:'dieselTanks'}
@@ -90,8 +91,17 @@ class Vessel:
                     vessel_info_['tankName'][t_['shortName']] = t_['id'] 
                     vessel_info_['category'][t_['shortName']] = categoryid_[t_['categoryId']]
                     
+                    if t_['categoryId'] == 1:
+                        vessel_info_['cargoTankNames'].append(t_['shortName'])
+                    elif t_['categoryId'] == 2:
+                        vessel_info_['ballastTankNames'].append(t_['shortName'])
+                    else:
+                        vessel_info_['otherTankNames'].append(t_['shortName'])
+                    
                 if t_['slopTank']:
                     vessel_info_['slopTank'].append(t_['shortName'])
+                    
+                
                     
                     
         
@@ -487,7 +497,7 @@ class Vessel:
                 #if k_ not in vessel_info_['banBallast'] and  v_['type'] in ['ballast','cargo'] and abs(v_['lcg'][-1]-v_['lcg'][2]) > 0.1:
                     print(k_, v_['lcg'][-1], v_['lcg'][0], v_['lcg'][1] ,v_['lcg'][2])
                     
-                    lcg_weight_ = np.array(v_['vol'])*1.025 # density == 1 
+                    lcg_weight_ = np.array(v_['vol'])*1.0 # density == 1 
                     lcg_mom_ = lcg_weight_ * np.array(v_['lcg'])/1000
                     
                     my_pwlf = pwlf.PiecewiseLinFit(lcg_weight_, lcg_mom_)
@@ -497,7 +507,7 @@ class Vessel:
                     intercepts = my_pwlf.intercepts
                     
                     ## predict for the determined points
-                    xHat = np.linspace(min(v_['vol']), max(v_['vol']), num=1000)*1.025
+                    xHat = np.linspace(min(v_['vol']), max(v_['vol']), num=1000)*1.0
                     yHat = np.zeros(len(xHat))
                     
                     for i__,i_ in enumerate(xHat):
