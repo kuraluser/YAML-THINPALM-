@@ -121,7 +121,14 @@ class Generate_plan:
                 model_ = 'model_1i.mod'
                 dat_file = 'input_load.dat'
             elif self.input.module in ['LOADABLE']:
-                model_ = 'model_2i.mod' if self.input.mode in ['FullManual'] else 'model_1i.mod'
+                if self.input.mode in ['FullManual']:
+                    model_ = 'model_2i.mod'
+                else:
+                    if self.input.config.get('objective', "1") == '1':
+                        model_ = 'model_1i.mod'
+                    else:
+                        model_ = 'model_3i.mod'
+                        
             elif self.input.module in ['DISCHARGE']:
                 model_ = 'model_1i.mod'
                 dat_file = 'input_discharge.dat'
@@ -1058,7 +1065,7 @@ class Generate_plan:
                 
                 
                 if e_ in ['loadingAtMaxRate']:
-                    for d__, d_ in enumerate(info_['sequence'][1:-1]):
+                    for d__, d_ in enumerate(info_['sequence'][1:]):
                         # print(d_['stage'])
                         info_['sequence'][d__+1]['deballastingRateM3_Hr'] = info1_.get('iniDeballastingRateM3_Hr', {})
                         info_['sequence'][d__+1]['ballastingRateM3_Hr'] = info1_.get('iniBallastingRateM3_Hr', {})
@@ -1066,14 +1073,14 @@ class Generate_plan:
                         info2_ = {'simIniDeballastingRateM3_Hr': deepcopy(info1_.get('simIniDeballastingRateM3_Hr', {})),
                                   'simIniBallastingRateM3_Hr': deepcopy(info1_.get('simIniBallastingRateM3_Hr', {}))}
                         
-                        if len(info2_['simIniDeballastingRateM3_Hr']) > 0:
-                            for k_, v_ in info2_['simIniDeballastingRateM3_Hr'][0].items():
-                                info2_['simIniDeballastingRateM3_Hr'][0][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
-                                info2_['simIniDeballastingRateM3_Hr'][0][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
-                                
-                            for k_, v_ in info2_['simIniBallastingRateM3_Hr'][0].items():
-                                info2_['simIniBallastingRateM3_Hr'][0][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
-                                info2_['simIniBallastingRateM3_Hr'][0][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                        # if len(info2_['simIniDeballastingRateM3_Hr']) > 0:
+                        for k_, v_ in info2_['simIniDeballastingRateM3_Hr'].items():
+                            info2_['simIniDeballastingRateM3_Hr'][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                            info2_['simIniDeballastingRateM3_Hr'][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                            
+                        for k_, v_ in info2_['simIniBallastingRateM3_Hr'].items():
+                            info2_['simIniBallastingRateM3_Hr'][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                            info2_['simIniBallastingRateM3_Hr'][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
                              
                         
                         
@@ -1083,8 +1090,8 @@ class Generate_plan:
                         # info2_['simIniBallastingRateM3_Hr'][0]['timeStart'] = info_['sequence'][d__+1]['timeStart']
                         # info2_['simIniBallastingRateM3_Hr'][0]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
                             
-                        info_['sequence'][d__+1]['simDeballastingRateM3_Hr'] = info2_['simIniDeballastingRateM3_Hr']
-                        info_['sequence'][d__+1]['simBallastingRateM3_Hr'] = info2_['simIniBallastingRateM3_Hr']
+                        info_['sequence'][d__+1]['simDeballastingRateM3_Hr'] = [info2_['simIniDeballastingRateM3_Hr']]
+                        info_['sequence'][d__+1]['simBallastingRateM3_Hr'] = [info2_['simIniBallastingRateM3_Hr']]
                         
                   
                     # print(info1_.keys())

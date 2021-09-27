@@ -211,12 +211,15 @@ fname = 'loadableStudy_8595.json' # Bunkering port after last loading ports
 # fname = 'loadableStudy_10882.json'
 
 # fname = 'ls_1.json' # ATLANTIC PIONEER
-fname = 'loadable_study_200000021.json' # ATLANTIC PIONEER
-# fname = 'all_rules.json'
+# fname = 'loadable_study_200000021.json' # ATLANTIC PIONEER
+fname = 'all_rules.json'
+fname = 'all_rules_updated.json'
 
 # fname = 'discharge_study_111.json'
 
-fname = 'loadableStudy_100000351.json'
+# fname = 'loadableStudy_100000351.json'
+
+# fname = 'loadable_study_request_100000411.json'
 
 ## load configuration --------------------------------------------------------
 with open('config.json', "r") as f_:
@@ -263,10 +266,10 @@ data['config'] = config["vessel"][str(vessel_id_)]
 
 if __name__ == "__main__":
 
-    message = gen_allocation(data)
+    result = gen_allocation(data)
     
     with open('result.json', 'w') as f_:  
-        json.dump(message, f_)
+        json.dump(result, f_)
 
 
 

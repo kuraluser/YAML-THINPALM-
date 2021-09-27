@@ -17,3 +17,27 @@
 2021-09-21 18:31:55.542 | INFO     | main:task_handler:246 - afcc356c-cc0a-4031-9561-499635104c45: Get vessel API
 2021-09-21 18:35:06.823 | INFO     | main:task_handler:246 - f0ad2186-07c0-4905-ad46-426bf0c60668: Get vessel API
 2021-09-21 18:38:56.385 | INFO     | main:task_handler:246 - db4b1b55-75bb-42b1-b7f3-25b9ce073299: Get vessel API
+2021-09-27 16:29:00.729 | INFO     | main:task_handler:246 - 577c9301-1ba1-4f3e-9dd6-763e72f34c58: Get vessel API
+2021-09-27 16:29:06.885 | INFO     | main:get_vessel_details:83 - 577c9301-1ba1-4f3e-9dd6-763e72f34c58: HTTP Exception - 
+2021-09-27 16:29:06.886 | INFO     | main:get_vessel_details:84 - 577c9301-1ba1-4f3e-9dd6-763e72f34c58: Get vessel FILE
+2021-09-27 16:29:07.057 | INFO     | main:task_handler:264 - 577c9301-1ba1-4f3e-9dd6-763e72f34c58: Add new loadable
+2021-09-27 16:29:17.213 | INFO     | main:start_cpu_bound_task:132 - 577c9301-1ba1-4f3e-9dd6-763e72f34c58: Loadable study completed
+2021-09-27 16:29:17.213 | INFO     | main:start_cpu_bound_task:135 - 577c9301-1ba1-4f3e-9dd6-763e72f34c58: Update status
+2021-09-27 16:29:22.229 | INFO     | main:post_response:100 - 577c9301-1ba1-4f3e-9dd6-763e72f34c58: HTTP Exception - 
+2021-09-27 16:29:22.229 | INFO     | main:start_cpu_bound_task:178 - 577c9301-1ba1-4f3e-9dd6-763e72f34c58: Upload result
+2021-09-27 16:29:27.229 | INFO     | main:post_response:100 - 577c9301-1ba1-4f3e-9dd6-763e72f34c58: HTTP Exception - 
+2021-09-27 16:31:45.604 | INFO     | main:task_handler:246 - c200b342-62a5-4eff-9b2d-0adee8cf388b: Get vessel API
+2021-09-27 16:31:50.667 | INFO     | main:get_vessel_details:83 - c200b342-62a5-4eff-9b2d-0adee8cf388b: HTTP Exception - 
+2021-09-27 16:31:50.667 | INFO     | main:get_vessel_details:84 - c200b342-62a5-4eff-9b2d-0adee8cf388b: Get vessel FILE
+2021-09-27 16:31:50.838 | INFO     | main:task_handler:264 - c200b342-62a5-4eff-9b2d-0adee8cf388b: Add new loadable
+2021-09-27 16:31:59.776 | INFO     | main:start_cpu_bound_task:132 - c200b342-62a5-4eff-9b2d-0adee8cf388b: Loadable study completed
+2021-09-27 16:31:59.776 | INFO     | main:start_cpu_bound_task:135 - c200b342-62a5-4eff-9b2d-0adee8cf388b: Update status
+2021-09-27 16:32:04.807 | INFO     | main:post_response:100 - c200b342-62a5-4eff-9b2d-0adee8cf388b: HTTP Exception - 
+2021-09-27 16:32:04.807 | INFO     | main:start_cpu_bound_task:178 - c200b342-62a5-4eff-9b2d-0adee8cf388b: Upload result
+2021-09-27 16:32:09.792 | INFO     | main:post_response:100 - c200b342-62a5-4eff-9b2d-0adee8cf388b: HTTP Exception - 
+2021-09-27 16:32:53.838 | INFO     | main:task_handler:246 - d4cfe952-b303-425c-b9c9-070fe55d9955: Get vessel API
+2021-09-27 16:32:58.229 | INFO     | main:task_handler:266 - d4cfe952-b303-425c-b9c9-070fe55d9955: Add new loading
+2021-09-27 16:33:05.010 | INFO     | main:start_cpu_bound_task:151 - d4cfe952-b303-425c-b9c9-070fe55d9955: Loading sequence completed
+2021-09-27 16:33:10.010 | INFO     | main:post_response:100 - d4cfe952-b303-425c-b9c9-070fe55d9955: HTTP Exception - 
+2021-09-27 16:33:10.010 | INFO     | main:start_cpu_bound_task:178 - d4cfe952-b303-425c-b9c9-070fe55d9955: Upload result
+2021-09-27 16:33:15.042 | INFO     | main:post_response:100 - d4cfe952-b303-425c-b9c9-070fe55d9955: HTTP Exception - 

@@ -40,9 +40,10 @@ class Process_input(object):
                               'commingleCargo': data['loadable'].get('commingleCargos',[]),
                               'loadingPlan': data['loadable'].get('loadingPlan',{}), # 
                               'ballastPlan': data['loadable'].get('ballastPlan',{}), # 
-                              'planDetails': data.get('loadablePlanPortWiseDetails',[]), # for full and manual modes
-                              'ruleList': data['loadable'].get("loadableStudyRuleList", [])
+                              'planDetails': data.get('loadablePlanPortWiseDetails',[]) # for full and manual modes
                               }
+        
+        self.rules_json = data['loadable'].get("loadableStudyRuleList", [])
         
         self.user = data['loadable'].get('user', None)
         self.role = data['loadable'].get('role', None)                              
@@ -109,17 +110,144 @@ class Process_input(object):
     
     def _set_config(self, config):
         
-        # RULE = {"11167": "loadingTrim", "11168": "List", '11169': "SF", "11170": "BM", "11171":"SF-Svalue", "11172":"BM-Svalue"}
+        RULES = {"151":"trimLimit", "152": "loadingTrim", "153": "listLimit", 
+                 "154": "SFLimit", "155": "BMLimit",  "156": "SSFLimit", "157": "SBMLimit", 
+                 "301":"cargoTankUpperLimit", "302":"cargoTankLowerLimit", 
+                 "303":"ballastTankUpperLimit", "304":"ballastTankLowerLimit", 
+                 "305":"slopTankUpperLimit", "306":"slopTankLowerLimit", 
+                 "308":"valveSegregation",
+                 "321": "deballastAmt",
+                 "501":"condensateCargoBanTank", "502":"hrvpCargoBanTank",
+                 "701": "condensateCargoInterval",
+                 "902":"numPlans", "903": "timeLimit", "904":"objective"}
         
-        self.config = config
+        # self.config = config
         
         config_ = {}
-        for l__, l_ in enumerate(self.loadable_json['ruleList']):
+        for l__, l_ in enumerate(self.rules_json):
             
             if l_['header'] == 'Vessel Stability Rules':
+                ## sea or port limit for SF and BM not considered
+                ## Ensure draft not over the load line always true
+                continue
                 for k__, k_ in enumerate(l_['rules']):
-                    if k_['id'] == '11167':
-                        config_['loadingTrim'] = float(k_['inputs'][0]['value'])
+                    
+                    v_ =  RULES.get(k_['ruleTemplateId'], None)
+                    # print(k_['ruleTemplateId'], v_)
+                    
+                    if v_ in ["trimLimit", "listLimit"]:
+                        config_[v_] = [float(k_['inputs'][0]['value']), float(k_['inputs'][1]['value'])]
+                    elif v_ in ["loadingTrim", "SFLimit", "BMLimit", "SSFLimit", "SBMLimit"]:
+                        config_[v_] = float(k_['inputs'][0]['value'])
+                
+                # print(config_)
+                        
+                    
+            elif l_['header'] == 'Vessel Facility Rules':
+                continue
+            
+                ## 309 "Different types of cargoes in slop tanks" always true
+                ## 310 "Slop tanks must be used" always true
+                ## 311 "Loading Pattern Symmetric" always true
+                ## 312 Symmeteric vol different 
+                    # 1W, 2W, 4W and 5W same weight
+                    # 3W and Slop tanks 5% different
+                ## 313 "Each row(1W+1C, 2W+2C etc.) must at least have 1 tank for large nomination cargo" always true
+                ## 314 ""2 consecutive rows of tank with the same large cargo nomination not allowed. This is applicable to multiple cargo parcels""
+                ## 315 "Do not load cargo in a row if no cargo have nomination larger than 5 wing tanks"
+                ## 316 "Ensure propeller immersion draft should be more than 50 % of the draft value" Need min draft
+                ## 317 "tank can be filled with commingled cargo" 2C, 3C, 4C and slop tanks
+                ## 319 "Ballast Tank Usage Restriction to at last loading port"
+                   # LFPT, APT, AWBP, AWBS for KAZUSA
+                   # APT, FPT, WB6P, WB6S for AP
+                ## 322 "Zero ballast for arrival of first discharge port" zero if possible else non-zero
+                ## 323 "Decreasing ballast except for last loading port" always true
+                ## 324 "Ballast tanks are assumed to be filled at" Need modification
+                ## 325 "Only filled ballast tanks in the departure port can be used to adjust the ballast at the next arrival port"
+                ## 326 "Change in ballast can only be increasing or decreasing for ballast movement during cargo rotation"
+                ## 327 "1 tank can only take in 1 cargo except for tank with commingled cargo"
+                ## 328 "Commingle can be done with maximum two cargoes"
+                
+                for k__, k_ in enumerate(l_['rules']):
+                    #print(k_['ruleTemplateId'])
+                    v_ =  RULES.get(k_['ruleTemplateId'], None)
+                    print(k_['ruleTemplateId'], v_)
+                    if v_ in ["cargoTankUpperLimit", "cargoTankLowerLimit", 
+                              "ballastTankUpperLimit", "ballastTankLowerLimit", 
+                              "slopTankUpperLimit", "slopTankUpperLimit", "deballastAmt" ]:
+                        config_[v_] = float(k_['inputs'][0]['value'])
+                    
+                print(config_)
+                
+            elif l_['header'] == 'Port/Berth/Terminal Clearance Rules':
+                pass
+            elif l_['header'] == 'Vessel Tank Compatibility Rules':
+                
+                ## "501" "Condensate Cargo cannot be placed in " Modify tank short name
+                ## "502" "High Reid Vapour Cargo cannot be placed in " Modify tank short name
+                continue
+                for k__, k_ in enumerate(l_['rules']):
+                    # print(k_['ruleTemplateId'])
+                    v_ =  RULES.get(k_['ruleTemplateId'], None)
+                    print(k_['ruleTemplateId'], v_)
+                    tanks_ = k_['inputs'][0]["value"].split(',')
+                    tanksId_ = {str(r_['id']): r_['value']   for r_ in k_['inputs'][0]["ruleDropDownMaster"]}
+                    config_[v_] = [tanksId_[t_] for t_ in tanks_]
+                    
+                print(config_)
+                 
+            elif l_['header'] == 'Prior Cargo List Rules':
+                
+                continue
+                ## 710 "Condensate cargo can only be put in a tank for" Missing History
+                
+                for k__, k_ in enumerate(l_['rules']):
+                    # print(k_['ruleTemplateId'])
+                    v_ =  RULES.get(k_['ruleTemplateId'], None)
+                    print(k_['ruleTemplateId'], v_)
+                    config_[v_] = k_['inputs'][0]['value']
+                    
+                print(config_)
+                    
+            elif l_['header'] == 'Definition of Constant/System Rules':
+                
+                ## 901 "Extra loading time" Need modification
+                for k__, k_ in enumerate(l_['rules']):
+                    # print(k_['ruleTemplateId'])
+                    pass
+                
+                
+                
+            elif l_['header'] == 'Algorithm Rules':
+                continue
+                for k__, k_ in enumerate(l_['rules']):
+                    # print(k_['ruleTemplateId'])
+                    v_ =  RULES.get(k_['ruleTemplateId'], None)
+                    print(k_['ruleTemplateId'], v_)
+                    if v_ not in [None, ""]:
+                        config_[v_] = k_['inputs'][0]['value']
+                        
+                        if v_ == "objective":
+                            config_[v_] = "1" if config_[v_] == "46" else "3"
+                            # "45": min tank -> model3i.mod
+                            # "46": max load -> model1i.mod
+                
+                print(config_)
+                            
+                            
+                        
+                        
+        self.config = {**config, **config_}    
+        self.config = config      
+                    
+        # print(config_)    
+            
+            
+            
+            # if l_['header'] == 'Vessel Stability Rules':
+            #     for k__, k_ in enumerate(l_['rules']):
+            #         if k_['id'] == '11167':
+            #             config_['loadingTrim'] = float(k_['inputs'][0]['value'])
                         
             
         
@@ -1349,7 +1477,11 @@ class Process_input(object):
                 print(str1+';', file=text_file)
                 str1 = 'param adjMTC := ' + str(self.config['adj_MTC'])
                 print(str1+';', file=text_file)
-               
+                
+                print('# runtime limit ',file=text_file)#  
+                str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 60))
+                print(str1+';', file=text_file)
+                
                 
                 
         
