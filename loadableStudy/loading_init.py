@@ -62,6 +62,8 @@ class Process_input(object):
 
     def prepare_data(self):
         
+        self.error = {}
+        
         self.vessel = Vessel(self, loading=True)
         #self.vessel._get_onhand(self) # ROB
         self.vessel._get_onboard(self, loading = True) # Arrival condition
@@ -71,8 +73,11 @@ class Process_input(object):
         self.loading._gen_topping()
         self.loading._get_ballast_requirements()
         
-        self.get_param()
-        self.write_ampl()
+        if not self.loading.error:
+            self.get_param()
+            self.write_ampl()
+        else:
+            self.error = {**self.error, **self.loading.error}
         
     def get_param(self):
         
@@ -370,6 +375,7 @@ class Process_input(object):
             
     
     def write_ampl(self, file = 'input_load.dat', IIS = True):
+        
         if not self.error and self.solver in ['AMPL']:
             
             with open(file, "w") as text_file:

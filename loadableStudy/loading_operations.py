@@ -25,10 +25,13 @@ class LoadingOperations(object):
     
     def __init__(self, data):
         
+        self.error = {}
+        
         self.ballast_color, self.rob_color = {}, {}
         self.vessel = data.vessel
         
         self.time_interval = data.loading_info_json['loadingStages']['stageDuration']*60 # in 60*4 min
+        
         
         print('time interval:', self.time_interval)
         
@@ -654,7 +657,9 @@ class LoadingOperations(object):
             
             ballast_ = [(0, 'Initial')]
             ballast_stop_, before_topping_ = [], 'MaxLoading' + str(stage_)
-            while time_ < topping_start_:
+            single_max_stage_ = True
+            while (time_ < topping_start_):
+                single_max_stage_ = False
                 # print(time_)
                 ss_ = 'MaxLoading' + str(stage_)
                 df_[ss_] = df_['IncMax']
@@ -685,9 +690,9 @@ class LoadingOperations(object):
             stages_['loadingAtMaxRate'] = (df_['IncMax']['Time'], df_[ss_]['Time'])
             
             # last max stage before topping
-            if p__+1 < len(self.info['loading_order']):
-                ballast_.append((int(df_[ss_]['Time']),ss_))
-                ballast_stop_.append((int(df_[ss_]['Time']),ss_))
+            # if p__+1 < len(self.info['loading_order'])+1:
+            ballast_.append((int(df_[ss_]['Time']),ss_))
+            ballast_stop_.append((int(df_[ss_]['Time']),ss_))
                 
             
             next_ballast_ = (None,None,10000)  # time; stage; relative to interval
@@ -713,11 +718,17 @@ class LoadingOperations(object):
                     
             stages_['topping'] = (df_[last_loading_max_rate_stage_]['Time'], df_[ss_]['Time'])
                     
-            if next_ballast_ not in [(None,None,10000)]:
-                ballast_.append((next_ballast_[0],next_ballast_[1]))    
+            # if next_ballast_ not in [(None,None,10000)]:
+            #     ballast_.append((next_ballast_[0],next_ballast_[1]))    
                 
             if (final_ballast_[0],final_ballast_[1]) not in ballast_:
                 ballast_.append((final_ballast_[0],final_ballast_[1]))    
+                
+                
+            ## add MaxLoading1 if necessary 
+            if single_max_stage_ and  (df_['MaxLoading1']['Time'],'MaxLoading1') not in ballast_:
+                ballast_.insert(1, (df_['MaxLoading1']['Time'],'MaxLoading1'))
+                
                 
                     
             self.seq[cargo_to_load_]['gantt'] = df_        
@@ -731,8 +742,9 @@ class LoadingOperations(object):
             self.seq[cargo_to_load_]['lastStage'] = ss_
             self.seq[cargo_to_load_]['loadingRateM3Min'] = staggering_rate_['LoadingRateM3Min'] 
             self.seq[cargo_to_load_]['timeNeeded'] = df_[ss_]['Time']
+            self.seq[cargo_to_load_]['singleMaxStage'] = single_max_stage_
             
-            
+                       
             start_time_ += df_[ss_]['Time']
             
             print(df_.columns.to_list()[5:]) # 'MaxLoading1', 'MaxLoading2', ...
@@ -770,21 +782,31 @@ class LoadingOperations(object):
                 time_ = df_[self.seq[c_]['justBeforeTopping']]['Time'] - df_[self.seq[c_]['beforeTopping']]['Time']
                 print('Duration of last max loading interval:', time_ )
                 if self.info['eduction']:
-                    if time_ > 0 and time_ < TIME_EDUCTING:
-                        print('Eduction needed', self.seq[c_]['beforeTopping']+str(c__+1))
-                        fixed_ballast_.append(self.seq[c_]['beforeTopping']+str(c__+1))
-                        # fixed at departure ballast
-                        for k_, v_ in self.info['ballast'][-1].items():
-                            df_[self.seq[c_]['beforeTopping']][k_] = v_[0]['quantityMT']
-                    
+                    if time_ > 0:
+                        if time_ < TIME_EDUCTING:
+                            print('Eduction needed', self.seq[c_]['beforeTopping']+str(c__+1), self.time_interval+time_-TIME_EDUCTING)
+                            fixed_ballast_.append(self.seq[c_]['beforeTopping']+str(c__+1))
+                            self.seq[c_]['eduction'] = (self.time_interval+time_-TIME_EDUCTING, self.seq[c_]['beforeTopping'])
+                            
+                            # fixed at departure ballast
+                            for k_, v_ in self.info['ballast'][-1].items():
+                                df_[self.seq[c_]['beforeTopping']][k_] = v_[0]['quantityMT']
+                        else:
+                            print('Eduction needed', self.seq[c_]['justBeforeTopping']+str(c__+1), time_-TIME_EDUCTING)
+                            self.seq[c_]['eduction'] = (time_-TIME_EDUCTING, self.seq[c_]['justBeforeTopping'])
+                            
                     elif time_ == 0:
                         print('Only one maxloading stage')
                         time__ = df_['MaxLoading1']['Time']
                         if time__ > TIME_EDUCTING:
-                            print('Fix ballast at MaxLoading1 for educting!!')
+                            print('Fix ballast at MaxLoading1 for educting!!', time__-TIME_EDUCTING)
+                            self.seq[c_]['eduction'] = (time__-TIME_EDUCTING, 'MaxLoading1')
+                            
                         else:
                             print('No time for eduction!!')
+                            self.error['Eduction Error'] = ["No time for eduction!!"]
                             return
+                    
                         
                 # fixed at departure ballast            
                 fixed_ballast_.append(self.seq[c_]['justBeforeTopping']+str(c__+1))
