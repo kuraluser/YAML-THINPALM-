@@ -65,7 +65,7 @@ class Generate_valves:
         # get valves from vessel json and put into its respective stages.
         # E.g valves for start of loading seq into open single tank stage
         self.getLoadingValves()
-        self.getBallastValves()
+        # self.getBallastValves()
         # combine ballast and cargo valves and timing for valves
         self.getLoadingValvesTimeLine()
         self.combineValves()
@@ -220,9 +220,9 @@ class Generate_valves:
             tanks = self.initialTanks[cargo]
         elif stage == 'topping':
             if topping:  # If isTopping is true, then get tanks in order except final tank
-                tanks = [i['tank'] for i in self.toppingSequence[cargo][:-1]]
+                tanks = [i['tank'] for i in self.toppingSequence[cargo] if i['tank'] not in self.lastTank[cargo]]
             else:  # get final tank for shutting sequence
-                tanks = [self.lastTank[cargo]]
+                tanks = self.lastTank[cargo]
         else:
             tanks = [tank for tank in self.tanks[cargo] if tank not in self.initialTanks[cargo]]
 
@@ -233,7 +233,6 @@ class Generate_valves:
                 newTanks.append(tank[:-1] + 'P')
                 newTanks.append(tank[:-1] + 'S')
             else:
-
                 newTanks.append(tank)
         return newTanks
 
@@ -362,7 +361,11 @@ class Generate_valves:
             # Sort tanks according to first to end to last
             tank_endTime = sorted(tank_endTime, key=lambda k: k['time'])
             topping[cargo] = tank_endTime
-            last[cargo] = tank_endTime[-1]['tank']
+            # For center tanks, sls, slp
+            if ('C' in tank_endTime[-1]['tank'][-1]) | (tank_endTime[-1]['tank'] in ['SLS', 'SLP']):
+                last[cargo] = [tank_endTime[-1]['tank']]
+            else: # For wing tanks (both wing tanks)
+                last[cargo] = [tank_endTime[-2]['tank'], tank_endTime[-1]['tank']]
         self.toppingSequence = topping
         self.lastTank = last
         return
