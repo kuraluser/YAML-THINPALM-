@@ -8,6 +8,7 @@ Created on Wed Jul 14 16:50:44 2021
 from loading_init import Process_input
 from vlcc_gen import Generate_plan 
 from vlcc_check import Check_plans
+from vlcc_valves import Generate_valves
 # import json
 
 import pickle
@@ -47,6 +48,11 @@ def loading(data: dict) -> dict:
       
     # gen json  
     out = gen_output.gen_json1({}, plan_check.stability_values)
+
+    ## Valve
+    valve_params = Generate_valves(params, out, gen_output) ## get parameters for valve module
+    valve_params.prepOperation()
+    valve_out = valve_params.integrateValves()
     
     return out
 
