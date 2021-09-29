@@ -309,7 +309,7 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
         # # print('>>>Send loadicator results')
         # logger.info(data["processId"] + ": Upload loadicator result")
         
-        if out.get('feedbackLoop', True):
+        if out.get('feedbackLoop', True) and int(out.get('feedbackLoopCount', 5)) <= 5:
             print('feedbackloop started!!')
             gID = data['processId']
             # print(gID)

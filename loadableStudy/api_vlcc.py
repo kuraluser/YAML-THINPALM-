@@ -273,7 +273,7 @@ def loadicator(data, limits):
             
         
     # print(fail_BMSF_)
-    
+    # rerun_ = True
     if not rerun_:    
         ## feedback loop
         out['feedbackLoop'] = False
@@ -281,7 +281,7 @@ def loadicator(data, limits):
         out['sfbmFac'] = limits['limits']['sfbm']
         
         # print('do')
-    else:
+    elif data.get('module', None) in ['LOADABLE']:
         print('Rerun!!')
         out['feedbackLoop'] = True
         out['feedbackLoopCount'] = limits['limits']['feedback']['feedbackLoopCount'] + 1
