@@ -1478,7 +1478,7 @@ class Process_input(object):
                 print(str1+';', file=text_file)
                 
                 print('# runtime limit ',file=text_file)#  
-                str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 30))
+                str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 60))
                 print(str1+';', file=text_file)
                 
                 
