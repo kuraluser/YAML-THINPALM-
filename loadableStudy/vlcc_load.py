@@ -11,6 +11,8 @@ import itertools
 class Loadable:
     def __init__(self, inputs):
         
+        self.commingled_ratio = 0.6
+        
         cargos_info_ = {}
         cargos_info_['parcel'] = {}
         cargos_info_['sg'] = []
@@ -217,57 +219,9 @@ class Loadable:
             
         # cargos_info_ = {}
         
-        cargos_info_['commingleCargo'] = {}
-        for c__, c_ in enumerate(inputs.loadable_json['commingleCargo']):
-            # print('Commingle cargo!!')
-            c1_ = 'P'+str(c_['cargoNomination1Id'])
-            c2_ = 'P'+str(c_['cargoNomination2Id'])
+        # cargos_info_['commingleCargo'] = {}
+        self._set_commingle_info(inputs, cargos_info_)
             
-            cargos_info_['commingleCargo']['parcel1'] = c1_
-            cargos_info_['commingleCargo']['parcel2'] = c2_
-            t1_, t2_ = self.info['parcel'][c1_]['temperature'], self.info['parcel'][c2_]['temperature']
-            
-            api1_ = self.info['parcel'][c1_]['api']
-            api2_ = self.info['parcel'][c2_]['api']
-              
-            if str(c_['purposeXid']) == str(1):
-                print('Commingle cargo in auto mode!!')
-                if inputs.commingle_temperature in [None]:
-                    cargos_info_['commingleCargo']['temperature'] = min(t1_,t2_) + abs(t1_-t2_)*0.6
-                else:
-                    cargos_info_['commingleCargo']['temperature'] = inputs.commingle_temperature
-                print('approx commingle temperature:', cargos_info_['commingleCargo']['temperature'])
-                
-            else:
-                print('Commingle cargo in manual mode!!')
-                # inputs.error.append('Commingle cargo in manual mode not supported yet!!')
-                # return
-                
-                wt1_ = float(c_['quantity'])*float(c_['cargo1Percentage'])*0.01
-                wt2_ = float(c_['quantity'])*float(c_['cargo2Percentage'])*0.01
-                
-                cargos_info_['commingleCargo']['temperature'] = (wt1_*t1_ + wt2_*t2_)/(wt1_ + wt2_)
-                print('approx commingle temperature:', cargos_info_['commingleCargo']['temperature'])
-                cargos_info_['commingleCargo']['tank'] = [d_ for d_ in c_['tankIds'].split(',')]
-                cargos_info_['commingleCargo']['wt1'] = wt1_
-                cargos_info_['commingleCargo']['wt2'] = wt2_
-                
-            cargos_info_['commingleCargo']['SG1'] = self._cal_density(api1_, cargos_info_['commingleCargo']['temperature'])
-            cargos_info_['commingleCargo']['SG2'] = self._cal_density(api2_, cargos_info_['commingleCargo']['temperature'])
-            
-            cargos_info_['commingleCargo']['api1'] = self.info['parcel'][c1_]['api']
-            cargos_info_['commingleCargo']['api2'] = self.info['parcel'][c2_]['api']
-            
-            cargos_info_['commingleCargo']['t1'] = self.info['parcel'][c1_]['temperature']
-            cargos_info_['commingleCargo']['t2'] = self.info['parcel'][c2_]['temperature']
-            cargos_info_['commingleCargo']['priority'] = str(c_['priority'])
-            cargos_info_['commingleCargo']['mode'] = str(c_['purposeXid'])
-            
-            cargos_info_['commingleCargo']['slopOnly'] = c_.get('isSlopOnly',False)
-            cargos_info_['commingleCargo']['colorCode'] = c_.get('color', None)
-            
-                
-        
         cargos_info_['operation'] = {k_:{}  for k_,v_ in self.info['parcel'].items()}
         cargos_info_['toLoad'] = {k_:0 for k_,v_ in self.info['parcel'].items()}
         cargos_info_['toLoadIntend']    = {k_:0 for k_,v_ in self.info['parcel'].items()}
@@ -409,6 +363,70 @@ class Loadable:
         if float(inputs.cargoweight) < min_cargo_:
             inputs.error['Min Tolerance Error'] = ['Min cargo tolerance is more than loadable quantity!!']
         
+    def _set_commingle_info(self, inputs, cargos_info_):
+        
+        cargos_info_['commingleCargo'] = {}
+        for c__, c_ in enumerate(inputs.loadable_json['commingleCargo']):
+            # print('Commingle cargo!!')
+            c1_ = 'P'+str(c_['cargoNomination1Id'])
+            c2_ = 'P'+str(c_['cargoNomination2Id'])
+            
+            cargos_info_['commingleCargo']['parcel1'] = c1_
+            cargos_info_['commingleCargo']['parcel2'] = c2_
+            t1_, t2_ = self.info['parcel'][c1_]['temperature'], self.info['parcel'][c2_]['temperature']
+            
+            api1_ = self.info['parcel'][c1_]['api']
+            api2_ = self.info['parcel'][c2_]['api']
+              
+            if str(c_['purposeXid']) == str(1):
+                print('Commingle cargo in auto mode!!')
+                # expected_ratio_ = 0.6
+                if inputs.commingle_temperature in [None]:
+                    cargos_info_['commingleCargo']['temperature'] = min(t1_,t2_) + abs(t1_-t2_)*self.commingled_ratio
+                else:
+                    cargos_info_['commingleCargo']['temperature'] = inputs.commingle_temperature
+                    
+                if t1_ > t2_:
+                    cargos_info_['commingleCargo']['ratio1'] = self.commingled_ratio
+                    cargos_info_['commingleCargo']['ratio2'] = 1-self.commingled_ratio
+                    
+                else:
+                    cargos_info_['commingleCargo']['ratio2'] = self.commingled_ratio
+                    cargos_info_['commingleCargo']['ratio1'] = 1-self.commingled_ratio
+                    
+                print('approx commingle temperature:', cargos_info_['commingleCargo']['temperature'])
+                print('approx ratio:', c1_, c2_, cargos_info_['commingleCargo']['ratio1'], cargos_info_['commingleCargo']['ratio2'])
+                
+            else:
+                print('Commingle cargo in manual mode!!')
+                # inputs.error.append('Commingle cargo in manual mode not supported yet!!')
+                # return
+                
+                wt1_ = float(c_['quantity'])*float(c_['cargo1Percentage'])*0.01
+                wt2_ = float(c_['quantity'])*float(c_['cargo2Percentage'])*0.01
+                
+                cargos_info_['commingleCargo']['temperature'] = (wt1_*t1_ + wt2_*t2_)/(wt1_ + wt2_)
+                print('approx commingle temperature:', cargos_info_['commingleCargo']['temperature'])
+                cargos_info_['commingleCargo']['tank'] = [d_ for d_ in c_['tankIds'].split(',')]
+                cargos_info_['commingleCargo']['wt1'] = wt1_
+                cargos_info_['commingleCargo']['wt2'] = wt2_
+                
+            cargos_info_['commingleCargo']['SG1'] = self._cal_density(api1_, cargos_info_['commingleCargo']['temperature'])
+            cargos_info_['commingleCargo']['SG2'] = self._cal_density(api2_, cargos_info_['commingleCargo']['temperature'])
+            
+            cargos_info_['commingleCargo']['api1'] = self.info['parcel'][c1_]['api']
+            cargos_info_['commingleCargo']['api2'] = self.info['parcel'][c2_]['api']
+            
+            cargos_info_['commingleCargo']['t1'] = self.info['parcel'][c1_]['temperature']
+            cargos_info_['commingleCargo']['t2'] = self.info['parcel'][c2_]['temperature']
+            cargos_info_['commingleCargo']['priority'] = str(c_['priority'])
+            cargos_info_['commingleCargo']['mode'] = str(c_['purposeXid'])
+            
+            cargos_info_['commingleCargo']['slopOnly'] = c_.get('isSlopOnly',False)
+            cargos_info_['commingleCargo']['colorCode'] = c_.get('color', None)
+    
+    
+    
     def _create_man_operations(self, inputs):
         
         cargos_info_ = {}

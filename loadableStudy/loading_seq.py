@@ -216,24 +216,71 @@ class Loading_seq:
             
             tot_num_ = len(self.plans.input.loadable['toLoadCargoTank'][cargo])
             rate_ = round(self.plans.input.loading.seq[cargo]['initialRate']/tot_num_,2)
-            info["cargoLoadingRatePerTankM3_Hr"] = {}
-            info["simCargoLoadingRatePerTankM3_Hr"] = {}
+            info["cargoLoadingRatePerTankM3_Hr"] = []
+            info["simCargoLoadingRatePerTankM3_Hr"] = []
             
-            for  k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items():
-                if v_ > 0:
-                    if k_[-1] in ['C'] or k_ in ['SLS', 'SLP']:
-                        rate_ = self.plans.input.loading.seq[cargo]['loadingRateM3Min'][k_]*60
-                    else:
-                        k1_ = k_[:-1]+'W'
-                        rate_ = self.plans.input.loading.seq[cargo]['loadingRateM3Min'][k1_]*60/2
-                        
-                    info["cargoLoadingRatePerTankM3_Hr"][self.plans.input.vessel.info['tankName'][k_]] = str(round(rate_,2))
+            
+            if self.plans.input.loading.seq[cargo]['commingleStart'] in [None]:
+                info1_, info2_ = {}, {}
+                for  k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items():
+                    if v_ > 0:
+                        if k_[-1] in ['C'] or k_ in ['SLS', 'SLP']:
+                            rate_ = self.plans.input.loading.seq[cargo]['loadingRateM3Min'][k_]*60
+                        else:
+                            k1_ = k_[:-1]+'W'
+                            rate_ = self.plans.input.loading.seq[cargo]['loadingRateM3Min'][k1_]*60/2
+                            
+                        info1_[self.plans.input.vessel.info['tankName'][k_]] = str(round(rate_,2))
+                        info2_[self.plans.input.vessel.info['tankName'][k_]] = {'tankName': k_,
+                                                                                 "rate": str(round(rate_,2)), 
+                                                                                 "timeStart": info["timeStart"],
+                                                                                 "timeEnd": info["timeEnd"]}
+                            
+                info["cargoLoadingRatePerTankM3_Hr"].append(info1_)
+                info["simCargoLoadingRatePerTankM3_Hr"].append(info2_)
+                                                                                                                  
+            else:
+                info1_, info2_ = {}, {}
+                loadingRateM3Min = self.plans.input.loading.seq[cargo]['loadingRateM3Min'][0]
+                commingleStart_ = str(int(info["timeStart"]) + self.plans.input.loading.seq[cargo]['commingleStart'] - 30)
+                
+                for  k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items():
                     
-                    info["simCargoLoadingRatePerTankM3_Hr"][self.plans.input.vessel.info['tankName'][k_]] = {'tankName': k_,
-                                                                                                              "rate": str(round(rate_,2)), 
-                                                                                                              "timeStart": info["timeStart"],
-                                                                                                              "timeEnd": info["timeEnd"]}
-            
+                    t_ = k_ if k_[-1] in ['C'] or k_ in ['SLS', 'SLP'] else k_[:-1]+'W'
+                    if v_ > 0 and loadingRateM3Min[t_] > 0:
+                        if k_[-1] in ['C'] or k_ in ['SLS', 'SLP']:
+                            rate_ = loadingRateM3Min[k_]*60
+                        else:
+                            k1_ = k_[:-1]+'W'
+                            rate_ = loadingRateM3Min[k1_]*60/2
+                            
+                        info1_[self.plans.input.vessel.info['tankName'][k_]] = str(round(rate_,2))
+                        info2_[self.plans.input.vessel.info['tankName'][k_]] = {'tankName': k_,
+                                                                                 "rate": str(round(rate_,2)), 
+                                                                                 "timeStart": info["timeStart"],
+                                                                                 "timeEnd": commingleStart_}
+                            
+                info["cargoLoadingRatePerTankM3_Hr"].append(info1_)
+                info["simCargoLoadingRatePerTankM3_Hr"].append(info2_)
+                
+                info1_, info2_ = {}, {}
+                loadingRateM3Min = self.plans.input.loading.seq[cargo]['loadingRateM3Min'][1]
+                for  k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items():
+                    if v_ > 0:
+                        if k_[-1] in ['C'] or k_ in ['SLS', 'SLP']:
+                            rate_ = loadingRateM3Min[k_]*60
+                        else:
+                            k1_ = k_[:-1]+'W'
+                            rate_ = loadingRateM3Min[k1_]*60/2
+                            
+                        info1_[self.plans.input.vessel.info['tankName'][k_]] = str(round(rate_,2))
+                        info2_[self.plans.input.vessel.info['tankName'][k_]] = {'tankName': k_,
+                                                                                 "rate": str(round(rate_,2)), 
+                                                                                 "timeStart": commingleStart_,
+                                                                                 "timeEnd": info["timeEnd"]}
+                            
+                info["cargoLoadingRatePerTankM3_Hr"].append(info1_)
+                info["simCargoLoadingRatePerTankM3_Hr"].append(info2_)
             
             info["toLoadicator"] = True            
             info['simIniDeballastingRateM3_Hr'] = {}
@@ -538,29 +585,52 @@ class Loading_seq:
         for k_, v_ in cargo_.items():
             #print(k_, v_)
             info_ = {}
-            info_['tankName'] = k_
-            info_['tankId'] = int(self.plans.input.vessel.info['tankName'][k_])
-            info_['quantityMT'] = str(round(abs(v_[0]['wt']),2))
-            info_['quantityM3'] = str(round(abs(v_[0]['wt']/v_[0]['SG']),2))
-            info_['api'] = str(round(abs(v_[0]['api']),2))
-            info_['temperature'] = str(round(abs(v_[0]['temperature']),2))
-            info_['ullage'] = str(round(abs(v_[0]['corrUllage']),3))
-            info_['cargoNominationId'] = int(v_[0]['parcel'][1:])
             
-            info_['cargoId'] = self.plans.input.loading.info['cargoId'][v_[0]['parcel']]
-            info_['colorCode'] = self.plans.input.loading.info['colorCode'][v_[0]['parcel']]
-            info_['abbreviation'] = self.plans.input.loading.info['abbreviation'][v_[0]['parcel']]
-            
-            if k_ not in cargo_tanks_added_:
-                cargo_tanks_added_.append(k_)
+            if  type(v_[0]['parcel']) == str: # single cargo
+                info_['tankName'] = k_
+                info_['tankId'] = int(self.plans.input.vessel.info['tankName'][k_])
+                info_['quantityMT'] = str(round(abs(v_[0]['wt']),2))
+                info_['quantityM3'] = str(round(abs(v_[0]['wt']/v_[0]['SG']),2))
+                info_['api'] = str(round(abs(v_[0]['api']),2))
+                info_['temperature'] = str(round(abs(v_[0]['temperature']),2))
+                info_['ullage'] = str(round(abs(v_[0]['corrUllage']),3))
+                info_['cargoNominationId'] = int(v_[0]['parcel'][1:])
                 
-            if v_[0]['parcel'] not in plan["cargoVol"]:
-                plan["cargoVol"][v_[0]['parcel']] = v_[0]['wt']/v_[0]['SG']
+                info_['cargoId'] = self.plans.input.loading.info['cargoId'][v_[0]['parcel']]
+                info_['colorCode'] = self.plans.input.loading.info['colorCode'][v_[0]['parcel']]
+                info_['abbreviation'] = self.plans.input.loading.info['abbreviation'][v_[0]['parcel']]
+                
+                if k_ not in cargo_tanks_added_:
+                    cargo_tanks_added_.append(k_)
+                    
+                if v_[0]['parcel'] not in plan["cargoVol"]:
+                    plan["cargoVol"][v_[0]['parcel']] = v_[0]['wt']/v_[0]['SG']
+                else:
+                    plan["cargoVol"][v_[0]['parcel']] += v_[0]['wt']/v_[0]['SG']
+                
+                plan["loadablePlanStowageDetails"].append(info_)
+            
             else:
-                plan["cargoVol"][v_[0]['parcel']] += v_[0]['wt']/v_[0]['SG']
+                info_['tankName'] = k_
+                info_['tankId'] = int(self.plans.input.vessel.info['tankName'][k_])
+                info_['quantityMT'] = str(round(abs(v_[0]['wt']),2))
+                info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
+                info_['api'] = str(round(abs(v_[0]['api']),2))
+                info_['temperature'] = str(round(abs(v_[0]['temperature']),2))
+                info_['ullage'] = str(round(abs(v_[0]['corrUllage']),3))
+                info_['cargoNomination1Id'] = int(v_[0]['parcel'][0][1:])
+                info_['cargoNomination2Id'] = int(v_[0]['parcel'][1][1:])
                 
-            
-            plan["loadablePlanStowageDetails"].append(info_)
+                info_['cargo1Id'] = self.plans.input.loading.info['cargoId']['P'+str(info_['cargoNomination1Id'])]
+                info_['cargo2Id'] = self.plans.input.loading.info['cargoId']['P'+str(info_['cargoNomination2Id'])]
+                
+                info_['colorCode'] = self.plans.input.loading.info['commingle'].get('colorCode', None)
+                info_['abbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
+                
+                plan["loadableQuantityCommingleCargoDetails"].append(info_)
+                
+                
+                
             
         ##
         empty_ = set(self.plans.input.vessel.info['cargoTankNames']) - set(cargo_tanks_added_)

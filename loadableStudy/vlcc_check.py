@@ -357,7 +357,7 @@ class Check_plans:
                 if BM_percent[f__] > max_bm_[1]:
                     max_bm_ = [f_, round(BM_percent[f__],2)]
                 
-                # print(f_, round(da_,3), round(W_[f__],3),round(ss_,3), round(SF_[f__]/1000,3), round(M_[f__],3), round(sb_,3), round(BM_[f__],3))
+                # print(f_, round(sdraft_,3), round(BM_[f__],3), round(BM_limits_[f__]*9.8,3), round(BM_percent[f__],2))
                 
                 # print(f_, round(da_,3), round(W_[f__],3),round(ss_,3), round(SF_[f__]/1000,3))
                 # print(f_, round(da_,3), round(W_[f__],3),round(sb_,3), round(BM_[f__]/1000,3), BM_percent[f__])
