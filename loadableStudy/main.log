@@ -57,3 +57,7 @@
 2021-09-30 20:01:46.745 | INFO     | main:get_vessel_details:83 - aa902a43-8647-4df0-b23f-480f4ddddd35: HTTP Exception - [Errno 11001] getaddrinfo failed
 2021-09-30 20:01:46.745 | INFO     | main:get_vessel_details:84 - aa902a43-8647-4df0-b23f-480f4ddddd35: Get vessel FILE
 2021-09-30 20:01:46.917 | INFO     | main:task_handler:266 - aa902a43-8647-4df0-b23f-480f4ddddd35: Add new loading
+2021-09-30 20:04:15.120 | INFO     | main:task_handler:246 - 36a6cdbe-8fcb-4e2e-ad9c-3fff05601799: Get vessel API
+2021-09-30 20:04:16.229 | INFO     | main:get_vessel_details:83 - 36a6cdbe-8fcb-4e2e-ad9c-3fff05601799: HTTP Exception - [Errno 11001] getaddrinfo failed
+2021-09-30 20:04:16.229 | INFO     | main:get_vessel_details:84 - 36a6cdbe-8fcb-4e2e-ad9c-3fff05601799: Get vessel FILE
+2021-09-30 20:04:16.401 | INFO     | main:task_handler:266 - 36a6cdbe-8fcb-4e2e-ad9c-3fff05601799: Add new loading

@@ -50,6 +50,8 @@ fname = 'loading_information_voy25_first_port.json'
 fname = 'loading_information_request_100000058.json'
 fname = 'loading_information_request_100000050.json'
 
+fname = 'loading_information_request_100000061a.json' # AP
+
 ## to be modified in main.py --------------------------------------------
 data = {}
 
