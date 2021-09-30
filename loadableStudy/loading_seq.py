@@ -522,7 +522,9 @@ class Loading_seq:
                     
                     if v_[:-1] !=  self.plans.input.loading.seq[cargo]['lastStage']:
                         print(time_)
-                        time_ = self.plans.input.loading.time_interval * round(time_/self.plans.input.loading.time_interval) + self.plans.input.loading.seq[cargo]['startTime']
+                        c_ = self.plans.input.loading.info['loading_order'][int(v_[-1])-1]
+                        time_interval_ = self.plans.input.loading.time_interval[c_]
+                        time_ = time_interval_ * round(time_/time_interval_) + self.plans.input.loading.seq[cargo]['startTime']
                         print(time_)
 
                     plan_ = {'time': str(int(time_+self.delay)), 
