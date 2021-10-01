@@ -8,7 +8,7 @@ Created on Wed Jul 14 16:50:44 2021
 from loading_init import Process_input
 from vlcc_gen import Generate_plan 
 from vlcc_check import Check_plans
-from vlcc_valves import Generate_valves
+#from vlcc_valves import Generate_valves
 # import json
 
 import pickle
@@ -99,7 +99,7 @@ def loadicator1(data, limits):
         if limits['limits']['draft']['loadline'] < max_draft_:
             info_['judgement'].append('Failed loadline check!')
         # airDraft
-        if limits['limits']['airDraft'] < float(info_['airDraft']):
+        if limits['limits']['maxAirDraft'] < float(info_['airDraft']):
             info_['judgement'].append('Failed airdraft check!')
         
         # SF

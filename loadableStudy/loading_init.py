@@ -85,7 +85,7 @@ class Process_input(object):
         self.limits['draft'] = {}
         self.limits['draft']['loadline'] = 100
         self.limits['draft']['maxDraft'] =  self.max_draft 
-        self.limits['airDraft'] = self.max_airdraft
+        self.limits['maxAirDraft'] = self.max_airdraft
         #self.limits['sfbm'] = self.sf_bm_frac
         #self.limits['feedback'] = {'feedbackLoop': self.feedbackLoop,'feedbackLoopCount':self.feedbackLoopCount}
        

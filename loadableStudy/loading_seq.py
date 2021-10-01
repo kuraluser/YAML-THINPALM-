@@ -723,7 +723,7 @@ class Loading_seq:
             info_['quantityM3'] = str("0.00")
             
             info_['density'] = None
-            info_['colorCode'] = None
+            info_['colorCode'] = self.plans.input.loading.rob_color[k_]
             plan["loadablePlanRoBDetails"].append(info_)
             
             

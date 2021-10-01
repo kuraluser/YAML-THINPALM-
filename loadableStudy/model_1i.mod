@@ -203,6 +203,7 @@ set minTB default {}; # set of ballast tanks >= 30cm ullage
 set toBallastTank default {};
 set toDeballastTank default {};
 param ballastLimit{p in Pbar} default 1e6;
+set TB0 default TB; #{'LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S', 'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S' };
 
 
 param densitySeaWater{p in Pbar} default 1.025; # density of water @ high temperature
@@ -632,7 +633,7 @@ subject to Condition114e6 {t in TB}: zBa2[t] + zBb2[t] = 1;
 subject to Condition114f1 {t in TB, p in fixBallastPort}:  B_locked[t,p] = wB[t,p];
 
 # deballast amt
-subject to Condition114g1 {p in loadPort inter P_stable}: sum{t in TB} wB[t,p] + deballastPercent*loadingPortAmt[p] >= sum{t in TB} wB[t,p-1];
+subject to Condition114g1 {p in loadPort inter P_stable}: sum{t in TB0} wB[t,p] + deballastPercent*loadingPortAmt[p] >= sum{t in TB0} wB[t,p-1];
 # ballast amt
 subject to Condition114g2 {p in dischargePort inter P_stable}: sum{t in TB} wB[t,p-1] + ballastPercent*dischargePortAmt[p] >= sum{t in TB} wB[t,p];
 
