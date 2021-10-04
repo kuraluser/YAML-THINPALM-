@@ -24,9 +24,20 @@ class Process_input(object):
         #
         self.port_id   = data['loading']['portId']
         self.port_json = {'portDetails': data['loading']['loadingInformation']['berthDetails']}
-        #
-        self.loadable_json = {'planDetails': [p_ for p_ in data['loading']['loadablePlanPortWiseDetails'] if p_['portId'] == self.port_id][0]
+        
+        self.loadable1_json = {'planDetails': [p_ for p_ in data['loading']['loadablePlanPortWiseDetails'] if p_['portId'] == self.port_id][0]
                               }
+        
+        self.loadable_json = {'planDetails': []}
+        for p__, p_ in enumerate(data['loading']['loadablePlanPortWiseDetails']):
+            if p_['portId'] == self.port_id:
+                self.loadable_json['planDetails'] = p_
+                self.first_discharge_port = True if p__ == 0 else False
+                
+    
+    
+        
+        
         #
         self.loading_info_json = {'trimAllowed':data['loading']['loadingInformation']["loadingDetails"]["trimAllowed"],
                                   "loadingRates":data['loading']['loadingInformation']["loadingRates"],
@@ -264,7 +275,7 @@ class Process_input(object):
                             self.loadable['ballastOperation'][k_][str(port_)] = v_[0]['quantityMT']
                         
                 if not last_cargo_ and d_ in [self.loading.seq[c_]['justBeforeTopping'] + str(c__+1)]:
-                    a_, b_ = min(max_trim_, top_trim_), 0.05
+                    a_, b_ = min(max_trim_, top_trim_), 0.1
                     print(d_,'justBeforeTopping trim -- constraint:', b_, a_)
                     self.trim_upper[str(port_)] = a_
                     self.trim_lower[str(port_)] = b_
@@ -276,7 +287,7 @@ class Process_input(object):
                     self.trim_lower[str(port_)] =  b_
                     
                 elif  d_[0:3] in ['Max']:
-                    a_, b_ = max_trim_, 0.05
+                    a_, b_ = max_trim_, 0.1
                     print(d_,'Max loading -- trim constraint:', b_, a_)
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_

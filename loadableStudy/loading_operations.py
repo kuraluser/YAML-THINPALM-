@@ -63,6 +63,7 @@ class LoadingOperations(object):
         
         
         loading_rate_ = min(data.loading_info_json['loadingRates']['maxLoadingRate'], data.loading_info_json['loadingRates'].get('shoreLoadingRate',1e6))
+        self.max_loading_rate = loading_rate_
         # loading_rate_ = 4000
         print('loading rate (max):', loading_rate_)
         min_loading_rate_ = data.loading_info_json['loadingRates']['minLoadingRate']
@@ -445,6 +446,8 @@ class LoadingOperations(object):
             cargo_info_['commingle']['t2'] = cargo_info_['temperature'][cargo2_]
             cargo_info_['commingle']['api1'] = cargo_info_['api'][cargo1_]
             cargo_info_['commingle']['api2'] = cargo_info_['api'][cargo2_]
+            cargo_info_['commingle']['colorCode'] = d_.get('colorCode', None)
+            cargo_info_['commingle']['abbreviation'] = d_.get('abbreviation', None)
             
             
         
