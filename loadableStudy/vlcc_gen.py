@@ -1400,6 +1400,17 @@ class Generate_plan:
                 out['ballast']['BP2'].append(info_)
             
             timeStart_ = timeEnd_
+            
+        ## 
+        if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
+            bp1_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP1']['pumpId']
+            out['ballast'][bp1_] = out['ballast'].pop('BP1')
+        
+        if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
+            bp2_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP2']['pumpId']
+            out['ballast'][bp2_] = out['ballast'].pop('BP2')
+        
+        # dictionary[new_key] = dictionary.pop(old_key)
 
 
 
@@ -1489,7 +1500,16 @@ class Generate_plan:
                                               "rateM3_Hr": str(round(rate_/2,2)),
                                               "quantityM3": str(round(amt_))}]
                      
+        ## 
+        if 'BP1' in out['ballast'].keys():
+            if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
+                bp1_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP1']['pumpId']
+                out['ballast'][bp1_] = out['ballast'].pop('BP1')
         
+        if 'BP2' in out['ballast'].keys():
+            if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
+                bp2_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP2']['pumpId']
+                out['ballast'][bp2_] = out['ballast'].pop('BP2')
         
     
     
