@@ -1227,6 +1227,9 @@ class Generate_plan:
                 info1_ = {"stage": e_}
                 loading_seq._stage(info1_, c_, c__+1)
                 
+                if e_ == 'initialCondition' and first_cargo_:
+                    self.gTimeStart = int(info1_['timeStart'])
+                
                 
                 if e_ in ['loadingAtMaxRate']:
                     for d__, d_ in enumerate(info_['sequence'][1:]):
@@ -1335,23 +1338,36 @@ class Generate_plan:
                 
             out['ballast']['Gravity'].append(info_)
             
-            ## pump 1
-            timeStart_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
+            ## pump 1 ----------------------------------------------------
+            timeStart1_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
             end_bp1_ = pump_.get('BP1', 0.)
             
             if eduction_stage_ == d__+1:
-                timeEnd1_ = timeStart_ + ballast_time_
+                timeEnd1_ = timeStart1_ + ballast_time_
             else:
                 timeEnd1_ = timeEnd_
             
-            time_ = min(timeEnd1_, end_bp1_) - timeStart_
+            time_ = min(timeEnd1_, end_bp1_) - timeStart1_
             amt_ = deballast_/self.input.loading.num_pump* time_/60.
+            
+            
+            ## patch empty slots
+            if len(out['ballast']['BP1']) > 0:
+                pre_ = int(out['ballast']['BP1'][-1]['timeEnd'])
+                
+                if pre_ < timeStart1_:
+                    info_ = {'timeStart': str(pre_), 'timeEnd': str(timeStart1_),
+                             "rateM3_Hr": str("0.00"),
+                             "quantityM3": str(0)}
+                    
+                    out['ballast']['BP1'].append(info_)
+                
             
             
             # print('BP', time_)
             
             if time_ > 0.:
-                info_ = {'timeStart': str(timeStart_), 'timeEnd': str(timeEnd1_),
+                info_ = {'timeStart': str(timeStart1_), 'timeEnd': str(timeEnd1_),
                          "rateM3_Hr": str(round(deballast_/self.input.loading.num_pump,2)),
                          "quantityM3": str(round(amt_))}
             else:
@@ -1368,21 +1384,34 @@ class Generate_plan:
                 
                 out['ballast']['BP1'].append(info_)
             
-            ## pump 2
-            timeStart_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
+            ## pump 2 ----------------------------------------------------
+            timeStart2_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
             end_bp2_ = pump_.get('BP2', 0.)
             
             if eduction_stage_ == d__+1:
-                timeEnd2_ = timeStart_ + ballast_time_
+                timeEnd2_ = timeStart2_ + ballast_time_
             else:
                 timeEnd2_ = timeEnd_
             
-            time_ = min(timeEnd2_, end_bp2_) - timeStart_
+            time_ = min(timeEnd2_, end_bp2_) - timeStart2_
             amt_ = deballast_/self.input.loading.num_pump* time_/60.
             
             
+            ## patch empty slots
+            if len(out['ballast']['BP2']) > 0:
+                pre_ = int(out['ballast']['BP2'][-1]['timeEnd'])
+                
+                if pre_ < timeStart2_:
+                    info_ = {'timeStart': str(pre_), 'timeEnd': str(timeStart2_),
+                             "rateM3_Hr": str("0.00"),
+                             "quantityM3": str(0)}
+                    
+                    out['ballast']['BP2'].append(info_)
+                
+            
+            
             if time_ > 0.:
-                info_ = {'timeStart': str(timeStart_), 'timeEnd': str(timeEnd2_),
+                info_ = {'timeStart': str(timeStart2_), 'timeEnd': str(timeEnd2_),
                          "rateM3_Hr": str(round(deballast_/self.input.loading.num_pump,2)),
                          "quantityM3": str(round(amt_))}
             else:
@@ -1429,10 +1458,10 @@ class Generate_plan:
                     
             elif self.input.loading.max_loading_rate > 10000:
                 # gravity for 2 hr
-                if timeEnd_ <= 2*60:
+                if timeEnd_ <= self.gTimeStart + 2*60:
                     pump_ = {'Gravity':timeEnd_}
                 else:
-                    pump_ = {'Gravity':2*60}
+                    pump_ = {'Gravity': self.gTimeStart +2*60}
                     if self.input.loading.num_pump == 1:
                         pump_['BP1'] = timeEnd_
                     elif self.input.loading.num_pump == 2:
@@ -1440,10 +1469,10 @@ class Generate_plan:
                         pump_['BP2'] = timeEnd_
             else:
                 # gravity for 4 hr
-                if timeEnd_ <= 4*60:
+                if timeEnd_ <= self.gTimeStart + 4*60:
                     pump_ = {'Gravity':timeEnd_}
                 else:
-                    pump_ = {'Gravity':4*60}
+                    pump_ = {'Gravity': self.gTimeStart +4*60}
                     if self.input.loading.num_pump == 1:
                         pump_['BP1'] = timeEnd_
                     elif self.input.loading.num_pump == 2:
