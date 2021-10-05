@@ -29,7 +29,7 @@ def loading(data: dict) -> dict:
     params.prepare_data()
     params.write_ampl()
     
-    input("Press Enter to continue...")
+    # input("Press Enter to continue...")
     # collect plan from AMPL
     gen_output = Generate_plan(params)
     gen_output.run(num_plans=1)
