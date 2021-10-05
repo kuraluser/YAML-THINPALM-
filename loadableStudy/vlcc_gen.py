@@ -1360,7 +1360,8 @@ class Generate_plan:
                              "rateM3_Hr": str("0.00"),
                              "quantityM3": str(0)}
                     
-                    out['ballast']['BP1'].append(info_)
+                    if info_ not in out['ballast']['BP1']:
+                        out['ballast']['BP1'].append(info_)
                 
             
             
@@ -1375,14 +1376,17 @@ class Generate_plan:
                          "rateM3_Hr": str("0.00"),
                          "quantityM3": str(0)}
                 
-            out['ballast']['BP1'].append(info_)
+            if info_ not in out['ballast']['BP1']:
+                out['ballast']['BP1'].append(info_)
             
             if timeEnd1_ < timeEnd_:
+                
                 info_ = {'timeStart': str(timeEnd1_), 'timeEnd': str(timeEnd_),
                          "rateM3_Hr": str("0.00"),
                          "quantityM3": str(0)}
                 
-                out['ballast']['BP1'].append(info_)
+                if info_ not in out['ballast']['BP1']:
+                    out['ballast']['BP1'].append(info_)
             
             ## pump 2 ----------------------------------------------------
             timeStart2_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
@@ -1405,8 +1409,8 @@ class Generate_plan:
                     info_ = {'timeStart': str(pre_), 'timeEnd': str(timeStart2_),
                              "rateM3_Hr": str("0.00"),
                              "quantityM3": str(0)}
-                    
-                    out['ballast']['BP2'].append(info_)
+                    if info_ not in out['ballast']['BP2']:
+                        out['ballast']['BP2'].append(info_)
                 
             
             
@@ -1419,14 +1423,16 @@ class Generate_plan:
                          "rateM3_Hr": str("0.00"),
                          "quantityM3": str(0)}
             
-            out['ballast']['BP2'].append(info_)
+            if info_ not in out['ballast']['BP2']:
+                out['ballast']['BP2'].append(info_)
             
             if timeEnd2_ < timeEnd_:
                 info_ = {'timeStart': str(timeEnd2_), 'timeEnd': str(timeEnd_),
                          "rateM3_Hr": str("0.00"),
                          "quantityM3": str(0)}
                 
-                out['ballast']['BP2'].append(info_)
+                if info_ not in out['ballast']['BP2']:
+                    out['ballast']['BP2'].append(info_)
             
             timeStart_ = timeEnd_
             
