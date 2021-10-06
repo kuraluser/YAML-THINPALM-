@@ -75,6 +75,7 @@ class Vessel:
         vessel_info_['fuelTanks'], vessel_info_['dieselTanks'], vessel_info_['freshWaterTanks']  = {}, {}, {}
         categoryid_ = {1:'cargoTanks', 2:'ballastTanks', 3:'freshWaterTanks', 5:'fuelTanks', 6:'dieselTanks'}
         vessel_info_['tankId'], vessel_info_['tankName'], vessel_info_['category'] = {}, {}, {}
+        vessel_info_['tankFullName'] = {}
         for t_ in vessel_json['vesselTanks']:
             if t_['categoryId'] in categoryid_.keys():
                 
@@ -90,6 +91,8 @@ class Vessel:
                     vessel_info_['tankId'][t_['id']] = t_['shortName'] 
                     vessel_info_['tankName'][t_['shortName']] = t_['id'] 
                     vessel_info_['category'][t_['shortName']] = categoryid_[t_['categoryId']]
+                    
+                    vessel_info_['tankFullName'][t_['shortName']] = t_['name']
                     
                     if t_['categoryId'] == 1:
                         vessel_info_['cargoTankNames'].append(t_['shortName'])
@@ -303,6 +306,33 @@ class Vessel:
             else: 
                 print('Error!!')
         
+        
+        if inputs.module in ['LOADING']:
+            ## pump data to add other later
+            vessel_info_['pumpTypes'] = {}
+            for d_ in vessel_json.get('pumpTypes', []):
+                if d_['name'] == 'Ballast Pump':
+                    vessel_info_['pumpTypes']['ballastPump'] = d_['id']
+                elif d_['name'] == 'Ballast Eductor':
+                    vessel_info_['pumpTypes']['ballastEductor'] = d_['id']
+                 
+            vessel_info_['vesselPumps'] = {}
+            for d_ in vessel_json.get('vesselPumps', []):
+                if d_['pumpTypeId'] == vessel_info_['pumpTypes']['ballastPump']:
+                    
+                    if 'ballastPump' not in vessel_info_['vesselPumps']:
+                        vessel_info_['vesselPumps']['ballastPump'] = {}
+                    
+                    vessel_info_['vesselPumps']['ballastPump'][d_['pumpName']] = {k_:v_ for k_, v_ in d_.items() if k_ not in ['pumpName']}
+                    
+                elif d_['pumpTypeId'] == vessel_info_['pumpTypes']['ballastEductor']:
+                    
+                    if 'ballastEductor' not in vessel_info_['vesselPumps']:
+                        vessel_info_['vesselPumps']['ballastEductor'] = {}
+                    
+                    vessel_info_['vesselPumps']['ballastEductor'][d_['pumpName']] = {k_:v_ for k_, v_ in d_.items() if k_ not in ['pumpName']}
+                    
+            
         self.info = vessel_info_     
         
     def _get_onboard(self, inputs, loading = False): 

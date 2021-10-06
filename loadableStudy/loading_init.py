@@ -24,9 +24,20 @@ class Process_input(object):
         #
         self.port_id   = data['loading']['portId']
         self.port_json = {'portDetails': data['loading']['loadingInformation']['berthDetails']}
-        #
-        self.loadable_json = {'planDetails': [p_ for p_ in data['loading']['loadablePlanPortWiseDetails'] if p_['portId'] == self.port_id][0]
+        
+        self.loadable1_json = {'planDetails': [p_ for p_ in data['loading']['loadablePlanPortWiseDetails'] if p_['portId'] == self.port_id][0]
                               }
+        
+        self.loadable_json = {'planDetails': []}
+        for p__, p_ in enumerate(data['loading']['loadablePlanPortWiseDetails']):
+            if p_['portId'] == self.port_id:
+                self.loadable_json['planDetails'] = p_
+                self.first_discharge_port = True if p__ == 0 else False
+                
+    
+    
+        
+        
         #
         self.loading_info_json = {'trimAllowed':data['loading']['loadingInformation']["loadingDetails"]["trimAllowed"],
                                   "loadingRates":data['loading']['loadingInformation']["loadingRates"],
@@ -71,11 +82,10 @@ class Process_input(object):
         
         self.loading = LoadingOperations(self)
         self.loading._gen_topping()
-        self.loading._get_ballast_requirements()
         
         if not self.loading.error:
+            self.loading._get_ballast_requirements()
             self.get_param()
-            self.write_ampl()
         else:
             self.error = {**self.error, **self.loading.error}
         
@@ -86,7 +96,7 @@ class Process_input(object):
         self.limits['draft'] = {}
         self.limits['draft']['loadline'] = 100
         self.limits['draft']['maxDraft'] =  self.max_draft 
-        self.limits['airDraft'] = self.max_airdraft
+        self.limits['maxAirDraft'] = self.max_airdraft
         #self.limits['sfbm'] = self.sf_bm_frac
         #self.limits['feedback'] = {'feedbackLoop': self.feedbackLoop,'feedbackLoopCount':self.feedbackLoopCount}
        
@@ -125,12 +135,22 @@ class Process_input(object):
         wt_ = 0
         for k_, v_ in self.loading.info['cargo_plans'][0].items():
             # print(k_, v_)
+            
             cargo_ = v_[0]['cargo']
             if cargo_ not in self.loadable['preloadOperation']:
                 self.loadable['preloadOperation'][cargo_] = {}
             
             self.loadable['preloadOperation'][cargo_][k_] = v_[0]['quantityMT']
             wt_ += v_[0]['quantityMT']
+            
+            if len(v_) > 1:
+                cargo_ = v_[1]['cargo']
+                if cargo_ not in self.loadable['preloadOperation']:
+                    self.loadable['preloadOperation'][cargo_] = {}
+                
+                self.loadable['preloadOperation'][cargo_][k_] = v_[1]['quantityMT']
+                wt_ += v_[1]['quantityMT']
+                
             
         
         self.loadable['stages'], self.loadable['stageTimes'] = {}, {}
@@ -146,6 +166,8 @@ class Process_input(object):
             for k_, v_ in  self.loading.info['cargo_plans'][-1].items():
                 if v_[0]['cargo'] == c_:
                     self.loadable['toLoadCargoTank'][c_][k_] = v_[0]['quantityMT']
+                elif len(v_) == 2 and v_[1]['cargo'] == c_:
+                    self.loadable['toLoadCargoTank'][c_][k_] = v_[1]['quantityMT']
                     
             toLoadTank_ = {t_:0.  for t_ in self.vessel.info['cargoTanks']}
             for d_ in self.loading.seq[c_]['loadingInfo']: # for each column
@@ -253,7 +275,7 @@ class Process_input(object):
                             self.loadable['ballastOperation'][k_][str(port_)] = v_[0]['quantityMT']
                         
                 if not last_cargo_ and d_ in [self.loading.seq[c_]['justBeforeTopping'] + str(c__+1)]:
-                    a_, b_ = min(max_trim_, top_trim_), 0.0
+                    a_, b_ = min(max_trim_, top_trim_), 0.1
                     print(d_,'justBeforeTopping trim -- constraint:', b_, a_)
                     self.trim_upper[str(port_)] = a_
                     self.trim_lower[str(port_)] = b_
@@ -265,7 +287,7 @@ class Process_input(object):
                     self.trim_lower[str(port_)] =  b_
                     
                 elif  d_[0:3] in ['Max']:
-                    a_, b_ = max_trim_, 0.0
+                    a_, b_ = max_trim_, 0.1
                     print(d_,'Max loading -- trim constraint:', b_, a_)
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_
@@ -408,10 +430,13 @@ class Process_input(object):
                     
                 ## 
                 print('# set of loaded tanks (preloaded condition)',file=text_file)
+                preloaded_tanks_ = []
                 str1 = 'set T_loaded:= '
                 for k_, v_ in self.loadable['preloadOperation'].items():
                     for k1_, v1_ in v_.items():
-                        str1 += k1_ + ' '
+                        if k1_ not in preloaded_tanks_:
+                            str1 += k1_ + ' '
+                            preloaded_tanks_.append(k1_)
                 print(str1+';', file=text_file)
                 
                 ##
@@ -758,7 +783,6 @@ class Process_input(object):
                 print(str1+';', file=text_file)
                 
                 
-                
                 print('# initial ballast ',file=text_file)#
                 str1 = 'param initBallast := '
                 for k_, v_ in self.loading.info['ballast'][0].items():
@@ -834,6 +858,20 @@ class Process_input(object):
                 # print('# first loading Port',file=text_file)#
                 # str1 = 'param firstloadingPort := ' #+ self.loadable.info['arrDepVirtualPort']['1D']
                 # print(str1+';', file=text_file)
+                
+                print('# deballast tanks', file=text_file)
+                str1 = 'set toDeballastTank := '
+                for i_ in self.loading.info['tankToDeballast']:
+                    str1 += str(i_)  + ' '
+                print(str1+';', file=text_file)
+                
+                print('# deballast limit', file=text_file)
+                str1 = 'param ballastLimit := '
+                for i_, j_ in self.loading.seq['ballastLimit'].items():
+                    if j_ > 0:
+                        str1 += str(i_) + ' ' +  "{:.3f}".format(j_) + ' '
+                print(str1+';', file=text_file)
+                
                 
                 
                 print('# capacity of ballast tanks', file=text_file)
@@ -1234,7 +1272,11 @@ class Process_input(object):
                 
                 str1 = 'param IIS := ' 
                 str1 += '1' if IIS else '0'
-                print(str1, file=text_file)
+                print(str1+';', file=text_file)
+                
+                print('# runtime limit ',file=text_file)#  
+                str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 60))
+                print(str1+';', file=text_file)
                 
               
             

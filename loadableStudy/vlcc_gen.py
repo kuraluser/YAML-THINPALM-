@@ -28,7 +28,8 @@ CONS = {'Condition01z': 'Min tolerance constraints violated!!',
         'Condition20c': 'SF upper bound issue!!',
         'Condition21b': 'BM lower bound issue!!',
         'Condition21c': 'BM upper bound issue!!',
-        'Condition111': "Load all cargo issue!!"
+        'Condition111': "Load all cargo issue!!",
+        'Condition115': "Deballast limitation issue!!"
         }
 
 FIXCONS = ['Condition0', 'Condition01', 'Condition03', 'Condition041', 'Condition052', 'Condition06', 'condition22',
@@ -61,6 +62,8 @@ class Generate_plan:
         self.rerun = False
         self.full_load = False
         self.IIS = True
+        self.commingled_ratio = {}
+        
         
         
     def run(self, dat_file='input.dat', num_plans=100):
@@ -86,19 +89,24 @@ class Generate_plan:
             
             if result['succeed']:
                 self._process_ampl(result, num_plans=num_plans)
-                # self.rerun = False
-                # if self.rerun:
-                #     print('Rerun due to miss temperature in commingle cargo!!')
-                #     self.input.loadable._create_operations(self.input) # operation and commingle
-                #     self.input.write_dat_file()
+                if self.commingled_ratio:
+                    print('Rerun due to miss temperature in commingle cargo!!')
+                    temp_ = 0.
+                    for k_, v_ in self.commingled_temp.items():
+                        if v_ > temp_:
+                            temp_ = v_
+                            self.input.loadable.commingled_ratio = self.commingled_ratio[k_]
                     
-                #     if self.input.solver in ['AMPL']:
-                #         print('run AMPL ....')
-                #         result = self._run_ampl(dat_file=dat_file) 
-                #     else:
-                #         print('run ORTOOLS ....')
-                #         result = self._run_ortools()
-                #     self._process_ampl(result, num_plans=num_plans)
+                    self.input.loadable._create_operations(self.input) # operation and commingle
+                    self.input.write_dat_file()
+                    
+                    if self.input.solver in ['AMPL']:
+                        print('run AMPL ....')
+                        result = self._run_ampl(dat_file=dat_file) 
+                    else:
+                        print('run ORTOOLS ....')
+                        result = self._run_ortools()
+                    self._process_ampl(result, num_plans=num_plans)
                     
                 self._process_checking_plans(result)
             else:
@@ -138,13 +146,15 @@ class Generate_plan:
             # ampl.option['show_presolve_messages'] = True
             
             if self.input.module in ['LOADING']:
-                ampl.option['presolve'] = False
+                # ampl.option['presolve'] = False
+                pass
             elif self.input.module in ['LOADABLE']:
                 if self.input.mode in ['Manual'] or not self.IIS:
                     ampl.option['presolve'] = False
                 
             ampl.read(model_)
             
+            ## module dependent constraints    
             if self.input.module in ['LOADABLE'] and self.input.mode not in ['FullManual']:
                 c1_ = ampl.getConstraint('Condition112d5')
                 c2_ = ampl.getConstraint('Condition114g2')
@@ -154,16 +164,16 @@ class Generate_plan:
             elif self.input.module in ['LOADING']:
                 c1_ = ampl.getConstraint('Condition112d5')
                 c2_ = ampl.getConstraint('Condition114g2')
+                c3_ = ampl.getConstraint('Condition01')
                 c1_.drop()
                 c2_.drop()
+                c3_.drop()
                 
                 # drop slop tanks must be used constraints
                 slp_ = ampl.getConstraint('Condition112g1')
                 sls_ = ampl.getConstraint('Condition112g2')
                 slp_.drop()
                 sls_.drop()
-                
-               
                 
             elif self.input.module in ['DISCHARGE']:
                 cw_ = ampl.getConstraint('Constr13b')
@@ -177,6 +187,23 @@ class Generate_plan:
                 wwt_ = ampl.getConstraint('condition24a')
                 wwt_.drop()
                 
+            ## vessel dependent constraints    
+            if self.input.vessel_id == 1:
+                
+                # drop mean draft in BF and SF
+                c4_ = ampl.getConstraint('Condition20a2')
+                c5_ = ampl.getConstraint('Condition21a2')
+                c4_.drop()
+                c5_.drop()
+                
+            elif self.input.vessel_id == 2:
+                # drop aft draft in BF and SF
+                c4_ = ampl.getConstraint('Condition20a1')
+                c5_ = ampl.getConstraint('Condition21a1')
+                c4_.drop()
+                c5_.drop()
+                    
+                    
             ampl.readData(dat_file)
             ampl.read('run_ampl.run')
             
@@ -236,6 +263,57 @@ class Generate_plan:
                         ampl = AMPL()
                         ampl.option['presolve'] = False
                         ampl.read(model_)
+                        
+                        ## module dependent constraints    
+                        if self.input.module in ['LOADABLE'] and self.input.mode not in ['FullManual']:
+                            c1_ = ampl.getConstraint('Condition112d5')
+                            c2_ = ampl.getConstraint('Condition114g2')
+                            c1_.drop()
+                            c2_.drop()
+                        
+                        elif self.input.module in ['LOADING']:
+                            c1_ = ampl.getConstraint('Condition112d5')
+                            c2_ = ampl.getConstraint('Condition114g2')
+                            c3_ = ampl.getConstraint('Condition01')
+                            c1_.drop()
+                            c2_.drop()
+                            c3_.drop()
+                            
+                            # drop slop tanks must be used constraints
+                            slp_ = ampl.getConstraint('Condition112g1')
+                            sls_ = ampl.getConstraint('Condition112g2')
+                            slp_.drop()
+                            sls_.drop()
+                            
+                        elif self.input.module in ['DISCHARGE']:
+                            cw_ = ampl.getConstraint('Constr13b')
+                            cw_.drop()
+                            # drop slop tanks must be used constraints
+                            slp_ = ampl.getConstraint('Condition112g1')
+                            sls_ = ampl.getConstraint('Condition112g2')
+                            slp_.drop()
+                            sls_.drop()
+                            #
+                            wwt_ = ampl.getConstraint('condition24a')
+                            wwt_.drop()
+                            
+                        ## vessel dependent constraints    
+                        if self.input.vessel_id == 1:
+                            
+                            # drop mean draft in BF and SF
+                            c4_ = ampl.getConstraint('Condition20a2')
+                            c5_ = ampl.getConstraint('Condition21a2')
+                            c4_.drop()
+                            c5_.drop()
+                            
+                        elif self.input.vessel_id == 2:
+                            # drop aft draft in BF and SF
+                            c4_ = ampl.getConstraint('Condition20a1')
+                            c5_ = ampl.getConstraint('Condition21a1')
+                            c4_.drop()
+                            c5_.drop()
+                            
+                            
                         ampl.readData(dat_file)
                         ampl.read('run_ampl.run')
                         
@@ -489,8 +567,15 @@ class Generate_plan:
                 for k_, v_ in ship_status_dep_.items():
                     for k1_, v1_ in v_.items():
                         if len(v1_) > 1:
-                            parcel1_ = self.input.loadable.info['commingleCargo']['parcel1']
-                            parcel2_ = self.input.loadable.info['commingleCargo']['parcel2']
+                            
+                            if self.input.module in ['LOADABLE']:
+                                parcel1_ = self.input.loadable.info['commingleCargo']['parcel1']
+                                parcel2_ = self.input.loadable.info['commingleCargo']['parcel2']
+                            elif self.input.module in ['LOADING']:
+                                parcel1_ = self.input.loading.info['commingle']['parcel1']
+                                parcel2_ = self.input.loading.info['commingle']['parcel2']
+                                
+                                
                             
                             parcel_ = [v1_[0]['parcel'], v1_[1]['parcel']]
                             
@@ -504,19 +589,40 @@ class Generate_plan:
                             
                             capacity_ = self.input.vessel.info['cargoTanks'][k1_]['capacityCubm']
                             
-                           
-                            api__ = [self.input.loadable.info['commingleCargo']['api1'], self.input.loadable.info['commingleCargo']['api2']]
                             wt__ = [wt1_,wt2_]
-                            temp__ = [self.input.loadable.info['commingleCargo']['t1'], self.input.loadable.info['commingleCargo']['t2']]
+                            
+                            if self.input.module in ['LOADABLE']:
+                                api__ = [self.input.loadable.info['commingleCargo']['api1'], self.input.loadable.info['commingleCargo']['api2']]
+                                temp__ = [self.input.loadable.info['commingleCargo']['t1'], self.input.loadable.info['commingleCargo']['t2']]
+                            elif self.input.module in ['LOADING']:
+                                api__ = [self.input.loading.info['commingle']['api1'], self.input.loading.info['commingle']['api2']]
+                                temp__ = [self.input.loading.info['commingle']['t1'], self.input.loading.info['commingle']['t2']]
+                       
+                                
                             api_, temp_ = self._get_commingleAPI(api__, wt__, temp__)
                             
-                            density_ = self.input.loadable._cal_density(round(api_,2), round(temp_,1))
+                            if self.input.module in ['LOADABLE']:
+                                density_ = self.input.loadable._cal_density(round(api_,2), round(temp_,1))
+                            elif self.input.module in ['LOADING']:
+                                density_ = self.input.loading._cal_density(round(api_,2), round(temp_,1))
+                                
                             vol_ = weight_/density_ 
                             
                             fillingRatio_ = round(vol_/capacity_,DEC_PLACE)
-                            print(parcel1_,parcel2_, k1_, fillingRatio_, round(api_,2), round(temp_,1), density_, round(weight_,3))
+                            print(parcel1_,parcel2_, k1_, fillingRatio_, round(wt1_/(wt1_+wt2_),2), round(wt2_/(wt1_+wt2_),2), round(api_,2), round(temp_,1), density_, round(weight_,3))
                             
-                            
+                            if (fillingRatio_ > 0.98 or fillingRatio_ < 0.98) and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto']:
+                                print('Need to regenerate commingle plans!!')
+                                self.commingled_ratio = {parcel1_:round(wt1_/(wt1_+wt2_),2), 
+                                                         parcel2_:round(wt2_/(wt1_+wt2_),2)}
+                                self.commingled_temp = {parcel1_:self.input.loadable.info['commingleCargo']['t1'], 
+                                                         parcel2_:self.input.loadable.info['commingleCargo']['t2']}
+                                
+                                return
+                                
+                                
+                                
+                                
                             tcg_ = 0.
                             if k1_ in self.input.vessel.info['tankTCG']['tcg']:
                                 tcg_ = np.interp(vol_, self.input.vessel.info['tankTCG']['tcg'][k1_]['vol'],
@@ -844,17 +950,81 @@ class Generate_plan:
             for k_, v_ in self.input.loading.info['cargo_plans'][0].items():
                 
                 tankId_ = self.input.vessel.info['tankName'][k_]
-                vol_ = v_[0]['quantityM3']
-                corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
                 
-                info_ = {'parcel':v_[0]['cargo'], 'wt': round(v_[0]['quantityMT'],1), 'SG': v_[0]['SG'],
-                                     'fillRatio': None, 'tcg':v_[0]['tcg'],  'lcg':v_[0]['lcg'],
-                                     'temperature':v_[0]['temperature'],
-                                     'api':v_[0]['api'],
-                                     'corrUllage':corrUllage_
-                                     }
+                if len(v_) == 1:
+                    vol_ = v_[0]['quantityM3']
+                    corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
+                    
+                    info_ = {'parcel':v_[0]['cargo'], 'wt': round(v_[0]['quantityMT'],1), 'SG': v_[0]['SG'],
+                                         'fillRatio': None, 'tcg':v_[0]['tcg'],  'lcg':v_[0]['lcg'],
+                                         'temperature':v_[0]['temperature'],
+                                         'api':v_[0]['api'],
+                                         'corrUllage':corrUllage_
+                                         }
+                    
+                    self.initial_cargo_weight[k_] = [info_]
                 
-                self.initial_cargo_weight[k_] = [info_]
+                else:
+                    
+                    parcel1_ = v_[0]['cargo']
+                    parcel2_ = v_[1]['cargo']
+                    parcel_ = [parcel1_, parcel2_]
+                            
+                    onboard_ = self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.)
+                    # temperature_ = self.input.loadable.info['commingleCargo']['temperature']
+                    
+                    wt1_ = sum([vv_['quantityMT'] for vv_ in v_ if vv_['cargo'] == parcel1_]) - onboard_
+                    wt2_ = sum([vv_['quantityMT'] for vv_ in v_ if vv_['cargo'] == parcel2_]) - onboard_
+                    
+                    weight_ = wt1_ + wt2_ + onboard_
+                    
+                    capacity_ = self.input.vessel.info['cargoTanks'][k_]['capacityCubm']
+                    
+                    wt__ = [wt1_,wt2_]
+                    
+                    
+                    api__ = [self.input.loading.info['commingle']['api1'], self.input.loading.info['commingle']['api2']]
+                    temp__ = [self.input.loading.info['commingle']['t1'], self.input.loading.info['commingle']['t2']]
+               
+                        
+                    api_, temp_ = self._get_commingleAPI(api__, wt__, temp__)
+                    
+                    density_ = self.input.loading._cal_density(round(api_,2), round(temp_,1))
+                        
+                    vol_ = weight_/density_ 
+                    
+                    fillingRatio_ = round(vol_/capacity_,DEC_PLACE)
+                    print(parcel1_,parcel2_, k1_, fillingRatio_, round(wt1_/(wt1_+wt2_),2), round(wt2_/(wt1_+wt2_),2), round(api_,2), round(temp_,1), density_, round(weight_,3))
+                    
+                        
+                        
+                    tcg_ = 0.
+                    if k_ in self.input.vessel.info['tankTCG']['tcg']:
+                        tcg_ = np.interp(vol_, self.input.vessel.info['tankTCG']['tcg'][k_]['vol'],
+                                         self.input.vessel.info['tankTCG']['tcg'][k_]['tcg'])
+                        
+                    lcg_ = 0.
+                    if k_ in self.input.vessel.info['tankLCG']['lcg']:
+                        lcg_ = np.interp(vol_, self.input.vessel.info['tankLCG']['lcg'][k_]['vol'],
+                                         self.input.vessel.info['tankLCG']['lcg'][k_]['lcg'])
+                        
+                    
+                    tankId_ = self.input.vessel.info['tankName'][k1_]
+                    corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
+
+                          
+                    info_ = {'parcel':parcel_, 'wt': round(weight_,3), 'SG': round(density_,4),
+                             'fillRatio': fillingRatio_, 'tcg':tcg_,  'lcg':lcg_,
+                             'temperature':round(temp_,2),
+                             'api':api_,
+                             'wt1':wt1_, 'wt2':wt2_,
+                             'wt1percent':wt1_/(wt1_+wt2_), 'wt2percent':wt2_/(wt1_+wt2_),
+                             'corrUllage':corrUllage_,
+                             'maxTankVolume':capacity_,
+                             'vol':vol_}
+                    
+                    self.initial_cargo_weight[k_] = [info_]
+                    
             
             
         if self.input.module not in ['LOADING']:
@@ -917,13 +1087,6 @@ class Generate_plan:
                 
                 
                 
-                
-            
-            
-            
-                
-   
-        
             
     def _process_checking_plans(self, result):
         
@@ -1058,10 +1221,14 @@ class Generate_plan:
             info_ = {}
             info_["cargoNominationId"] = int(c_[1:])
             info_["sequence"] = []
+            first_cargo_ = c__ == 0
             
             for e__, e_ in enumerate(EVENTS):
                 info1_ = {"stage": e_}
                 loading_seq._stage(info1_, c_, c__+1)
+                
+                if e_ == 'initialCondition' and first_cargo_:
+                    self.gTimeStart = int(info1_['timeStart'])
                 
                 
                 if e_ in ['loadingAtMaxRate']:
@@ -1093,7 +1260,13 @@ class Generate_plan:
                         info_['sequence'][d__+1]['simDeballastingRateM3_Hr'] = [info2_['simIniDeballastingRateM3_Hr']]
                         info_['sequence'][d__+1]['simBallastingRateM3_Hr'] = [info2_['simIniBallastingRateM3_Hr']]
                         
-                  
+                        
+                        self._get_ballast(info_['sequence'][d__+1], info1_, first_cargo_)
+                        
+                        
+                    
+                    self._get_ballast1(info1_, first_cargo_, c_)
+                        
                     # print(info1_.keys())
                     info1_.pop('simIniDeballastingRateM3_Hr')
                     info1_.pop('simIniBallastingRateM3_Hr')
@@ -1116,6 +1289,273 @@ class Generate_plan:
         
         
         return data
+    
+    
+    def _get_ballast1(self, out, first_cargo, cargo):
+        # pass
+    
+        timeStart_ = int(out['timeStart'])
+        
+        educt_ = self.input.loading.seq[cargo].get('eduction', (None,None))
+        
+        if educt_ not in [(None, None)]:
+            ballast_time_ = educt_[0]
+            eduction_stage_ = int(educt_[1][10:])
+        else:
+            eduction_stage_ = 10000
+        
+        for d__, d_ in enumerate(out['totDeballastingRateM3_Hr']):
+            deballast_ = float(d_)
+            
+            if d__ < len(out['loadablePlanPortWiseDetails']):
+                timeEnd_ = int(out['loadablePlanPortWiseDetails'][d__]['time'])
+            else:
+                timeEnd_ = int(out['timeEnd'])
+                
+            pump_ = self._get_pump(timeEnd_,first_cargo)    
+            
+            # print(d__+1, timeStart_, timeEnd_, pump_)
+            
+            
+            if d__ == 0:
+                out['ballast']['Gravity'] = []
+                out['ballast']['BP1'] = []
+                out['ballast']['BP2'] = []
+                
+            
+            ## gravity
+            end_gravity_ = pump_.get('Gravity', 0.)
+            time_gr_ = end_gravity_ - timeStart_
+            amt_ = deballast_* time_gr_/60.
+            if time_gr_ > 0.:
+                info_ = {'timeStart': str(timeStart_), 'timeEnd': str(end_gravity_),
+                         "rateM3_Hr": str(round(deballast_,2)),
+                         "quantityM3": str(round(amt_))}
+            else:
+                info_ = {'timeStart': str(timeStart_), 'timeEnd': str(timeEnd_),
+                         "rateM3_Hr": str("0.00"),
+                         "quantityM3": str(0)}
+                
+            out['ballast']['Gravity'].append(info_)
+            
+            ## pump 1 ----------------------------------------------------
+            timeStart1_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
+            end_bp1_ = pump_.get('BP1', 0.)
+            
+            if eduction_stage_ == d__+1:
+                timeEnd1_ = timeStart1_ + ballast_time_
+            else:
+                timeEnd1_ = timeEnd_
+            
+            time_ = min(timeEnd1_, end_bp1_) - timeStart1_
+            amt_ = deballast_/self.input.loading.num_pump* time_/60.
+            
+            
+            ## patch empty slots
+            if len(out['ballast']['BP1']) > 0:
+                pre_ = int(out['ballast']['BP1'][-1]['timeEnd'])
+                
+                if pre_ < timeStart1_:
+                    info_ = {'timeStart': str(pre_), 'timeEnd': str(timeStart1_),
+                             "rateM3_Hr": str("0.00"),
+                             "quantityM3": str(0)}
+                    
+                    if info_ not in out['ballast']['BP1']:
+                        out['ballast']['BP1'].append(info_)
+                
+            
+            
+            # print('BP', time_)
+            
+            if time_ > 0.:
+                info_ = {'timeStart': str(timeStart1_), 'timeEnd': str(timeEnd1_),
+                         "rateM3_Hr": str(round(deballast_/self.input.loading.num_pump,2)),
+                         "quantityM3": str(round(amt_))}
+            else:
+                info_ = {'timeStart': str(timeStart_), 'timeEnd': str(timeEnd_),
+                         "rateM3_Hr": str("0.00"),
+                         "quantityM3": str(0)}
+                
+            if info_ not in out['ballast']['BP1']:
+                out['ballast']['BP1'].append(info_)
+            
+            if timeEnd1_ < timeEnd_:
+                
+                info_ = {'timeStart': str(timeEnd1_), 'timeEnd': str(timeEnd_),
+                         "rateM3_Hr": str("0.00"),
+                         "quantityM3": str(0)}
+                
+                if info_ not in out['ballast']['BP1']:
+                    out['ballast']['BP1'].append(info_)
+            
+            ## pump 2 ----------------------------------------------------
+            timeStart2_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
+            end_bp2_ = pump_.get('BP2', 0.)
+            
+            if eduction_stage_ == d__+1:
+                timeEnd2_ = timeStart2_ + ballast_time_
+            else:
+                timeEnd2_ = timeEnd_
+            
+            time_ = min(timeEnd2_, end_bp2_) - timeStart2_
+            amt_ = deballast_/self.input.loading.num_pump* time_/60.
+            
+            
+            ## patch empty slots
+            if len(out['ballast']['BP2']) > 0:
+                pre_ = int(out['ballast']['BP2'][-1]['timeEnd'])
+                
+                if pre_ < timeStart2_:
+                    info_ = {'timeStart': str(pre_), 'timeEnd': str(timeStart2_),
+                             "rateM3_Hr": str("0.00"),
+                             "quantityM3": str(0)}
+                    if info_ not in out['ballast']['BP2']:
+                        out['ballast']['BP2'].append(info_)
+                
+            
+            
+            if time_ > 0.:
+                info_ = {'timeStart': str(timeStart2_), 'timeEnd': str(timeEnd2_),
+                         "rateM3_Hr": str(round(deballast_/self.input.loading.num_pump,2)),
+                         "quantityM3": str(round(amt_))}
+            else:
+                info_ = {'timeStart': str(timeStart_), 'timeEnd': str(timeEnd_),
+                         "rateM3_Hr": str("0.00"),
+                         "quantityM3": str(0)}
+            
+            if info_ not in out['ballast']['BP2']:
+                out['ballast']['BP2'].append(info_)
+            
+            if timeEnd2_ < timeEnd_:
+                info_ = {'timeStart': str(timeEnd2_), 'timeEnd': str(timeEnd_),
+                         "rateM3_Hr": str("0.00"),
+                         "quantityM3": str(0)}
+                
+                if info_ not in out['ballast']['BP2']:
+                    out['ballast']['BP2'].append(info_)
+            
+            timeStart_ = timeEnd_
+            
+        ## 
+        if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
+            bp1_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP1']['pumpId']
+            out['ballast'][bp1_] = out['ballast'].pop('BP1')
+        
+        if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
+            bp2_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP2']['pumpId']
+            out['ballast'][bp2_] = out['ballast'].pop('BP2')
+        
+        # dictionary[new_key] = dictionary.pop(old_key)
+        # print(out['ballast']['Gravity'])
+        last_ = -1
+        for l__, l_ in enumerate(out['ballast']['Gravity']):
+            if float(l_['quantityM3']) > 0:
+                last_ = l__
+                
+        if len(out['ballast']['Gravity']) > 0:
+            out['ballast']['Gravity'] = out['ballast']['Gravity'][:(last_+1)]
+            
+        # print(out['ballast']['Gravity'])        
+
+
+
+        
+    def _get_pump(self, timeEnd_,first_cargo):
+        
+        if first_cargo:
+            if self.input.loading.max_loading_rate > 15000:
+                # pump only
+                pump_ = {'Gravity':0}
+                if self.input.loading.num_pump == 1:
+                    pump_['BP1'] = timeEnd_
+                elif self.input.loading.num_pump == 2:
+                    pump_['BP1'] = timeEnd_
+                    pump_['BP2'] = timeEnd_
+                    
+            elif self.input.loading.max_loading_rate > 10000:
+                # gravity for 2 hr
+                if timeEnd_ <= self.gTimeStart + 2*60:
+                    pump_ = {'Gravity':timeEnd_}
+                else:
+                    pump_ = {'Gravity': self.gTimeStart +2*60}
+                    if self.input.loading.num_pump == 1:
+                        pump_['BP1'] = timeEnd_
+                    elif self.input.loading.num_pump == 2:
+                        pump_['BP1'] = timeEnd_
+                        pump_['BP2'] = timeEnd_
+            else:
+                # gravity for 4 hr
+                if timeEnd_ <= self.gTimeStart + 4*60:
+                    pump_ = {'Gravity':timeEnd_}
+                else:
+                    pump_ = {'Gravity': self.gTimeStart +4*60}
+                    if self.input.loading.num_pump == 1:
+                        pump_['BP1'] = timeEnd_
+                    elif self.input.loading.num_pump == 2:
+                        pump_['BP1'] = timeEnd_
+                        pump_['BP2'] = timeEnd_
+                        
+                    
+        else:
+            # pump only
+            pump_ = {'Gravity':0}
+            if self.input.loading.num_pump == 1:
+                pump_['BP1'] = timeEnd_
+            elif self.input.loading.num_pump == 2:
+                pump_['BP1'] = timeEnd_
+                pump_['BP2'] = timeEnd_
+        
+        
+        return pump_
+        
+    def _get_ballast(self, out, data, first_cargo):
+        
+        # for stages before maxloadingrate
+        # print(out)
+        # timeStart_ = int(out['timeStart'])
+        timeEnd_   = int(out['timeEnd'])
+        
+      
+        pump_ = self._get_pump(timeEnd_,first_cargo)    
+            
+        # print(out['stage'], pump_)
+        
+        for k_, v_ in pump_.items():
+            
+            time_ = v_ - int(out['timeStart'])
+            rate_ = float(data['iniTotDeballastingRateM3_Hr'])
+            amt_ = rate_*time_/60.
+            
+            if k_ == 'Gravity' and v_ > 0:
+                
+                out['ballast']['Gravity'] = [{'timeStart': out['timeStart'],
+                                              'timeEnd': str(v_),
+                                              "rateM3_Hr": str(round(rate_,2)),
+                                              "quantityM3": str(round(amt_))}]
+                
+            elif k_ == 'BP1' and v_ > 0:
+                out['ballast']['BP1'] = [{'timeStart': out['timeStart'],
+                                              'timeEnd': str(v_),
+                                              "rateM3_Hr": str(round(rate_/2,2)),
+                                              "quantityM3": str(round(amt_))}]
+                
+            elif k_ == 'BP2' and v_ > 0:
+                out['ballast']['BP2'] = [{'timeStart': out['timeStart'],
+                                              'timeEnd': str(v_),
+                                              "rateM3_Hr": str(round(rate_/2,2)),
+                                              "quantityM3": str(round(amt_))}]
+                     
+        ## 
+        if 'BP1' in out['ballast'].keys():
+            if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
+                bp1_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP1']['pumpId']
+                out['ballast'][bp1_] = out['ballast'].pop('BP1')
+        
+        if 'BP2' in out['ballast'].keys():
+            if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
+                bp2_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP2']['pumpId']
+                out['ballast'][bp2_] = out['ballast'].pop('BP2')
+        
     
     
     ## for discharging

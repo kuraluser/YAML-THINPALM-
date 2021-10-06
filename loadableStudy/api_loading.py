@@ -8,7 +8,6 @@ Created on Wed Jul 14 16:50:44 2021
 from loading_init import Process_input
 from vlcc_gen import Generate_plan 
 from vlcc_check import Check_plans
-from vlcc_valves import Generate_valves
 # import json
 
 import pickle
@@ -30,13 +29,13 @@ def loading(data: dict) -> dict:
     params.prepare_data()
     params.write_ampl()
     
-    #input("Press Enter to continue...")
+    # input("Press Enter to continue...")
     # collect plan from AMPL
     gen_output = Generate_plan(params)
     gen_output.run(num_plans=1)
     
-    # with open('result.pickle', 'wb') as fp_:
-    #     pickle.dump(gen_output, fp_)  
+    with open('result.pickle', 'wb') as fp_:
+        pickle.dump(gen_output, fp_)  
     
     # with open('result.pickle', 'rb') as fp_:
     #     gen_output = pickle.load(fp_)
@@ -48,11 +47,6 @@ def loading(data: dict) -> dict:
       
     # gen json  
     out = gen_output.gen_json1({}, plan_check.stability_values)
-
-    # ## Valve
-    # valve_params = Generate_valves(params, out, gen_output) ## get parameters for valve module
-    # valve_params.prepOperation()
-    # valve_out = valve_params.integrateValves()
     
     return out
 
@@ -99,7 +93,7 @@ def loadicator1(data, limits):
         if limits['limits']['draft']['loadline'] < max_draft_:
             info_['judgement'].append('Failed loadline check!')
         # airDraft
-        if limits['limits']['airDraft'] < float(info_['airDraft']):
+        if limits['limits']['maxAirDraft'] < float(info_['airDraft']):
             info_['judgement'].append('Failed airdraft check!')
         
         # SF

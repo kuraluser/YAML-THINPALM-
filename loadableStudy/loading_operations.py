@@ -10,19 +10,19 @@ from copy import deepcopy
 
 
 ## virtual ports
-DENSITY = {'DSWP':1.0, 'DWP':1.0, 'FWS':1.0, 'DSWS':1.0,
-           'FO2P':0.98, 'FO2S':0.98, 'FO1P':0.98, 'FO1S':0.98, 'BFOSV':0.98, 'FOST':0.98, 'FOSV':0.98,
-           'DO1S':0.88,  'DO2S':0.88, 'DOSV1':0.88, 'DOSV2':0.88}
+# DENSITY = {'DSWP':1.0, 'DWP':1.0, 'FWS':1.0, 'DSWS':1.0,
+#            'FO2P':0.98, 'FO2S':0.98, 'FO1P':0.98, 'FO1S':0.98, 'BFOSV':0.98, 'FOST':0.98, 'FOSV':0.98,
+#            'DO1S':0.88,  'DO2S':0.88, 'DOSV1':0.88, 'DOSV2':0.88}
 
-INDEX = ['Time','SLS', 'SLP', '5W', '5C', '4W', '4C', '2W', '2C','1W','1C','3W','3C']
-INDEX1 = ['LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S', 'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S', 'AWBP', 'AWBS', 'APT']
+# INDEX = ['Time','SLS', 'SLP', '5W', '5C', '4W', '4C', '2W', '2C','1W','1C','3W','3C']
+# INDEX1 = ['LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S', 'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S', 'AWBP', 'AWBS', 'APT']
 OPEN_TANKS = ['3C', '2C', '4C', '5C', '1C', '3W', '4W', '2W', '5W', '1W' ]
 DEC_PLACE = 10
 
-TIME_EDUCTING = 60*3
+# TIME_EDUCTING = 60*3
         
 class LoadingOperations(object):
-    
+    # 
     def __init__(self, data):
         
         self.error = {}
@@ -30,10 +30,12 @@ class LoadingOperations(object):
         self.ballast_color, self.rob_color = {}, {}
         self.vessel = data.vessel
         
-        self.time_interval = data.loading_info_json['loadingStages']['stageDuration']*60 # in 60*4 min
+        self.time_interval1 = data.loading_info_json['loadingStages']['stageDuration']*60 # in 60*4 min
+        self.num_stage_interval = data.loading_info_json['loadingStages']['stageOffset']
+        self.time_interval = {}
         
-        
-        print('time interval:', self.time_interval)
+        self.config = data.config
+        print('time interval:', self.time_interval1)
         
         
         manifolds_, bottomLines_ = [], []
@@ -60,11 +62,17 @@ class LoadingOperations(object):
                     }
         
         
-        loading_rate_ = min(data.loading_info_json['loadingRates']['maxLoadingRate'], data.loading_info_json['loadingRates']['shoreLoadingRate'])
+        loading_rate_ = min(data.loading_info_json['loadingRates']['maxLoadingRate'], data.loading_info_json['loadingRates'].get('shoreLoadingRate',1e6))
+        self.max_loading_rate = loading_rate_
+        # loading_rate_ = 7000
         print('loading rate (max):', loading_rate_)
         min_loading_rate_ = data.loading_info_json['loadingRates']['minLoadingRate']
         min_loading_rate_ = min_loading_rate_ if min_loading_rate_ not in [None, ""] else 1000.
         print('loading rate (min):', min_loading_rate_)
+        
+        self.max_ballast_rate = data.loading_info_json['loadingRates'].get('maxLoadingRate',7000.)*1.025
+        # self.max_ballast_rate = 7000.
+        print('max ballast:', self.max_ballast_rate)
         
         self.staggering_param = {'maxShoreRate': loading_rate_, ####  11129
                                  'minLoadingRate': min_loading_rate_,
@@ -179,6 +187,8 @@ class LoadingOperations(object):
     
     def _get_rob(self, onhand, cargo_info_):
         
+        DENSITY = self.config['rob_density']
+        
         plan_i_, plan_f_ = {}, {}
         for o__,o_ in enumerate(onhand):
             # print(o_['tankName'])
@@ -231,30 +241,41 @@ class LoadingOperations(object):
         for k_, v_ in cargo_info_['ballast'][0].items():
             initial_ = v_[0]['quantityMT']
             final_ = cargo_info_['ballast'][1].get(k_, [{'quantityMT':0.}])[0]['quantityMT']
-            
-            if initial_ - final_ >= 0. and k_ not in cargo_info_['tankToDeballast']:
+            # print(initial_,  final_, k_)
+            if initial_ - final_ > 0. and k_ not in cargo_info_['tankToDeballast']:
+                # print('tankToDeballast', initial_,  final_, k_)
                 cargo_info_['tankToDeballast'].append(k_)
                 if final_ == 0.:
                     cargo_info_['eduction'].append(k_)
                     
             elif initial_ - final_ < 0. and k_ not in cargo_info_['tankToBallast']:
+                # print('tankToBallast', initial_,  final_, k_)
                 cargo_info_['tankToBallast'].append(k_)
                 
         for k_, v_ in cargo_info_['ballast'][1].items():
             final_ = v_[0]['quantityMT']
-            initial_ = cargo_info_['ballast'][1].get(k_, [{'quantityMT':0.}])[0]['quantityMT']
-            
-            if initial_ - final_ >= 0. and k_ not in cargo_info_['tankToDeballast']:
+            initial_ = cargo_info_['ballast'][0].get(k_, [{'quantityMT':0.}])[0]['quantityMT']
+            # print(initial_,  final_, k_)
+            if initial_ - final_ > 0. and k_ not in cargo_info_['tankToDeballast']:
+                # print('tankToDeballast', initial_,  final_, k_)
                 cargo_info_['tankToDeballast'].append(k_)
             elif initial_ - final_ < 0. and k_ not in cargo_info_['tankToBallast']:
+                # print('tankToBallast', initial_,  final_, k_)
                 cargo_info_['tankToBallast'].append(k_)
                 
                 
+        cargo_info_['numEductionTanks'] = sum([1 for e_ in cargo_info_['eduction']  if e_ not in ['FPT', 'LFPT'] ])
+        print('tankToBallast: ', cargo_info_['tankToBallast'])
+        print('tankToDeballast: ', cargo_info_['tankToDeballast'])
+        print('eduction: ', cargo_info_['eduction'], cargo_info_['numEductionTanks'])
         
-        print('eduction: ', cargo_info_['eduction'])
+        self.time_eduction = int(60 + 12*cargo_info_['numEductionTanks'])
+        # self.time_eduction = 0
+        print('eduction duration: ', self.time_eduction)
+        
+        
                 
         
-    
     
     
     def _get_ballast(self, ballast, cargo_info_):
@@ -425,9 +446,17 @@ class LoadingOperations(object):
             density_ = self._cal_density(round(api_,2), round(temp_,1))
             cargo_info_['commingle']['density'] = density_
             cargo_info_['commingle']['tankName'] = self.vessel.info['tankId'][cargo_info_['commingle']['tankId']]
+            cargo_info_['commingle']['parcel1'] = 'P'+str(cargo_info_['commingle']['cargo1NominationId'])
+            cargo_info_['commingle']['parcel2'] = 'P'+str(cargo_info_['commingle']['cargo2NominationId'])
+            cargo_info_['commingle']['t1'] = cargo_info_['temperature'][cargo1_]
+            cargo_info_['commingle']['t2'] = cargo_info_['temperature'][cargo2_]
+            cargo_info_['commingle']['api1'] = cargo_info_['api'][cargo1_]
+            cargo_info_['commingle']['api2'] = cargo_info_['api'][cargo2_]
+            cargo_info_['commingle']['colorCode'] = d_.get('colorCode', None)
+            cargo_info_['commingle']['abbreviation'] = d_.get('abbreviation', None)
             
             
-            
+        
         
     def _get_commingleAPI(self, api, weight, temp):
         weight_api_ , weight_temp_ = 0., 0.
@@ -445,7 +474,7 @@ class LoadingOperations(object):
         
     def _gen_topping(self):
         
-        
+        INDEX = self.config["gantt_chart_index"]
         
         self.seq = {}
         # self.seq['cargo'] =[]
@@ -454,8 +483,6 @@ class LoadingOperations(object):
         start_time_ = 0 # 
         
         for p__, p_ in enumerate(self.info['cargo_plans'][:-1]):
-            
-            
             
             df_ = pd.DataFrame(index=INDEX)
             
@@ -468,15 +495,16 @@ class LoadingOperations(object):
             
             self.seq[cargo_to_load_] = {}
             
-            
-            
             print(p__, cargo_to_load_,'cargo topping')
             # for each cargo volume
             for k_, v_ in p_.items(): #self.info['plans'][p__+1].items():
                 # set time 0
                 tank_ = k_
                 if tank_[-1] == 'C' or tank_ in ['SLS', 'SLP']:
-                    df_['Initial'][tank_] = (v_[0]['cargo'], v_[0]['quantityM3'])
+                    if len(v_) == 1:
+                        df_['Initial'][tank_] = (v_[0]['cargo'], v_[0]['quantityM3'])
+                    elif len(v_) == 2:
+                        df_['Initial'][tank_] = (v_[0]['cargo'], v_[0]['quantityM3'], v_[1]['cargo'], v_[1]['quantityM3'])
                 else:
                     tank_ = tank_[:-1] +'W'
                     if df_['Initial'][tank_] == None:
@@ -574,7 +602,7 @@ class LoadingOperations(object):
             stages_['increaseToMaxRate'] = (df_['OpenAll']['Time'], df_['IncMax']['Time'])
             
             df_inc_max_ = pd.DataFrame(index=INDEX[1:])
-            df_inc_max_['IncMax'] = None
+            df_inc_max_['IncMax'] = 0.
             
             for t_ in self.info['cargo_tank'][cargo_to_load_]:
                 if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
@@ -615,12 +643,22 @@ class LoadingOperations(object):
             
             for k_, v_ in self.info['cargo_plans'][p__+1].items():
                 # print(k_, v_)
-                if v_[0]['cargo'] == cargo_to_load_:
+                
+                if len(v_) == 1:
+                    fill_tank_ = True if  v_[0]['cargo'] == cargo_to_load_ else False
+                elif len(v_) == 2:
+                    fill_tank_ = True if  v_[0]['cargo'] == cargo_to_load_ or  v_[1]['cargo'] == cargo_to_load_ else False
+                    
+                if fill_tank_:
+                    # print(k_)
                     if k_[-1] == 'C' or k_ in ['SLS', 'SLP']:
                         if k_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
-                            print('use commingle density instead')
+                            print(k_, 'use own density instead')
+                            # only consider loading of new cargo .... 
+                            # cargo1 : own density
+                            # cargo2 (now to add): own density
                             wt_ = [v__['quantityMT'] for v__ in v_ if v__['cargo'] == cargo_to_load_][0]
-                            vol_ =  wt_/self.info['commingle']['density']   
+                            vol_ =  wt_/self.info['density'][cargo_to_load_]
                             staggering_rate_['TotalVol'][k_] = round(vol_,2)
                         else:
                             staggering_rate_['TotalVol'][k_] = v_[0]['quantityM3']
@@ -633,59 +671,144 @@ class LoadingOperations(object):
                         staggering_rate_['TotalVol'][tank_]  = self.info['cargo_plans'][p__+1][tank1_][0]['quantityM3'] + self.info['cargo_plans'][p__+1][tank2_][0]['quantityM3'] 
                         
                         
-                    
+            # amt filled during topping         
             staggering_rate_['AmtFilled'] = None
             for t_ in self.info['cargo_tank'][cargo_to_load_]:
-                t__ = t_
-                
-                rate_ = staggering_rate_.loc[t__].to_list()[:-2]
+                rate_ = staggering_rate_.loc[t_].to_list()[:-2]
                 len_rate_ = len(rate_) - rate_.count(None)
                 vol_ = np.array(rate_[:len_rate_]).sum()/4 # fixed 15 min per stage
-                staggering_rate_['AmtFilled'][t__] = vol_ #round(vol_,10)
-                    
-            staggering_rate_['AmtBefTop'] =     staggering_rate_['TotalVol'] -  staggering_rate_['AmtFilled']
-            time_taken_ =  (staggering_rate_['AmtBefTop'].sum() - df_inc_max_['IncMax'].sum())/param_['maxShoreRate']*60 # min
+                staggering_rate_['AmtFilled'][t_] = vol_ #round(vol_,10)
             
-            staggering_rate_['LoadingRateM3Min'] = (staggering_rate_['AmtBefTop'] - df_inc_max_['IncMax'])/time_taken_
+            # amt in tank before topping starts    
+            staggering_rate_['AmtBefTop'] =  staggering_rate_['TotalVol'] -  staggering_rate_['AmtFilled']
+            
+            commingle_start_ = None
+            if self.commingle_loading1:
+                commingle_tank_ = self.info['commingle']['tankName']
+                initial_vol_ = df_['Initial'][commingle_tank_][1] # stick to the original density and not commingle density
+                capacity_ = self.vessel.info['cargoTanks'][commingle_tank_]['capacityCubm']
+                ratio_ = initial_vol_/capacity_ 
+                
+                add_vol_ = staggering_rate_['AmtBefTop'][commingle_tank_]
+                
+                total_vol1_ = staggering_rate_['AmtBefTop'].sum() - df_inc_max_['IncMax'].sum()
+                total_vol2_ = total_vol1_ - add_vol_ # - commingle vol
+                
+                first_half_ = ratio_*total_vol2_/param_['maxShoreRate']*60 # min
+                second_half_ = ((1-ratio_)*total_vol2_ + add_vol_)/param_['maxShoreRate']*60 
+                time_taken_ = first_half_ + second_half_
+                
+                commingle_start_ = int(first_half_ + 30)
+                
+                staggering_rate_['LoadingRateM3Min1'] = ratio_*(staggering_rate_['AmtBefTop'] - df_inc_max_['IncMax'])/first_half_
+                staggering_rate_['LoadingRateM3Min1'][commingle_tank_] = np.nan
+                
+                staggering_rate_['LoadingRateM3Min2'] = (1-ratio_)*(staggering_rate_['AmtBefTop'] - df_inc_max_['IncMax'])/second_half_
+                staggering_rate_['LoadingRateM3Min2'][commingle_tank_] = add_vol_/second_half_
+                
+                print('comminglePartition:', first_half_, second_half_)
+                
+            else:
+                time_taken_ =  (staggering_rate_['AmtBefTop'].sum() - df_inc_max_['IncMax'].sum())/param_['maxShoreRate']*60 # min
+                staggering_rate_['LoadingRateM3Min'] = (staggering_rate_['AmtBefTop'] - df_inc_max_['IncMax'])/time_taken_
             
             topping_start_ = time_taken_ + 30
             
-            time_interval_ = self.time_interval ## fixed
-            # self.time_interval = time_interval_
-            time_, stage_ = time_interval_, 1
-            time_incmax_ = df_['IncMax']['Time']
+            time_interval_ = self.time_interval1 ## fixed
+            num_stages_ = 0
+            self.time_interval[cargo_to_load_] = time_interval_
             
-            ballast_ = [(0, 'Initial')]
-            ballast_stop_, before_topping_ = [], 'MaxLoading' + str(stage_)
-            single_max_stage_ = True
-            while (time_ < topping_start_):
-                single_max_stage_ = False
-                # print(time_)
+            df1_ = df_.copy()
+            
+            while num_stages_ < self.num_stage_interval and time_interval_ >= 60 :
+            
+                # self.time_interval = time_interval_
+                time_, stage_ = time_interval_, 1
+                time_incmax_ = df_['IncMax']['Time']
+                
+                ballast_ = [(0, 'Initial')]
+                ballast_stop_, before_topping_ = [], 'MaxLoading' + str(stage_)
+                single_max_stage_ = True
+                while (time_ < topping_start_):
+                    single_max_stage_ = False
+                    # print(time_)
+                    ss_ = 'MaxLoading' + str(stage_)
+                    df_[ss_] = df_['IncMax']
+                    df_[ss_]['Time'] = int(time_)
+                    before_topping_ = ss_
+                    ballast_.append((int(time_),ss_))
+                    for t_ in self.info['cargo_tank'][cargo_to_load_]:
+                        if self.commingle_loading1:
+                            
+                            vol0_ = df_['IncMax'][t_][1] 
+                            vol2_ = 0.
+                            
+                            if time_ <= first_half_ + 30:
+                                vol1_ = (time_-time_incmax_)*staggering_rate_['LoadingRateM3Min1'][t_]
+                               
+                            else:
+                                vol0_ = df_['IncMax'][t_][1] 
+                                vol1_ = first_half_* staggering_rate_['LoadingRateM3Min1'][t_]
+                                vol2_ = (time_ - first_half_ - 30) * staggering_rate_['LoadingRateM3Min2'][t_]
+                                
+                            if t_ == self.info['commingle']['tankName']:
+                                preloaded_ = df_[ss_][t_]
+                                df_[ss_][t_] = preloaded_ + (cargo_to_load_, vol2_)
+                                
+                            else:
+                                df_[ss_][t_] = (cargo_to_load_, vol0_ + vol1_ + vol2_)
+                        
+                        else:
+                            df_[ss_][t_] = (cargo_to_load_, df_['IncMax'][t_][1] + (time_-time_incmax_)*staggering_rate_['LoadingRateM3Min'][t_])
+                    
+                    time_ += time_interval_
+                    stage_ += 1
+                
+                num_stages_ = stage_-1
+                
+                next_time_ = time_ # next interval
+                time_ = topping_start_
                 ss_ = 'MaxLoading' + str(stage_)
+                just_before_topping_ = ss_
                 df_[ss_] = df_['IncMax']
                 df_[ss_]['Time'] = int(time_)
-                before_topping_ = ss_
-                ballast_.append((int(time_),ss_))
                 for t_ in self.info['cargo_tank'][cargo_to_load_]:
-                    t__ = t_
+                    if self.commingle_loading1:
+                        vol0_ = df_['IncMax'][t_][1] 
+                        vol2_ = 0.
                         
-                    df_[ss_][t__] = (cargo_to_load_, df_['IncMax'][t__][1] + (time_-time_incmax_)*staggering_rate_['LoadingRateM3Min'][t__])
+                        if time_ <= first_half_ + 30:
+                            vol1_ = (time_-time_incmax_)*staggering_rate_['LoadingRateM3Min1'][t_]
+                           
+                        else:
+                            vol0_ = df_['IncMax'][t_][1] 
+                            vol1_ = first_half_* staggering_rate_['LoadingRateM3Min1'][t_]
+                            vol2_ = (time_ - first_half_ - 30) * staggering_rate_['LoadingRateM3Min2'][t_]
+                            
+                        if t_ == self.info['commingle']['tankName']:
+                            preloaded_ = df_[ss_][t_]
+                            df_[ss_][t_] = preloaded_ + (cargo_to_load_, vol2_)
+                            
+                        else:
+                            df_[ss_][t_] = (cargo_to_load_, vol0_ + vol1_ + vol2_)
+                    else:
+                        df_[ss_][t_] = (cargo_to_load_, df_['IncMax'][t_][1] + (time_-time_incmax_)*staggering_rate_['LoadingRateM3Min'][t_])
                 
-                time_ += time_interval_
-                stage_ += 1
-            
-            next_time_ = time_ # next interval
-            time_ = topping_start_
-            ss_ = 'MaxLoading' + str(stage_)
-            just_before_topping_ = ss_
-            df_[ss_] = df_['IncMax']
-            df_[ss_]['Time'] = int(time_)
-            for t_ in self.info['cargo_tank'][cargo_to_load_]:
-                t__ = t_
+                
+                if num_stages_ < self.num_stage_interval:
+                    time_interval_ -= 60
+                    self.time_interval[cargo_to_load_] = time_interval_
+                    print('Reduce stage interval', cargo_to_load_, time_interval_)
+                    df_ = df1_
                     
-                df_[ss_][t__] = (cargo_to_load_, df_['IncMax'][t__][1] + (time_-time_incmax_)*staggering_rate_['LoadingRateM3Min'][t__])
-           
-            
+                    if time_interval_ == 0:
+                        self.error['Interval Error'] = ["No. of stages requirement cannot be met!!"]
+                        return
+                
+            if  df_[ss_]['Time'] == df_['MaxLoading'+str(stage_-1)]['Time']:
+                df_[ss_]['Time'] = int(df_[ss_]['Time'] +1)
+                
+                
             last_loading_max_rate_stage_ = ss_
             stages_['loadingAtMaxRate'] = (df_['IncMax']['Time'], df_[ss_]['Time'])
             
@@ -710,16 +833,22 @@ class LoadingOperations(object):
                     
                 
                 for t_ in self.info['cargo_tank'][cargo_to_load_]:
-                    t__ = t_
-                    rate_ = 0 if staggering_rate_[c_][t__] == None else staggering_rate_[c_][t__]
+                    rate_ = 0 if staggering_rate_[c_][t_] == None else staggering_rate_[c_][t_]
                     vol_ = rate_/4
                    
-                    df_[ss_][t__] = (cargo_to_load_, df_[ss_][t__][1] + vol_)  
+                    if self.commingle_loading1:
+                        if t_ == self.info['commingle']['tankName']:
+                            df_[ss_][t_] = (df_[ss_][t_][0], df_[ss_][t_][1], cargo_to_load_, df_[ss_][t_][3] + vol_)
+                        else:
+                            df_[ss_][t_] = (cargo_to_load_, df_[ss_][t_][1] + vol_)
+                            
+                    else:
+                        df_[ss_][t_] = (cargo_to_load_, df_[ss_][t_][1] + vol_)  
                     
             stages_['topping'] = (df_[last_loading_max_rate_stage_]['Time'], df_[ss_]['Time'])
                     
-            # if next_ballast_ not in [(None,None,10000)]:
-            #     ballast_.append((next_ballast_[0],next_ballast_[1]))    
+            if next_ballast_ not in [(None,None,10000)]:
+                ballast_.append((next_ballast_[0],next_ballast_[1]))    
                 
             if (final_ballast_[0],final_ballast_[1]) not in ballast_:
                 ballast_.append((final_ballast_[0],final_ballast_[1]))    
@@ -728,7 +857,14 @@ class LoadingOperations(object):
             ## add MaxLoading1 if necessary 
             if single_max_stage_ and  (df_['MaxLoading1']['Time'],'MaxLoading1') not in ballast_:
                 ballast_.insert(1, (df_['MaxLoading1']['Time'],'MaxLoading1'))
-                
+               
+            ballast_limit_ = {}
+            for aa_, (bb_,cc_) in enumerate(ballast_):
+                if cc_[:3] in ['Max']:
+                    time_ = bb_ - ballast_[aa_-1][0]
+                    ballast_limit_[cc_] = time_
+                    
+                    
                 
                     
             self.seq[cargo_to_load_]['gantt'] = df_        
@@ -740,9 +876,15 @@ class LoadingOperations(object):
             self.seq[cargo_to_load_]['startTime'] = start_time_ # start time without delay
             self.seq[cargo_to_load_]['ballastStop'] = list(ballast_stop_) # need to get ballast for these stages
             self.seq[cargo_to_load_]['lastStage'] = ss_
-            self.seq[cargo_to_load_]['loadingRateM3Min'] = staggering_rate_['LoadingRateM3Min'] 
+            if self.commingle_loading1:
+                self.seq[cargo_to_load_]['loadingRateM3Min'] = (staggering_rate_['LoadingRateM3Min1'],staggering_rate_['LoadingRateM3Min2'])
+            else:
+                self.seq[cargo_to_load_]['loadingRateM3Min'] = staggering_rate_['LoadingRateM3Min'] 
+            
             self.seq[cargo_to_load_]['timeNeeded'] = df_[ss_]['Time']
             self.seq[cargo_to_load_]['singleMaxStage'] = single_max_stage_
+            self.seq[cargo_to_load_]['commingleStart'] = commingle_start_
+            self.seq[cargo_to_load_]['ballastLimit'] = ballast_limit_
             
                        
             start_time_ += df_[ss_]['Time']
@@ -752,6 +894,11 @@ class LoadingOperations(object):
                 
             
     def _get_ballast_requirements(self):
+        
+        INDEX = self.config["gantt_chart_index"]
+        INDEX1 = self.config["gantt_chart_ballast_index"]
+        
+        
         # main deballast/ballast , eduction finished 1 hrs before topping 
         # eduction take 2 hr
         
@@ -783,24 +930,48 @@ class LoadingOperations(object):
                 print('Duration of last max loading interval:', time_ )
                 if self.info['eduction']:
                     if time_ > 0:
-                        if time_ < TIME_EDUCTING:
-                            print('Eduction needed', self.seq[c_]['beforeTopping']+str(c__+1), self.time_interval+time_-TIME_EDUCTING)
-                            fixed_ballast_.append(self.seq[c_]['beforeTopping']+str(c__+1))
-                            self.seq[c_]['eduction'] = (self.time_interval+time_-TIME_EDUCTING, self.seq[c_]['beforeTopping'])
+                        if time_ < self.time_eduction:
+                            
+                            self.seq[c_]['ballastLimit'][self.seq[c_]['justBeforeTopping']] = 0
+                            
+                            time_interval_ = self.time_interval[c_]
+                            time_left_ = time_interval_+time_-self.time_eduction
+                            stage_ = self.seq[c_]['beforeTopping']
+                            
+                            fixed_ballast__ = [stage_]
+                            fixed_ballast_.append(stage_+str(c__+1))
+                            self.seq[c_]['ballastLimit'][stage_] = max(0,time_left_)
+                            
+                            while time_left_ <= 30:
+                                time_left_ += time_interval_
+                                stage_ = stage_[:10] + str(int(stage_[10:])-1)
+                                fixed_ballast__.append(stage_)
+                                fixed_ballast_.append(stage_+str(c__+1))
+                                print("Move eduction stage", stage_)
+                                self.seq[c_]['ballastLimit'][stage_] = max(0,time_left_)
+                                
+                            time_left_  = min(time_left_, self.time_interval[c_])
+                            print('Eduction needed', stage_+str(c__+1), time_left_, ' given')
+                            self.seq[c_]['eduction'] = (time_left_, stage_)
                             
                             # fixed at departure ballast
-                            for k_, v_ in self.info['ballast'][-1].items():
-                                df_[self.seq[c_]['beforeTopping']][k_] = v_[0]['quantityMT']
+                            for ss_ in fixed_ballast__:
+                                for k_, v_ in self.info['ballast'][-1].items():
+                                    df_[ss_][k_] = v_[0]['quantityMT']
+                                    
+                            
                         else:
-                            print('Eduction needed', self.seq[c_]['justBeforeTopping']+str(c__+1), time_-TIME_EDUCTING)
-                            self.seq[c_]['eduction'] = (time_-TIME_EDUCTING, self.seq[c_]['justBeforeTopping'])
+                            print('Eduction needed', self.seq[c_]['justBeforeTopping']+str(c__+1), time_-self.time_eduction)
+                            self.seq[c_]['eduction'] = (time_-self.time_eduction, self.seq[c_]['justBeforeTopping'])
+                            self.seq[c_]['ballastLimit'][self.seq[c_]['justBeforeTopping']] = time_-self.time_eduction
+                            
                             
                     elif time_ == 0:
                         print('Only one maxloading stage')
                         time__ = df_['MaxLoading1']['Time']
-                        if time__ > TIME_EDUCTING:
-                            print('Fix ballast at MaxLoading1 for educting!!', time__-TIME_EDUCTING)
-                            self.seq[c_]['eduction'] = (time__-TIME_EDUCTING, 'MaxLoading1')
+                        if time__ > self.time_eduction:
+                            print('Fix ballast at MaxLoading1 for educting!!', time__-self.time_eduction)
+                            self.seq[c_]['eduction'] = (time__-self.time_eduction, 'MaxLoading1')
                             
                         else:
                             print('No time for eduction!!')
@@ -809,9 +980,11 @@ class LoadingOperations(object):
                     
                         
                 # fixed at departure ballast            
-                fixed_ballast_.append(self.seq[c_]['justBeforeTopping']+str(c__+1))
-                for k_, v_ in self.info['ballast'][-1].items():
-                    df_[self.seq[c_]['justBeforeTopping']][k_] = v_[0]['quantityMT']
+                if self.seq[c_]['justBeforeTopping']+str(c__+1) not in fixed_ballast_:
+                    fixed_ballast_.append(self.seq[c_]['justBeforeTopping']+str(c__+1))
+                    
+                    for k_, v_ in self.info['ballast'][-1].items():
+                        df_[self.seq[c_]['justBeforeTopping']][k_] = v_[0]['quantityMT']
                 
                 
             # get loading info        
@@ -840,14 +1013,36 @@ class LoadingOperations(object):
                         # print(i_, j_)
                         if i_ not in ['Time'] and j_ not in [None]:
                             # print(i_,j_) # j_ = curr (cargo, vol)
+                            
                             pre_ = self.seq[c_]['gantt'][pre_col_][i_]
+                            
+                            check_ = False
+                            if pre_ not in [None]:
+                                if pre_[0] == c_:
+                                    check_ = True
+                                elif len(pre_) == 4 and pre_[2] == c_:
+                                    check_ = True
+                                
+                            
                             #print(pre_, j_)
-                            if  pre_ not in [None] and pre_[0] == c_:
-                                ddf_[col_][i_] = (c_, j_[1] - pre_[1])
-                                wt_ += round((j_[1] - pre_[1])*density_[c_],10)
+                            if  pre_ not in [None] and check_:
+                                
+                                if pre_[0] == c_:
+                                    amt_ = j_[1] - pre_[1]
+                                    ddf_[col_][i_] = (c_, amt_)
+                                    wt_ += round(amt_*density_[c_],10)
+                                elif len(pre_) == 4 and pre_[2] == c_:
+                                    amt_ = j_[3] - pre_[3]
+                                    ddf_[col_][i_] = (c_, amt_)
+                                    wt_ += round(amt_*density_[c_],10)
+                                
                             elif j_[0] == c_:
                                 ddf_[col_][i_] = (c_, j_[1])
                                 wt_ += round(j_[1]*density_[c_],10)
+                                
+                            elif len(j_) > 2 and j_[2] == c_:
+                                ddf_[col_][i_] = (c_, j_[3])
+                                wt_ += round(j_[3]*density_[c_],10)
                                 
                     ddf_[col_]['Weight'] = wt_ # cargo added in this stage           
                     
@@ -865,9 +1060,20 @@ class LoadingOperations(object):
         
         print('same ballast: ', same_ballast_)
         print('stage: ', stages_)
+        
+        ballast_limit_ = {}
+        for s__,s_ in enumerate(stages_):
+            c_ = self.info['loading_order'][int(s_[-1]) - 1] # less than 10 cargos loading at one port
+            if s_[:3] in ['Max']:
+                b_ = round(self.max_ballast_rate * self.seq[c_]['ballastLimit'][s_[:-1]]/60 *1.025,2) # in MT
+                ballast_limit_[s__+1] = b_
+            
+            
+        
         self.seq['numPort'] = num_port_
         self.seq['stages'] = stages_
         self.seq['sameBallast'] = same_ballast_
+        self.seq['ballastLimit'] = ballast_limit_
         
             
             
@@ -875,6 +1081,8 @@ class LoadingOperations(object):
         
                     
     def _cal_staggering_rate(self, param, reduce = 1000):
+        
+        INDEX = self.config["gantt_chart_index"]
     
         stages_ = {}
         for t__, t_ in enumerate(param['toppingSeq']):

@@ -200,6 +200,11 @@ set TB; #set of ballast tanks
 set TB1; # set of ballast tanks with no pw tcg details
 set TB2; # set of ballast tanks with no pw lcg details
 set minTB default {}; # set of ballast tanks >= 30cm ullage
+set toBallastTank default {};
+set toDeballastTank default {};
+param ballastLimit{p in Pbar} default 1e6;
+set TB0 default TB; #{'LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S', 'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S' };
+
 
 param densitySeaWater{p in Pbar} default 1.025; # density of water @ high temperature
 param densityBallast{p in Pbar} default 1.025; # density of water @ high temperature
@@ -269,7 +274,7 @@ param diffSlop default 1;
 set Cm_1 within C;
 set Cm_2 within C;
 set Tm within T;
-param density_Cm{c in C} default 1;
+param density_Cm{c in C} default 1; # density at commingle temperature
 param Qm_1 default 0; # manual fix cargo1 wt
 param Qm_2 default 0; # manual fix cargo2 wt
 param Mm default 1e5;
@@ -506,9 +511,12 @@ subject to condition27 {c in C_locked, t in T_locked, p in P}: y[c,t,p] = V_lock
 ## capacity constraint 98% rule
 subject to Constr5a {c in C diff C_loaded diff C_locked, t in Tc[c], p in P_last_loading}: qty[c,t,p] <= upperBoundC[c,t]*capacityCargoTank[t]*x[c,t];
 # commingled
-subject to Constr5b {k1 in Cm_1, k2 in Cm_2, t in T, p in P_last_loading}: qty[k1,t,p]*densityCargo_Low[k1]/density_Cm[k1] + qty[k2,t,p]*densityCargo_Low[k2]/density_Cm[k2] <= upperBound[t]*capacityCargoTank[t];
+subject to Constr5b {k1 in Cm_1, k2 in Cm_2, t in T, p in P_last_loading}: qw[k1,t,p]/density_Cm[k1] + qw[k2,t,p]/density_Cm[k2] <= upperBound[t]*capacityCargoTank[t];
 #subject to Constr5a {c in C diff C_loaded diff C_locked, t in Tc[c], p in P_last_loading}: q[c,t,p]*dcLow[c]/density_up[c] + tolerance*x[c,t]/density_up[c] <= upperBound[t]*gt[t]*x[c,t];
 subject to Constr5c {k1 in Cm_1, k2 in Cm_2}:sum{t in Tm} x[k1,t]*x[k2,t] <= 1; # limit commingle tank to 1
+
+#subject to Constr5b1 {k1 in Cm_1, t in T, p in P_last_loading}: qw[k1,t,p]/density_Cm[k1]  <= 0.6*upperBound[t]*capacityCargoTank[t];
+#subject to Constr5b2 {k2 in Cm_2, t in T, p in P_last_loading}: qw[k2,t,p]/density_Cm[k2]  <= 0.4*upperBound[t]*capacityCargoTank[t];
 
 # manual commingle
 subject to Constr5d1 {k1 in Cm_1, k2 in Cm_2, t in Tm, p in P_last_loading}: x[k2,t]*Qm_2 - qw[k2,t,p] <= Mm*(1-x[k1,t]);
@@ -596,10 +604,6 @@ subject to Condition112b1 {t in T, c in C, p in P_last_loading}: qw[c,t,p] >= mi
 subject to Condition112b2 {t in T, c in C, p in P_last_loading}: qw[c,t,p] <= 1e5*x[c,t]; # link xB and wB
 
 ## ballast requirement
-#subject to Condition113a {t in TB, p in P}: xB[t,p] <= 1e6*wB[t,p];
-#subject to Condition113b {t in TB, p in P}: wB[t,p] <= 1e6*xB[t,p]; # link xB and wB
-#subject to Condition113c {t in TB, p in P}: wB[t,p] <= 1e6*xwB[t,p];
-
 subject to Condition113d1 {t in TB, p in P_stable}: wB[t,p] >= minBallastAmt[t]*xB[t,p]; # loaded min ballast 
 subject to Condition113d2 {t in TB, p in P_stable}: wB[t,p] <= 1e4*xB[t,p]; # loaded min ballast 
 subject to Condition113d3 {t in minTB, p in P_stable}: wB[t,p] >= minBallastAmt[t]; # loaded min ballast 
@@ -629,7 +633,7 @@ subject to Condition114e6 {t in TB}: zBa2[t] + zBb2[t] = 1;
 subject to Condition114f1 {t in TB, p in fixBallastPort}:  B_locked[t,p] = wB[t,p];
 
 # deballast amt
-subject to Condition114g1 {p in loadPort inter P_stable}: sum{t in TB} wB[t,p] + deballastPercent*loadingPortAmt[p] >= sum{t in TB} wB[t,p-1];
+subject to Condition114g1 {p in loadPort inter P_stable}: sum{t in TB0} wB[t,p] + deballastPercent*loadingPortAmt[p] >= sum{t in TB0} wB[t,p-1];
 # ballast amt
 subject to Condition114g2 {p in dischargePort inter P_stable}: sum{t in TB} wB[t,p-1] + ballastPercent*dischargePortAmt[p] >= sum{t in TB} wB[t,p];
 
@@ -640,6 +644,9 @@ subject to Condition114h1 {t in TB, p in zeroBallastPort}: xB[t, p] = 0;
 
 # banned ballast
 subject to Condition114i1 {t in ballastBan, p in P}: xB[t, p] = 0;
+
+## LOADING
+subject to Condition115 {p in P}: sum{t in toDeballastTank} wB[t,p-1] - sum{t in toDeballastTank} wB[t,p] <= ballastLimit[p];
 
 ### ship stabilty ------------------------------------------------------------
 # assume the ship satisfies all the stability conditions when entering the first port, and ballast tank allocation will be refreshed before leaving each port.
@@ -699,12 +706,14 @@ subject to Constr18d {p in P}: mean_draft[p] = <<{s in 1..pwDraft-1} bDraft[s]; 
 subject to Condition200a {p in P_stable}: est_trim[p] = (trim_upper[p]+trim_lower[p])/2;
 
 # SF -> zero trim
-subject to Condition20a {f in 1..Fr, p in P_stable}: SS[f,p] = BV_SF[f,p] + CD_SF[f,p]*(mean_draft[p]+0.5*est_trim[p]-base_draft[p]) + CT_SF[f,p]*est_trim[p];
+subject to Condition20a2 {f in 1..Fr, p in P_stable}: SS[f,p] = BV_SF[f,p] + CD_SF[f,p]*(mean_draft[p]-base_draft[p]) + CT_SF[f,p]*est_trim[p];
+subject to Condition20a1 {f in 1..Fr, p in P_stable}: SS[f,p] = BV_SF[f,p] + CD_SF[f,p]*(mean_draft[p]+0.5*est_trim[p]-base_draft[p]) + CT_SF[f,p]*est_trim[p];
 subject to Condition20b {f in 1..Fr, p in P_stable}: lowerSFlimit[f] <= SS[f,p]- wn[f,p];
 subject to Condition20c {f in 1..Fr, p in P_stable}: SS[f,p] - wn[f,p] <= upperSFlimit[f];
 
 # BM -> -> zero trim
-subject to Condition21a {f in 1..Fr, p in P_stable}: SB[f,p] = BV_BM[f,p] + CD_BM[f,p]*(mean_draft[p]+0.5*est_trim[p]-base_draft[p]) + CT_BM[f,p]*est_trim[p];
+subject to Condition21a2 {f in 1..Fr, p in P_stable}: SB[f,p] = BV_BM[f,p] + CD_BM[f,p]*(mean_draft[p]-base_draft[p]) + CT_BM[f,p]*est_trim[p];
+subject to Condition21a1 {f in 1..Fr, p in P_stable}: SB[f,p] = BV_BM[f,p] + CD_BM[f,p]*(mean_draft[p]+0.5*est_trim[p]-base_draft[p]) + CT_BM[f,p]*est_trim[p];
 subject to Condition21b {f in 1..Fr, p in P_stable}: lowerBMlimit[f] <= wn[f,p]*LCG_fr[f] + mn[f,p] - SB[f,p];
 subject to Condition21c {f in 1..Fr, p in P_stable}: wn[f,p]*LCG_fr[f] + mn[f,p] -  SB[f,p] <= upperBMlimit[f];
 

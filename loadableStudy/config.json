@@ -1,6 +1,6 @@
 {
   "url": {
-    "vessel-details": "https://cpdss-dev.alphaorimarine.com/cpdss/api/cloud/vessel-details/{vesselId}?enableValveSeq=true",
+    "vessel-details": "https://1cpdss-dev.alphaorimarine.com/cpdss/api/cloud/vessel-details/{vesselId}?enableValveSeq=true",
     "database": "postgresql://postgres:postgres@127.0.0.1:5432/postgres",
     "LOADABLE": {
       "loadable-patterns": "http://mol.thinkpalm.info:8085/api/cloud/vessels/{vesselId}/voyages/{voyageId}/loadable-studies/{loadableStudyId}/loadable-patterns",
@@ -57,6 +57,8 @@
           "5C"
         ]
       ],
+      "gantt_chart_index": ["Time","SLS", "SLP", "5W", "5C", "4W", "4C", "2W", "2C","1W","1C","3W","3C"],
+      "gantt_chart_ballast_index": ["LFPT", "WB1P", "WB1S", "WB2P", "WB2S", "WB3P", "WB3S", "WB4P", "WB4S", "WB5P", "WB5S", "AWBP", "AWBS", "APT"],
       "initial_ballast": {
         "LFPT": 4800,
         "WB1P": 9000,
@@ -176,6 +178,8 @@
           "5C"
         ]
       ],
+      "gantt_chart_index": ["Time","SLS", "SLP", "5W", "5C", "4W", "4C", "2W", "2C","1W","1C","3W","3C"],
+      "gantt_chart_ballast_index": ["FPT", "WB1P", "WB1S", "WB2P", "WB2S", "WB3P", "WB3S", "WB4P", "WB4S", "WB5P", "WB5S", "WB6P", "WB6S", "APT"],
       "initial_ballast": {
         "FPT": 1580,
         "WB1P": 8800,

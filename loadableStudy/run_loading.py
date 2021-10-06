@@ -36,8 +36,8 @@ fname = 'loading_information_request_commingle.json'
 fname = 'loading_information_voy25_first_port.json'
 # fname = 'loading_information_voy25_second_port.json'
 
-# fname = 'loadingDSS-4061.json'   # pass
-# fname = 'loadingDSS-4057.json' # pass 
+# fname = 'loadingDSS-4061.json'   # infeasible 
+# fname = 'loadingDSS-4057.json' # infeasible  loading rate 5000
 
 # fname = 'loading_info_167.json' # error in loading info
 # fname = 'loading_informaton_100000133.json' # 3 cargos
@@ -45,10 +45,26 @@ fname = 'loading_information_voy25_first_port.json'
 
 # fname = 'loading_information_error_request_100000052.json'
 
-# fname = 'loading_information_100000049.json'
+# fname = 'loading_information_100000049.json' # num of stages cannot be met
 
-fname = 'loading_information_request_100000058.json'
-fname = 'loading_information_request_100000050.json'
+# fname = 'loading_information_request_100000058.json' # CFWT error
+# fname = 'loading_information_request_100000050.json'
+
+# fname = 'DSS-4198b.json'
+# fname = 'DSS-3993.json' # infeasible
+
+fname = 'loading_commingle_first_port.json'
+# fname = 'loading_commingle_second_port.json' # infeasible
+
+# fname = 'loading_information_request_100000061a.json' # AP
+
+
+# fname = 'loading_information_100000057.json' # commingle
+
+# fname = 'loading_information_request_100000057.json'
+
+# fname = 'AP18.json'
+fname = '100000270request1.json'
 
 ## to be modified in main.py --------------------------------------------
 data = {}
@@ -69,7 +85,6 @@ data['processId'] = str(uuid4())
 data['config'] = config["vessel"][str(vessel_id_)]
 
 if __name__ == "__main__":
-
 
     result = gen_sequence(data)
     

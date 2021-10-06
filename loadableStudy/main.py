@@ -292,7 +292,12 @@ async def status_handler(userId: dict):
 @app.post("/loadicator_results/")
 async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
     
-    query = users.select().where(users.c.id == data['processId'])
+    if data.get('loadableStudyProcessId', None):
+        process_id_ = data['loadableStudyProcessId']
+    else:
+        process_id_ = data['processId']
+
+    query = users.select().where(users.c.id == process_id_)
     # out = {'processId': data['processId'], 'status':None, 'result': None}
     #out['status'] = await database.fetch_val(query,column=3)
     result = await database.fetch_val(query,column=2)
@@ -309,7 +314,7 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
         # # print('>>>Send loadicator results')
         # logger.info(data["processId"] + ": Upload loadicator result")
         
-        if out.get('feedbackLoop', True):
+        if out.get('feedbackLoop', True) and int(out.get('feedbackLoopCount', 5)) <= 5:
             print('feedbackloop started!!')
             gID = data['processId']
             # print(gID)

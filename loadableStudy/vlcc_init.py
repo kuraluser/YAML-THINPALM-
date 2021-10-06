@@ -237,8 +237,7 @@ class Process_input(object):
                             
                         
                         
-        self.config = {**config, **config_}    
-        self.config = config      
+        self.config = {**config, **config_}          
                     
         # print(config_)    
             
@@ -301,6 +300,14 @@ class Process_input(object):
         self.limits['airDraft'] = self.port.info['maxAirDraft']
         self.limits['sfbm'] = self.sf_bm_frac
         self.limits['feedback'] = {'feedbackLoop': self.feedbackLoop,'feedbackLoopCount':self.feedbackLoopCount}
+        
+        # for loading limits
+        last_loading_ = self.port.info['portOrderId'][str(self.port.info['numPort']-1)]
+        first_discharge_ = self.port.info['portOrderId'][str(self.port.info['numPort'])]
+        self.limits['draft']['maxDraft'] = min(self.port.info['maxDraft'][last_loading_], self.port.info['maxDraft'][first_discharge_])
+        self.limits['maxAirDraft'] = min(self.port.info['maxDraft'][last_loading_], self.port.info['maxDraft'][first_discharge_])
+        
+        
         
         # print(self.limits)
         
@@ -994,6 +1001,12 @@ class Process_input(object):
                     str1 += str(k_) + ' '
                 print(str1+';', file=text_file)
                 
+                print('# initial ballast ',file=text_file)#
+                str1 = 'set TB0 := '
+                for k_, v_ in self.vessel.info['initBallast']['wt'].items():
+                    str1 += str(k_) + ' ' 
+                print(str1+';', file=text_file)
+                
                 
                 print('# loading ports ',file=text_file)#
                 str1 = 'set loadingPort := '
@@ -1479,7 +1492,7 @@ class Process_input(object):
                 print(str1+';', file=text_file)
                 
                 print('# runtime limit ',file=text_file)#  
-                str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 60))
+                str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 30))
                 print(str1+';', file=text_file)
                 
                 
