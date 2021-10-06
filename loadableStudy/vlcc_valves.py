@@ -27,14 +27,17 @@ class Generate_valves:
 
         # Ballast
         # Machinery/Processes
-        self.ballastPumps = []
+        self.ballastPumps = {'pump': [], 'eductor': []}
         self.eductor = []
         self.BWTS = False  # False for all MOL VLCC, need to update for other vessel
-        self.eductor = 180
-        self.deballast_shut = 60
+        self.firstport = len(output['plans']['arrival']['cargoVol']) == 0  # TBC
+        self.timeSwitch = {}
         ## Tanks
-        self.ballastTanks = {}  # at each time interval what tanks are being used, need to close the tanks not in use, open the tanks in use
-        self.eductTanks = input_param.loading.info['eduction']
+        self.ballastTanks = {}  # at each timing what tanks are being used
+        self.eductionTanks = input_param.loading.info['eduction']  # Tanks to be educted
+        self.ballastTanksValves = {}  # mapping of ballast tank and main valve
+        # self.ballastTankOperation = {}  # at each stage and time, operation of main valve
+
         # Valve Sequence
         self.valves = input_param.vessel_json['vessel']['vesselValveSequence']
 
@@ -60,8 +63,8 @@ class Generate_valves:
     def prepOperation(self):
         """Extract and reformat data required from output to generate valves"""
         self.getToppingSequence('topping')
-        # self.getDeballastTiming('topping')
-        self.getBallastTanks()
+        self.getBallastTanks('deballasting')
+        self.getDeballastTiming('loadingAtMaxRate')
         return
 
     def integrateValves(self):
@@ -70,12 +73,82 @@ class Generate_valves:
         # E.g valves for start of loading seq into open single tank stage
         self.getLoadingValves()
         self.getDeballastValves()
-        # combine ballast and cargo valves and timing for valves
+        # self.getDeballastTanksValves()
+
+        # # combine ballast and cargo valves and timing for valves
         self.getLoadingValvesTimeLine()
         self.combineValves()
 
     def combineValves(self):
         """Combine valves sequence with timeline into output format"""
+        for cargo in self.loading_timeline:
+            cargo_idx = \
+                [idx for idx, info in enumerate(self.output["events"]) if str(info['cargoNominationId']) == cargo[1:]][
+                    0]
+            for stage in self.loading_timeline[cargo]:
+                cargo_valves = []
+                ballast_valves = []
+                stage_idx = [idx for idx, info in enumerate(self.output["events"][cargo_idx]["sequence"]) if
+                             str(info['stage']) == stage][0]
+                stageTimeEnd = int(self.output["events"][cargo_idx]["sequence"][stage_idx]['timeEnd'])
+                for time, info in self.loading_timeline[cargo][stage].items():
+                    currCargoTime = time
+                    currCargoValve = {"time": 0, "operation": "", "valves": []}
+                    currBallastTime = time
+                    currBallastValve = {"time": 0, "operation": "", "valves": []}
+                    # Cargo
+                    for cvalves in info['cargo']:  # Loop through each type of valve
+                        if currCargoValve["operation"] == "":
+                            currCargoValve["operation"] = cvalves[0]["operation"]
+                            currCargoValve["time"] = currCargoTime
+                        elif currCargoValve["operation"] != cvalves[0]["operation"]:
+                            if len(currCargoValve['valves']) > 0:
+                                cargo_valves.append(currCargoValve)
+                            if currCargoTime < stageTimeEnd:  # Ensure valve operation dont exceed end of stage
+                                currCargoTime += 1
+                            currCargoValve = {"time": currCargoTime, "operation": cvalves[0]["operation"], "valves": []}
+                        for valve in cvalves:  # Loop through different lines/tanks of each type of valve
+                            if len(currCargoValve["valves"]) > 0:
+                                prevValve = currCargoValve["valves"][-1]
+                                prevValveKey = list(prevValve.keys())[0]
+                                if prevValveKey == valve['category']:
+                                    currCargoValve["valves"][-1][prevValveKey].append(valve['valve'])
+                                else:
+                                    newValveType = {valve['category']: [valve['valve']]}
+                                    currCargoValve["valves"].append(newValveType)
+                            else:
+                                newValveType = {valve['category']: [valve['valve']]}
+                                currCargoValve["valves"].append(newValveType)
+                    if len(currCargoValve['valves']) > 0:
+                        cargo_valves.append(currCargoValve)
+                    # Ballast
+                    for bvalves in info['ballast']:  # Loop through each type of valve
+                        if currBallastValve["operation"] == "":
+                            currBallastValve["operation"] = bvalves[0]["operation"]
+                            currBallastValve["time"] = currBallastTime
+                        elif currBallastValve["operation"] != bvalves[0]["operation"]:
+                            if len(currBallastValve['valves']) > 0:
+                                ballast_valves.append(currBallastValve)
+                            if currBallastTime < stageTimeEnd:  # Ensure valve operation dont exceed end of stage
+                                currBallastTime += 1
+                            currBallastValve = {"time": currBallastTime, "operation": bvalves[0]["operation"],
+                                                "valves": []}
+                        for valve in bvalves:  # Loop through different lines/tanks of each type of valve
+                            if len(currBallastValve["valves"]) > 0:
+                                prevValve = currBallastValve["valves"][-1]
+                                prevValveKey = list(prevValve.keys())[0]
+                                if prevValveKey == valve['category']:
+                                    currBallastValve["valves"][-1][prevValveKey].append(valve['valve'])
+                                else:
+                                    newValveType = {valve['category']: [valve['valve']], 'valveStage': valve['stageNo']}
+                                    currBallastValve["valves"].append(newValveType)
+                            else:
+                                newValveType = {valve['category']: [valve['valve']], 'valveStage': valve['stageNo']}
+                                currBallastValve["valves"].append(newValveType)
+                    if len(currBallastValve['valves']) > 0:
+                        ballast_valves.append(currBallastValve)
+                self.output["events"][cargo_idx]["sequence"][stage_idx]['cargoValves'] = cargo_valves
+                self.output["events"][cargo_idx]["sequence"][stage_idx]['ballastValves'] = ballast_valves
         return
 
     # TODO: pipelines info (generalise for single segregation)
@@ -114,7 +187,8 @@ class Generate_valves:
                                 elif 'CARGO PIPE LINE VALVES' == valveType:
                                     name = 'tankValves'
                                     tanks = self.getCargoTanksForStage(stage, cargo, isTopping)
-                                    valves = self.getTankValves(tanks, raw_valves[step], 'CARGO PIPE LINE VALVES')  ### problem here
+                                    valves = self.getTankValves(tanks, raw_valves[step],
+                                                                'CARGO PIPE LINE VALVES')  ### problem here
                                     self.updateValveStatus(valves, name)
                                 else:
                                     name = self.nameTankValve(valveType)
@@ -138,11 +212,18 @@ class Generate_valves:
         # Loop through all cargoes
         for cargo in self.tanks:
             ballast_valves = {}
-            firstport = len(self.output['plans']['arrival']['loadablePlanStowageDetails']) == 0
-            if True:  # self.BWTS & firstport:
+            # Get correct valves based on loading plan
+            # 1) with gravity or not
+            # self.firstport
+            if (not self.BWTS) & self.firstport:  # no BWTS and is first loading port
                 deballast_config = self.valve_config['deballasting']['gravity']
             else:
                 deballast_config = self.valve_config['deballasting']['nogravity']
+            # 2) with eduction or not
+            if len(self.eductionTanks) == 0:
+                del deballast_config['loadingAtMaxRate']['seaTosea']
+                del deballast_config['loadingAtMaxRate']['strippingByEductor']
+
             # Loop through each stage in loading process and get required valve process
             for stage, info in deballast_config.items():
                 stage_valves = {}
@@ -155,27 +236,39 @@ class Generate_valves:
                         allsteps = []
                         for step in raw_valves:
                             if ('0' not in step):
-                                # print(raw_valves[step])
                                 valveType = raw_valves[step][0]['valveTypeName']  # Check type of valve
                                 # get valves for each type of valves in sequence
                                 if valveType == 'BALLAST PUMP':  # Ballast Pumps
                                     name = 'ballastPumps'
                                     valves = self.getBallastPumps(raw_valves[step], name)
-                                    print(valves)
                                     self.updateValveStatus(valves, name)
+
                                 elif valveType.startswith('EDUCTOR'):  # Eductor related valves
                                     name = self.nameTankValve(valveType)
                                     valves = self.getBallastEductorValves(raw_valves[step], name)
                                     self.updateValveStatus(valves, name)
-                                elif 'BALLLAST VALVES' == valveType:  # Tank Valves
+
+                                elif valveType.startswith('STRIPPER SUCTION'):  # Tank stripping valve
+                                    name = self.nameTankValve(valveType)
+                                    valves = self.getTankValves(self.eductionTanks, raw_valves[step],
+                                                                'STRIPPER SUCTION')
+                                    self.updateValveStatus(valves, name)
+
+                                elif 'BALLLAST VALVES' == valveType:  # Main Tank Valves
                                     name = 'tankValves'
-                                    tanks_arr = self.getBallastTanksForStage(stage, cargo)
-                                    valves = []
-                                    for tanks in tanks_arr:
-                                        subvalve = self.getTankValves(tanks, raw_valves[step], 'BALLLAST VALVES')
-                                        self.updateValveStatus(subvalve, name)
-                                        valves += subvalve
-                                else:
+                                    tanks = list(self.input.loadable['ballastOperation'].keys())
+                                    valves = self.getTankValves(tanks, raw_valves[step], 'BALLLAST VALVES')
+                                    self.updateValveStatus(valves, name)
+                                    if len(self.ballastTanksValves) == 0:  # save tank to valve mapping
+                                        for valve in valves:
+                                            self.ballastTanksValves[valve['tank']] = valve
+                                #     tanks_arr = self.getBallastTanksForStage(stage, cargo)
+                                #     valves = []
+                                #     for tanks in tanks_arr:
+                                #         subvalve = self.getTankValves(tanks, raw_valves[step], 'BALLLAST VALVES')
+                                #         self.updateValveStatus(subvalve, name)
+                                #         valves += subvalve
+                                else:  # Others
                                     name = self.nameTankValve(valveType)
                                     valves = self.getOtherValves(raw_valves[step], name)
                                     self.updateValveStatus(valves, name)
@@ -198,7 +291,6 @@ class Generate_valves:
         # Loop through all cargo in current loading plan
         for c in self.output['events']:
             cargo = 'P' + str(c['cargoNominationId'])
-            print(cargo)
             result[cargo] = {}
             # Loop through all stages for each cargo
             for s in c['sequence']:
@@ -206,14 +298,44 @@ class Generate_valves:
                 stage = s['stage']
                 time = int(s['timeStart'])
                 timeEnd = int(s['timeEnd'])
-                print(stage, time, timeEnd)
                 stage_timeline = {}
                 # Process valve timing for each stage
                 if stage == 'loadingAtMaxRate':
+                    pumpTime = self.timeSwitch[cargo]['pump']
+                    stage_timeline[pumpTime] = {'cargo': [], 'ballast': []}
+                    shutTime = self.timeSwitch[cargo]['shut']
+                    stage_timeline[shutTime] = {'cargo': [], 'ballast': []}
+                    if len(self.eductionTanks) > 0:
+                        eductorTime = self.timeSwitch[cargo]['eductor']
+                        stage_timeline[eductorTime] = {'cargo': [], 'ballast': []}
+
                     # Ballast Gravity -> Pump: valve sequence for change over (after 2h/4 if <10k)
+                    if (not self.BWTS) & self.firstport:  # no BWTS and is first loading port: gravity
+                        stage_timeline[pumpTime]['ballast'] += self.deballast_valves[cargo][stage][
+                            'floodingTheBallastPump']
+                        stage_timeline[pumpTime]['ballast'] += self.deballast_valves[cargo][stage][
+                            'debalastingByPumpAfterGravity']
+                    else:  # no gravity
+                        pass
+
                     # Ballast Pump -> Eductor: Eductor and Sea to Sea sequence 3hours before stage end
                     # Ballast Shutting: shutting sequence 1hr before stage end
-                    pass
+                    if len(self.eductionTanks) > 0:
+                        stage_timeline[eductorTime]['ballast'] += self.deballast_valves[cargo][stage]['seaToSea']
+                        if len(self.ballastPumps) == 2:
+                            closePump = self.ballastPumps['pump'][-1]
+                            closePump['operation'] = 'close'
+                            self.deballast_valves[cargo][stage]['strippingByEductor'] = [[closePump]] + \
+                                                                                        self.deballast_valves[cargo][
+                                                                                            stage]['strippingByEductor']
+                        stage_timeline[eductorTime]['ballast'] += self.deballast_valves[cargo][stage][
+                            'strippingByEductor']
+                        stage_timeline[shutTime]['ballast'] += self.deballast_valves[cargo][stage]['seaTosea']
+                        stage_timeline[shutTime]['ballast'] += self.deballast_valves[cargo][stage]['shuttingSequence']
+                    else:
+                        stage_timeline[shutTime]['ballast'] += self.deballast_valves[cargo][stage]['seaToSea']
+                        stage_timeline[shutTime]['ballast'] += self.deballast_valves[cargo][stage]['shuttingSequence']
+
                 elif stage == 'topping':
                     # Cargo Topping: close valves for topping sequence
                     # Cargo Shutting: shutting sequence and close final tank in topping sequence
@@ -239,9 +361,9 @@ class Generate_valves:
                     stage_timeline[time] = {'cargo': [], 'ballast': []}
                     for process, valves in self.loading_valves[cargo][stage].items():
                         stage_timeline[time]['cargo'] += valves
-                    # for process, valves in self.ballast_valves[cargo][stage].items():
-                    #     stage_timeline[time]['ballast'] += valves
-                print(stage_timeline)
+                    for process, valves in self.deballast_valves[cargo][stage].items():
+                        stage_timeline[time]['ballast'] += valves
+                stage_timeline = {k: stage_timeline[k] for k in sorted(stage_timeline)}
                 result[cargo][stage] = stage_timeline
         self.loading_timeline = result
         return
@@ -299,14 +421,15 @@ class Generate_valves:
                 newTanks.append(tank)
         return newTanks
 
-    #TODO
-    def getBallastTanksForStage(self, stage, cargo):
-        set_tanks = self.ballastTanks[cargo]['deballast'][stage]
-
-        newTanks = []
-        for time, tanks in set_tanks.items():
-            newTanks.append(tanks)
-        return newTanks
+    # # TODO
+    # def getBallastTanksForStage(self, stage, cargo):
+    #
+    #     set_tanks = self.ballastTanks[cargo]['deballast'][stage]
+    #
+    #     newTanks = []
+    #     for time, tanks in set_tanks.items():
+    #         newTanks.append(tanks)
+    #     return newTanks
 
     def getTankValves(self, tanks, seq, valveType):  # E.g tanks:['1W', '1C', 'SLS'], seq: sequence0/1 from vessel json
         """Filter Tank Valves (valveTypeName: CARGO PIPE LINE VALVES) for required tanks.
@@ -321,7 +444,8 @@ class Generate_valves:
                 valveOpen = 'close' if valve['shut'] else 'open'  # C for Close, O for Open
                 tankName = valve['tankShortName']
                 if tankName in tanks:
-                    value = {'valve': valveName, 'tank': tankName, 'operation': valveOpen}
+                    value = {'valve': valveName, 'tank': tankName, 'operation': valveOpen,
+                             'stageNo': valve['stageNumber']}
                     if valveOpen == 'close':  # Can only close tanks that are already opened
                         if valveName in self.opened_valves['tankValves']:
                             tankValves += [value]
@@ -349,7 +473,8 @@ class Generate_valves:
                 valveOpen = 'close' if valve['shut'] else 'open'
                 valveLine = valve['pipelineName']
                 if (side.lower() in valveTypeName) & (valveline in lines):
-                    value = {'valve': valveName, 'line': valveLine, 'operation': valveOpen}
+                    value = {'valve': valveName, 'line': valveLine, 'operation': valveOpen,
+                             'stageNo': valve['stageNumber']}
                     if valveOpen == 'close':  # Can only close manifold that are already opened
                         if valveName in self.opened_valves['manifoldValves']:
                             manifoldValves.append(value)
@@ -367,7 +492,7 @@ class Generate_valves:
             valveOpen = 'close' if valve['shut'] else 'open'
             valveName = valve['valveNumber']
             valveLine = valve['pipelineName']
-            value = {'valve': valveName, 'line': valveLine, 'operation': valveOpen}
+            value = {'valve': valveName, 'line': valveLine, 'operation': valveOpen, 'stageNo': valve['stageNumber']}
             if valveOpen == 'close':
                 if valveName in self.opened_valves[name]:
                     valves.append(value)
@@ -375,28 +500,24 @@ class Generate_valves:
                 if valveName not in self.opened_valves[name]:
                     valves.append(value)
         return valves
-
 
     def getBallastPumps(self, seq, name):
         valves = []
         if name not in self.opened_valves:
             self.opened_valves[name] = []
-        print(seq)
-        print(self.opened_valves)
         for valve in seq:
             valveOpen = 'close' if valve['shut'] else 'open'
             valveName = valve['valveNumber']
             valveLine = valve['pipelineName']
-            print(valveOpen, valveName)
-            value = {'valve': valveName, 'line': valveLine, 'operation': valveOpen}
+            value = {'valve': valveName, 'line': valveLine, 'operation': valveOpen, 'stageNo': valve['stageNumber']}
             if valveOpen == 'close':
                 if valveName in self.opened_valves[name]:
                     valves.append(value)
             else:
                 if valveName not in self.opened_valves[name]:
                     valves.append(value)
+                    self.ballastPumps['pump'].append(value)
         return valves
-
 
     def getBallastEductorValves(self, seq, name):
         valves = []
@@ -406,7 +527,7 @@ class Generate_valves:
             valveOpen = 'close' if valve['shut'] else 'open'
             valveName = valve['valveNumber']
             valveLine = valve['pipelineName']
-            value = {'valve': valveName, 'line': valveLine, 'operation': valveOpen}
+            value = {'valve': valveName, 'line': valveLine, 'operation': valveOpen, 'stageNo': valve['stageNumber']}
             if valveOpen == 'close':
                 if valveName in self.opened_valves[name]:
                     valves.append(value)
@@ -416,44 +537,51 @@ class Generate_valves:
         return valves
 
     # TODO: input.loading.info-> tanksto ballast/tanksto deballast?
-    def getBallastTanks(self):
+    def getBallastTanks(self, operation='deballasting'):
         """Get Ballast tanks used at each stage and time.
             Certain ballast tanks may start deballasting at a later time,
             rather than right from the start"""
         output = self.output
         result = {}
         for e in output['events']:
-            cargo = 'P'+ str(e['cargoNominationId'])
+            cargo = 'P' + str(e['cargoNominationId'])
             ballast_time = {}  # Tanks being used for ballasting at each timestamp
             deballast_time = {}
             if cargo in self.tanks:
                 for stages in e['sequence'][1:]:  # First stage omitted, arrival condition
                     stageName = stages['stage']
-                    deballast_time[stageName] = {}
-                    ballast_time[stageName] = {}
+                    prevDeballastTank = []
                     # Tanks used for deballasting
-                    if 'simDeballastingRateM3_Hr' in stages:
-                        for substages in stages['simDeballastingRateM3_Hr']:
-                            for tankId, tanks in substages.items():
-                                # ballast tank info at that stage/substage
-                                time = tanks['timeStart']
-                                tankName = tanks['tankName']
-                                if time in deballast_time[stageName]:
-                                    deballast_time[stageName][time].append(tankName)
-                                else:
-                                    deballast_time[stageName][time] = [tankName]
-                    # Tanks used for ballasting
-                    if 'simBallastingRateM3_Hr' in stages:
-                        for substages in stages['simBallastingRateM3_Hr']:
-                            for tankId, tanks in substages.items():
-                                # ballast tank info at that stage/substage
-                                time = tanks['timeStart']
-                                tankName = tanks['tankName']
-                                if time in ballast_time[stageName]:
-                                    ballast_time[stageName][time].append(tankName)
-                                else:
-                                    ballast_time[stageName][time] = [tankName]
-            result[cargo] = {'ballast': ballast_time, 'deballast': deballast_time}
+                    if f'sim{operation.title()}RateM3_Hr' in stages:
+                        deballast_time[stageName] = {}
+                        prevEndTime = 0
+                        for substages in stages[f'sim{operation.title()}RateM3_Hr']:
+                            if len(substages) > 0:
+                                startTime = int(list(substages.values())[0]["timeStart"])
+                                endTime = int(list(substages.values())[0]["timeEnd"])
+                                deballast_time[stageName][startTime] = {'close': [], 'open': []}
+                                deballast_time[stageName][endTime] = {'close': [], 'open': []}
+                            tanks = [info['tankName'] for i, info in substages.items()]  # Current stage opened tanks
+                            # Close tanks in previous stages but not in current stages
+                            tanksToBeClosed = [prevTank for prevTank in prevDeballastTank if prevTank not in tanks]
+                            for prevTank in tanksToBeClosed:
+                                deballast_time[stageName][prevEndTime]['close'].append(prevTank)
+                                prevDeballastTank.remove(prevTank)
+
+                            # Open tanks not in previous stages but in current stages
+                            tanksToBeOpened = [tank for tank in tanks if tank not in prevDeballastTank]
+                            for tank in tanksToBeOpened:
+                                deballast_time[stageName][startTime]['open'].append(tank)
+                                prevDeballastTank.append(tank)
+
+                            if len(substages) > 0:
+                                prevEndTime = endTime
+                # Close last set of tanks opened at the stage
+                lastStageName = list(deballast_time.keys())[-1]
+                if len(deballast_time[lastStageName][endTime]['close']) == 0:
+                    tanks = deballast_time[lastStageName][startTime]['open']
+                    deballast_time[lastStageName][endTime]['close'] = tanks
+            result[cargo] = {operation: deballast_time}
         self.ballastTanks = result
         return
 
@@ -487,13 +615,25 @@ class Generate_valves:
         self.lastTank = last
         return
 
-    # def getDeballastTiming(self, stage = 'loadingAtMaxRate'):
-    #     for e in output['events']:
-    #         cargo = 'P' + str(e['cargoNominationId'])
-    #         if cargo in self.tanks:
-    #             for stages in e['sequence'][1:]:  # First stage omitted, arrival condition
-    #                 if stages['stage'] == stage:
-    #                     timeEnd = stages['timeEnd']
-    #         self.eductor[cargo] = self.valve_config['deballasting'][]
-    #
-    #     return
+    def getDeballastTiming(self, stage='loadingAtMaxRate'):
+        for e in self.output['events']:
+            cargo = 'P' + str(e['cargoNominationId'])
+            if cargo in self.tanks:
+                self.timeSwitch[cargo] = {}
+                for stages in e['sequence'][1:]:  # First stage omitted, arrival condition
+                    if stages['stage'] == stage:
+                        print(stages["timeEnd"])
+                        if len(self.eductionTanks) > 0:
+                            self.timeSwitch[cargo]['eductor'] = max(
+                                self.ballastTanks[cargo]['deballasting']['loadingAtMaxRate'].keys())
+                            self.timeSwitch[cargo]['shut'] = self.timeSwitch[cargo]['eductor'] + \
+                                                             self.valve_config['deballasting']['timing'][
+                                                                 'eductor']
+
+                        else:
+                            self.timeSwitch[cargo]['shut'] = int(stages["timeEnd"])
+                    elif stages['stage'] == 'openSingleTank':
+                        time = int(stages['timeStart'])  # TODO
+                        self.timeSwitch[cargo]['pump'] = time + self.valve_config['deballasting']['timing']['pump']
+
+        return
