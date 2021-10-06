@@ -1446,6 +1446,16 @@ class Generate_plan:
             out['ballast'][bp2_] = out['ballast'].pop('BP2')
         
         # dictionary[new_key] = dictionary.pop(old_key)
+        # print(out['ballast']['Gravity'])
+        last_ = -1
+        for l__, l_ in enumerate(out['ballast']['Gravity']):
+            if float(l_['quantityM3']) > 0:
+                last_ = l__
+                
+        if len(out['ballast']['Gravity']) > 0:
+            out['ballast']['Gravity'] = out['ballast']['Gravity'][:(last_+1)]
+            
+        # print(out['ballast']['Gravity'])        
 
 
 

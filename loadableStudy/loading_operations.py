@@ -19,7 +19,7 @@ from copy import deepcopy
 OPEN_TANKS = ['3C', '2C', '4C', '5C', '1C', '3W', '4W', '2W', '5W', '1W' ]
 DEC_PLACE = 10
 
-TIME_EDUCTING = 60*3
+# TIME_EDUCTING = 60*3
         
 class LoadingOperations(object):
     # 
@@ -264,12 +264,18 @@ class LoadingOperations(object):
                 cargo_info_['tankToBallast'].append(k_)
                 
                 
+        cargo_info_['numEductionTanks'] = sum([1 for e_ in cargo_info_['eduction']  if e_ not in ['FPT', 'LFPT'] ])
         print('tankToBallast: ', cargo_info_['tankToBallast'])
         print('tankToDeballast: ', cargo_info_['tankToDeballast'])
-        print('eduction: ', cargo_info_['eduction'])
+        print('eduction: ', cargo_info_['eduction'], cargo_info_['numEductionTanks'])
+        
+        self.time_eduction = int(60 + 12*cargo_info_['numEductionTanks'])
+        # self.time_eduction = 0
+        print('eduction duration: ', self.time_eduction)
+        
+        
                 
         
-    
     
     
     def _get_ballast(self, ballast, cargo_info_):
@@ -924,19 +930,19 @@ class LoadingOperations(object):
                 print('Duration of last max loading interval:', time_ )
                 if self.info['eduction']:
                     if time_ > 0:
-                        if time_ < TIME_EDUCTING:
+                        if time_ < self.time_eduction:
                             
                             self.seq[c_]['ballastLimit'][self.seq[c_]['justBeforeTopping']] = 0
                             
                             time_interval_ = self.time_interval[c_]
-                            time_left_ = time_interval_+time_-TIME_EDUCTING
+                            time_left_ = time_interval_+time_-self.time_eduction
                             stage_ = self.seq[c_]['beforeTopping']
                             
                             fixed_ballast__ = [stage_]
                             fixed_ballast_.append(stage_+str(c__+1))
                             self.seq[c_]['ballastLimit'][stage_] = max(0,time_left_)
                             
-                            while time_left_ <= 0:
+                            while time_left_ <= 30:
                                 time_left_ += time_interval_
                                 stage_ = stage_[:10] + str(int(stage_[10:])-1)
                                 fixed_ballast__.append(stage_)
@@ -944,8 +950,8 @@ class LoadingOperations(object):
                                 print("Move eduction stage", stage_)
                                 self.seq[c_]['ballastLimit'][stage_] = max(0,time_left_)
                                 
-                                
-                            print('Eduction needed', stage_+str(c__+1), time_left_)
+                            time_left_  = min(time_left_, self.time_interval[c_])
+                            print('Eduction needed', stage_+str(c__+1), time_left_, ' given')
                             self.seq[c_]['eduction'] = (time_left_, stage_)
                             
                             # fixed at departure ballast
@@ -955,17 +961,17 @@ class LoadingOperations(object):
                                     
                             
                         else:
-                            print('Eduction needed', self.seq[c_]['justBeforeTopping']+str(c__+1), time_-TIME_EDUCTING)
-                            self.seq[c_]['eduction'] = (time_-TIME_EDUCTING, self.seq[c_]['justBeforeTopping'])
-                            self.seq[c_]['ballastLimit'][self.seq[c_]['justBeforeTopping']] = time_-TIME_EDUCTING
+                            print('Eduction needed', self.seq[c_]['justBeforeTopping']+str(c__+1), time_-self.time_eduction)
+                            self.seq[c_]['eduction'] = (time_-self.time_eduction, self.seq[c_]['justBeforeTopping'])
+                            self.seq[c_]['ballastLimit'][self.seq[c_]['justBeforeTopping']] = time_-self.time_eduction
                             
                             
                     elif time_ == 0:
                         print('Only one maxloading stage')
                         time__ = df_['MaxLoading1']['Time']
-                        if time__ > TIME_EDUCTING:
-                            print('Fix ballast at MaxLoading1 for educting!!', time__-TIME_EDUCTING)
-                            self.seq[c_]['eduction'] = (time__-TIME_EDUCTING, 'MaxLoading1')
+                        if time__ > self.time_eduction:
+                            print('Fix ballast at MaxLoading1 for educting!!', time__-self.time_eduction)
+                            self.seq[c_]['eduction'] = (time__-self.time_eduction, 'MaxLoading1')
                             
                         else:
                             print('No time for eduction!!')
