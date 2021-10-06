@@ -29,9 +29,8 @@
   },
   "deballasting": {
     "timing": {
-      "pumps": [[10000, 120], [15000, 240]],
-      "eductor": 60,
-      "shut": 180
+      "pump": 120,
+      "eductor": 120
     },
     "gravity": {
       "initialCondition": {},
@@ -45,7 +44,7 @@
       "openAllTanks": {},
       "increaseToMaxRate": {},
       "loadingAtMaxRate": {
-                "floodingTheBallastPump": {
+        "floodingTheBallastPump": {
           "valveSeqCount": -1,
           "valveSeqInterval": -1
         },
@@ -86,7 +85,8 @@
       },
       "initialRate": {},
       "openAllTanks": {},
-      "increaseToMaxRate": {
+      "increaseToMaxRate": {},
+      "loadingAtMaxRate": {
         "seaToSea": {
           "valveSeqCount": -1,
           "valveSeqInterval": -1
@@ -104,7 +104,6 @@
           "valveSeqInterval": -1
         }
       },
-      "loadingAtMaxRate": {},
       "topping": {}
     }
   },
