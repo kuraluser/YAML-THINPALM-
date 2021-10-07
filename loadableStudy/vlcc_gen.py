@@ -2021,7 +2021,7 @@ class Generate_plan:
             for k_,v_ in self.plans['ship_status'][sol][virtual_]['other'].items():
                 info_ = {}
                 info_['tankShortName'] = k_
-                info_['quantity'] = str(abs(v_[0]['wt']))
+                info_['quantityMT'] = str(abs(v_[0]['wt']))
                 info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
                 
                 info_['sg'] = str(v_[0]['SG'])
