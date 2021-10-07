@@ -69,7 +69,6 @@ class Process_input(object):
         self.max_draft = 30.0 if self.max_draft in [None] else self.max_draft
         self.max_airdraft = data['loading']['loadingInformation']['berthDetails'][0].get('airDraftLimitation', None)
         self.max_airdraft = 100.0 if self.max_airdraft in [None] else self.max_airdraft
-
         self.mode = ""
         
 

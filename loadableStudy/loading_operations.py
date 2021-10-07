@@ -61,8 +61,10 @@ class LoadingOperations(object):
                      'BottomLines': bottomLines_
                     }
         
+        shoreLoadingRate_ = data.loading_info_json['loadingRates'].get('shoreLoadingRate',1e6)
+        shoreLoadingRate_ = shoreLoadingRate_ if shoreLoadingRate_ not in [None] else 1e6
         
-        loading_rate_ = min(data.loading_info_json['loadingRates']['maxLoadingRate'], data.loading_info_json['loadingRates'].get('shoreLoadingRate',1e6))
+        loading_rate_ = min(data.loading_info_json['loadingRates']['maxLoadingRate'], shoreLoadingRate_)
         self.max_loading_rate = loading_rate_
         # loading_rate_ = 7000
         print('loading rate (max):', loading_rate_)
