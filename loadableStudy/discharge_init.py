@@ -58,6 +58,8 @@ class Process_input1(object):
         
         self.feedback_sf_bm_frac = 99
         
+        self.mode = ""
+        
     def prepare_dat_file(self, ballast_weight=1000):
         
         # prepare dat file for AMPL
