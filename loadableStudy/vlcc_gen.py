@@ -188,8 +188,7 @@ class Generate_plan:
                 wwt_.drop()
                 
             ## vessel dependent constraints    
-            if self.input.vessel_id == 1:
-                
+            if self.input.vessel_id == 1 and self.input.mode not in ['FullManual']:
                 # drop mean draft in BF and SF
                 c4_ = ampl.getConstraint('Condition20a2')
                 c5_ = ampl.getConstraint('Condition21a2')
@@ -611,7 +610,8 @@ class Generate_plan:
                             fillingRatio_ = round(vol_/capacity_,DEC_PLACE)
                             print(parcel1_,parcel2_, k1_, fillingRatio_, round(wt1_/(wt1_+wt2_),2), round(wt2_/(wt1_+wt2_),2), round(api_,2), round(temp_,1), density_, round(weight_,3))
                             
-                            if (fillingRatio_ > 0.98 or fillingRatio_ < 0.98) and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto']:
+                            
+                            if (fillingRatio_ > 0.98 or fillingRatio_ < 0.98) and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto'] and len(self.commingled_ratio) == 0:
                                 print('Need to regenerate commingle plans!!')
                                 self.commingled_ratio = {parcel1_:round(wt1_/(wt1_+wt2_),2), 
                                                          parcel2_:round(wt2_/(wt1_+wt2_),2)}
@@ -2026,6 +2026,7 @@ class Generate_plan:
                 
                 info_['sg'] = str(v_[0]['SG'])
                 info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
+                info_['tankName'] =  self.input.vessel.info['tankFullName'][k_]
              
                 plan_.append(info_)
         
