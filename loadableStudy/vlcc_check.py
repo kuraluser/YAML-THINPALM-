@@ -238,7 +238,7 @@ class Check_plans:
             origin_port_ = self.input.port.info['portOrder'][port_order_]
             tide_ = self.input.port.info['portRotation'][origin_port_]['tideHeight']
             
-        elif self.input.module in ['LOADING', ""]:
+        elif self.input.module in ['LOADING', "", "DISCHARGE"]:
             tide_ = 0.
             
         result['airDraft'] = self.input.vessel.info['height'] - da_ + tide_
