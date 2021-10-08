@@ -24,7 +24,7 @@ class Check_plans:
             
             if self.input.module in ['LOADING']:
                 print(self.input.loading.seq['stages'])
-            else:
+            elif self.input.module in ['LOADABLE', 'DISCHARGE']:
                 print('port:', self.input.port.info.get('portOrder',[]))
                 print('sea density', self.input.loadable.info.get('seawaterDensity',[]))
                 print('same ROB', self.input.vessel.info['sameROB'])
@@ -60,8 +60,11 @@ class Check_plans:
                                       'trim': "{:.2f}".format(0.00 if round(result['trim'],2) == 0 else result['trim']),
                                       'heel': None,
                                       'airDraft': "{:.2f}".format(result['airDraft']),
+                                      'freeboard':"{:.2f}".format(result['freeboard']),
+                                      'manifoldHeight':"{:.2f}".format(result['manifoldHeight']),
                                       'bendinMoment': "{:.2f}".format(result['maxBM'][1]),
-                                      'shearForce':  "{:.2f}".format(result['maxSF'][1])}
+                                      'shearForce':  "{:.2f}".format(result['maxSF'][1])
+                                      }
                     
                     # update correction ullage
                     trim_ = round(result['trim'],2)
@@ -234,9 +237,13 @@ class Check_plans:
             port_order_ =  self.input.loadable.info['virtualArrDepPort'][virtual_port][:-1]
             origin_port_ = self.input.port.info['portOrder'][port_order_]
             tide_ = self.input.port.info['portRotation'][origin_port_]['tideHeight']
-            result['airDraft'] = self.input.vessel.info['height'] - da_ + tide_
-        else:
-            result['airDraft'] = self.input.vessel.info['height'] - da_
+            
+        elif self.input.module in ['LOADING', ""]:
+            tide_ = 0.
+            
+        result['airDraft'] = self.input.vessel.info['height'] - da_ + tide_
+        result['freeboard'] = self.input.vessel.info['depth'] - dm_
+        result['manifoldHeight'] = result['freeboard'] + self.input.vessel.info['manifoldHeight'] + tide_
             
         # print('airDraft:', result['airDraft'])
         

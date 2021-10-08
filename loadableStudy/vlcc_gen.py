@@ -155,12 +155,17 @@ class Generate_plan:
             ampl.read(model_)
             
             ## module dependent constraints    
-            if self.input.module in ['LOADABLE'] and self.input.mode not in ['FullManual']:
-                c1_ = ampl.getConstraint('Condition112d5')
-                c2_ = ampl.getConstraint('Condition114g2')
-                c1_.drop()
-                c2_.drop()
-            
+            if self.input.module in ['LOADABLE']:
+                if self.input.mode not in ['FullManual']:
+                    c1_ = ampl.getConstraint('Condition112d5')
+                    c2_ = ampl.getConstraint('Condition114g2')
+                    c1_.drop()
+                    c2_.drop()
+                    
+                if self.input.mode in ['Manual']:
+                    c3_ = ampl.getConstraint('Constr5b')
+                    c3_.drop()
+                    
             elif self.input.module in ['LOADING']:
                 c1_ = ampl.getConstraint('Condition112d5')
                 c2_ = ampl.getConstraint('Condition114g2')

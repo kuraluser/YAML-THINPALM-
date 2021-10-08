@@ -477,26 +477,23 @@ class Loadable:
             
             api1_ = self.info['parcel'][c1_]['api']
             api2_ = self.info['parcel'][c2_]['api']
-              
-            if str(c_['purposeXid']) == str(1):
-                print('Commingle cargo in auto mode!!')
-                cargos_info_['commingleCargo']['temperature'] = min(t1_,t2_) + abs(t1_-t2_)*0.6
-                print('approx commingle temperature:', cargos_info_['commingleCargo']['temperature'])
+            
+            wt1_, wt2_ = 0. , 0. 
+            for p_ in inputs.loadable_json['planDetails']:
+                if p_['arrivalCondition']['loadablePlanCommingleDetails']:
+                    wt1_ = float(p_['arrivalCondition']['loadablePlanCommingleDetails'][0]['cargo1QuantityMT'])
+                    wt2_ = float(p_['arrivalCondition']['loadablePlanCommingleDetails'][0]['cargo2QuantityMT'])
+                    cargos_info_['commingleCargo']['temperature'] = (wt1_*t1_ + wt2_*t2_)/(wt1_ + wt2_)
+                    cargos_info_['commingleCargo']['wt1'] = wt1_
+                    cargos_info_['commingleCargo']['wt2'] = wt2_
+                    
+                    
+            if wt1_ == 0 or wt2_ == 0:
+                print("No commingle found in plan!!")
+                cargos_info_['commingleCargo']['temperature'] = min(t1_,t2_) + abs(t1_-t2_)*self.commingled_ratio
                 
-            else:
-                print('Commingle cargo in manual mode!!')
-                # inputs.error.append('Commingle cargo in manual mode not supported yet!!')
-                # return
-                
-                wt1_ = float(c_['quantity'])*float(c_['cargo1Percentage'])*0.01
-                wt2_ = float(c_['quantity'])*float(c_['cargo2Percentage'])*0.01
-                
-                cargos_info_['commingleCargo']['temperature'] = (wt1_*t1_ + wt2_*t2_)/(wt1_ + wt2_)
-                print('approx commingle temperature:', cargos_info_['commingleCargo']['temperature'])
-                cargos_info_['commingleCargo']['tank'] = [d_ for d_ in c_['tankIds'].split(',')]
-                cargos_info_['commingleCargo']['wt1'] = wt1_
-                cargos_info_['commingleCargo']['wt2'] = wt2_
-                
+                    # print(p_)
+            
             cargos_info_['commingleCargo']['SG1'] = self._cal_density(api1_, cargos_info_['commingleCargo']['temperature'])
             cargos_info_['commingleCargo']['SG2'] = self._cal_density(api2_, cargos_info_['commingleCargo']['temperature'])
             
@@ -832,7 +829,7 @@ class Loadable:
                 
                 for c_ in range(2):
                     # parcel_ = 'P'+str(l_['cargoNomination'+ str(c_+1)+'Id'])
-                    parcel_ = 'P'+str(l_['cargo'+ str(c_+1)+'NominationIdId'])
+                    parcel_ = 'P'+str(l_['cargo'+ str(c_+1)+'NominationId'])
                     info_ = {}
                     info_['parcel'] = parcel_
                     info_['wt'] = float(l_['cargo'+str(c_+1)+'QuantityMT'])
