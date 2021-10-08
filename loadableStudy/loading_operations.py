@@ -35,15 +35,21 @@ class LoadingOperations(object):
         self.time_interval = {}
         
         self.config = data.config
+        self.eduction_pump = []
         print('time interval:', self.time_interval1)
         
         
-        manifolds_, bottomLines_ = [], []
+        manifolds_, bottomLines_ =  [], []
         for d__, d_ in enumerate(data.loading_info_json['loadingMachinesInUses']):
             if d_['machineName'][:3] in ['Man']:
                 manifolds_.append(int(d_['machineName'][-1]))
             elif d_['machineName'][:3] in ['Bot']:
                 bottomLines_.append(int(d_['machineName'][-1]))
+            elif d_['machineName'][:15] in ['Ballast Eductor']:
+                self.eduction_pump.append(d_['machineName'])
+                
+            
+            
                 
             # pump in use
 
