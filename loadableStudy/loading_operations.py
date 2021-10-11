@@ -78,7 +78,7 @@ class LoadingOperations(object):
         min_loading_rate_ = min_loading_rate_ if min_loading_rate_ not in [None, ""] else 1000.
         print('loading rate (min):', min_loading_rate_)
         
-        self.max_ballast_rate = data.loading_info_json['loadingRates'].get('maxLoadingRate',7000.)*1.025
+        self.max_ballast_rate = data.loading_info_json['loadingRates'].get('maxDeBallastingRate',7000.)*1.025
         # self.max_ballast_rate = 7000.
         print('max ballast:', self.max_ballast_rate)
         
