@@ -396,7 +396,14 @@ class Generate_plan:
 
                 is_succeed = True
                 
-                print("{:.3f}".format(self.input.loadable.info['toLoadPort'].max()), "{:.3f}".format(tot_load[0][1]))
+                # print("{:.3f}".format(self.input.loadable.info['toLoadPort'].max()), "{:.3f}".format(tot_load[0][1]))
+                toLoadPortMax_ = -1
+                if self.input.module in ['LOADABLE']:
+                    toLoadPortMax_ = round(self.input.loadable.info['toLoadPort'].max(),3)
+                elif self.input.module in ['LOADING']:
+                    toLoadPortMax_ = round(max([j_ for i_, j_ in  self.input.loadable['toLoadPort'].items()]),3)
+                
+                print("{:.3f}".format(toLoadPortMax_), "{:.3f}".format(tot_load[0][1]))
                 
                 
             

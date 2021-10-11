@@ -600,8 +600,8 @@ subject to Condition112j {c in firstDisCargo}: x[c,'SLS'] + x[c,'SLP'] >= 1;
 
 
 ## 
-subject to Condition112b1 {t in T, c in C, p in P_last_loading}: qw[c,t,p] >= minCargoAmt*x[c,t]; # link xB and wB
-subject to Condition112b2 {t in T, c in C, p in P_last_loading}: qw[c,t,p] <= 1e5*x[c,t]; # link xB and wB
+subject to Condition112b1 {t in T, c in C diff C_loaded diff C_locked, p in P_last_loading}: qw[c,t,p] >= minCargoAmt*x[c,t]; # link xB and wB
+subject to Condition112b2 {t in T, c in C diff C_loaded diff C_locked, p in P_last_loading}: qw[c,t,p] <= 1e5*x[c,t]; # link xB and wB
 
 ## ballast requirement
 subject to Condition113d1 {t in TB, p in P_stable}: wB[t,p] >= minBallastAmt[t]*xB[t,p]; # loaded min ballast 

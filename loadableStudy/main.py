@@ -29,9 +29,9 @@ from loguru import logger
 with open('config.json', "r") as f_:
    config = json.load(f_)
    
-with open('KAZUSA_ullage.pickle', 'rb') as fp_:
-    # vessel_info['ullage_func'] = pickle.load(fp_)
-    _, ullageCorr, ullageInv, _ = pickle.load(fp_)
+# with open('KAZUSA_ullage.pickle', 'rb') as fp_:
+#    # vessel_info['ullage_func'] = pickle.load(fp_)
+#    _, ullageCorr, ullageInv, _ = pickle.load(fp_)
    
 with open('KAZUSA.pickle', 'rb') as fp_:
     # vessel_info['ullage_func'] = pickle.load(fp_)
@@ -296,7 +296,8 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
         process_id_ = data['loadableStudyProcessId']
     else:
         process_id_ = data['processId']
-
+        
+    
     query = users.select().where(users.c.id == process_id_)
     # out = {'processId': data['processId'], 'status':None, 'result': None}
     #out['status'] = await database.fetch_val(query,column=3)
@@ -342,6 +343,8 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
 
 @app.post("/ullage_results/")
 async def ullage_handler(data: dict):
+    
+    ullageCorr, ullageInv = vessel_details['ullageCorr'], vessel_details['ullageInvFunc']
            
     tankId = data['tankId']
     cf = get_correction(str(tankId), float(data["rdgUllage"]), float(data["trim"]), ullageCorr)

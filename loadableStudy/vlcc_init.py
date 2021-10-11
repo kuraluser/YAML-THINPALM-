@@ -294,6 +294,8 @@ class Process_input(object):
         self.limits['draft']['loadline'] = loadline_
         self.limits['draft'] = {**self.limits['draft'], **self.port.info['maxDraft']}
         self.limits['operationId'] = self.port.info['operationId'] 
+        self.limits['seawaterDensity'] = self.port.info['seawaterDensity'] 
+        self.limits['tide'] = self.port.info['tide'] 
         self.limits['id'] = self.loadable_id
         self.limits['vesselId'] = self.vessel_id
         self.limits['voyageId'] = self.voyage_id

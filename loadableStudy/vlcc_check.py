@@ -238,8 +238,10 @@ class Check_plans:
             origin_port_ = self.input.port.info['portOrder'][port_order_]
             tide_ = self.input.port.info['portRotation'][origin_port_]['tideHeight']
             
-        elif self.input.module in ['LOADING', "", "DISCHARGE"]:
+        elif self.input.module in ['LOADING', 'DISCHARGE']:
             tide_ = 0.
+        elif self.input.module in [""]:
+            tide_ = self.input.port.info['tide']
             
         result['airDraft'] = self.input.vessel.info['height'] - da_ + tide_
         result['freeboard'] = self.input.vessel.info['depth'] - dm_
@@ -247,10 +249,10 @@ class Check_plans:
             
         # print('airDraft:', result['airDraft'])
         
-        
-        #
         #
 #        
+        
+        #
 #        plan = {'1C':{'wt':25997},'1P':{'wt':17886},'1S':{'wt':17886},
 #                   '2C':{'wt':24253},'2P':{'wt':17450},'2S':{'wt':17450},
 #                   '3C':{'wt':24253},'3P':{'wt':17450},'3S':{'wt':17450},

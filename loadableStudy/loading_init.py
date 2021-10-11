@@ -9,7 +9,7 @@ from loading_operations import LoadingOperations
 
 import numpy as np
 
-SOLVER = 'AMPL' # AMPL or ORTOOLS
+_SOLVER_ = 'AMPL' # AMPL or ORTOOLS
 
 
 
@@ -624,7 +624,7 @@ class Process_input(object):
                 str1 = 'set T_locked := ' 
                 for k_, v_ in self.loadable['manualOperation'].items():
                     for k1_, v1_ in v_.items():
-                        if k1_ not in locked_tank_:
+                        if k1_ not in locked_tank_ and len(v1_) > 0:
                             str1 += k1_ + ' ' 
                             locked_tank_.append(k1_)
                         
