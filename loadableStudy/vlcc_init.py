@@ -294,6 +294,8 @@ class Process_input(object):
         self.limits['draft']['loadline'] = loadline_
         self.limits['draft'] = {**self.limits['draft'], **self.port.info['maxDraft']}
         self.limits['operationId'] = self.port.info['operationId'] 
+        self.limits['seawaterDensity'] = self.port.info['seawaterDensity'] 
+        self.limits['tide'] = self.port.info['tide'] 
         self.limits['id'] = self.loadable_id
         self.limits['vesselId'] = self.vessel_id
         self.limits['voyageId'] = self.voyage_id
@@ -463,16 +465,16 @@ class Process_input(object):
     def infeasible_analysis(self):
         
         # deadweight
-        dw_ = self.vessel.info['draftCondition']['deadweight']
-        wt_onboard_ = self.vessel.info['onboard']['totalWeight']
-        min_load_ = sum([v_ for k_,v_ in self.loadable.info['toLoadMin'].items()])
-        tot_capacity_ = sum([v_['capacityCubm'] for k_,v_ in self.vessel.info['cargoTanks'].items()])
+        # dw_ = self.vessel.info['draftCondition']['deadweight']
+        # wt_onboard_ = self.vessel.info['onboard']['totalWeight']
+        # min_load_ = sum([v_ for k_,v_ in self.loadable.info['toLoadMin'].items()])
+        # tot_capacity_ = sum([v_['capacityCubm'] for k_,v_ in self.vessel.info['cargoTanks'].items()])
         # ave_density_  = np.mean([v_[''] for k_,v_ in self.loadable.info['parcel'].items()])
         # self.error.append('Infeasible')
         
          
         
-        
+        tank_cargo_ = {}
         for k_, v_ in self.loadable.info['manualOperation'].items():
             density_ = self.loadable.info['parcel'][k_]['maxtempSG']
             cargo_ =  self.loadable.info['parcel'][k_]['abbreviation']
@@ -481,6 +483,13 @@ class Process_input(object):
                     tank_ = self.vessel.info['tankId'][v2_['tankId']]
                     capacity_ = self.vessel.info['cargoTanks'][tank_]['capacityCubm']
                     filling_ = v2_['qty']/density_/capacity_
+                    
+                    if tank_ not in tank_cargo_:
+                        tank_cargo_[tank_] = [(k_, v2_['qty'])]
+                    elif (k_, v2_['qty']) not in tank_cargo_[tank_]:
+                        tank_cargo_[tank_].append((k_, v2_['qty']))
+                        
+                        
                     # print(k_, v2_, filling_)
                     # filling_ = .99
                     if filling_ > .9801:
@@ -490,8 +499,46 @@ class Process_input(object):
                         else:
                             self.error['Vol Error'].append(cargo_ + ' at ' + tank_ + ' fails 98% max volume check!!')
                     
+        for k_, v_ in   tank_cargo_.items():
+            if len(v_) > 1:
+                print("Commingle cargo in tank k!!")
+                wt1_ = self.loadable.info['commingleCargo']['wt1']
+                wt2_ = self.loadable.info['commingleCargo']['wt2']
+                capacity_ = self.vessel.info['cargoTanks'][k_]['capacityCubm']
+                wt__ = [wt1_,wt2_]
+                            
+                api__ = [self.loadable.info['commingleCargo']['api1'], self.loadable.info['commingleCargo']['api2']]
+                temp__ = [self.loadable.info['commingleCargo']['t1'], self.loadable.info['commingleCargo']['t2']]
                     
+                api_, temp_ = self._get_commingleAPI(api__, wt__, temp__)
+                density_ = self.loadable._cal_density(round(api_,2), round(temp_,1))
+                vol_ = (wt1_ + wt2_)/density_ 
+                filling_ = round(vol_/capacity_,3)
                 
+                if filling_ > .9801:
+                    print('filling_', filling_)
+                    if 'Vol Error' not in self.error:
+                        self.error['Vol Error'] = ['Commingle at ' + k_ + ' fails 98% max volume check!!']
+                    else:
+                        self.error['Vol Error'].append('Commingle at ' + k_ + ' fails 98% max volume check!!')
+                    
+                            
+                
+                
+    def _get_commingleAPI(self, api, weight, temp):
+        weight_api_ , weight_temp_ = 0., 0.
+        
+        sg60_ = [141.5/(a_+131.5) for a_ in api]
+        t13_ = [(535.1911/(a_+131.5)-0.0046189)*0.042 for a_ in api]
+        vol_bbls_60_ = [w_/t_ for (w_,t_) in zip(weight,t13_)]
+        
+        weight_sg60_ = sum([v_*s_ for (v_,s_) in zip(vol_bbls_60_,sg60_)])/sum(vol_bbls_60_)
+        weight_api_ = 141.5/weight_sg60_ - 131.5
+        
+        weight_temp_ = sum([v_*s_ for (v_,s_) in zip(vol_bbls_60_,temp)])/sum(vol_bbls_60_)
+        
+        return weight_api_, weight_temp_
+                    
         
         
     def write_dat_file(self, file = 'input.dat', IIS = True):

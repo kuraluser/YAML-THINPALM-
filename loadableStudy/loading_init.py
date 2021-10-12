@@ -9,7 +9,7 @@ from loading_operations import LoadingOperations
 
 import numpy as np
 
-SOLVER = 'AMPL' # AMPL or ORTOOLS
+_SOLVER_ = 'AMPL' # AMPL or ORTOOLS
 
 
 
@@ -50,7 +50,8 @@ class Process_input(object):
         
         self.loading_information = {"loadingRates":data['loading']['loadingInformation']["loadingRates"],
                                     "berthDetails":data['loading']['loadingInformation']['berthDetails'],
-                                    "loadingSequences":data['loading']['loadingInformation']["loadingSequences"]
+                                    "loadingSequences":data['loading']['loadingInformation']["loadingSequences"],
+                                    "machineryInUses":data['loading']['loadingInformation']["machineryInUses"]
                                     }
         
         
@@ -69,7 +70,6 @@ class Process_input(object):
         self.max_draft = 30.0 if self.max_draft in [None] else self.max_draft
         self.max_airdraft = data['loading']['loadingInformation']['berthDetails'][0].get('airDraftLimitation', None)
         self.max_airdraft = 100.0 if self.max_airdraft in [None] else self.max_airdraft
-
         self.mode = ""
         
 
@@ -624,7 +624,7 @@ class Process_input(object):
                 str1 = 'set T_locked := ' 
                 for k_, v_ in self.loadable['manualOperation'].items():
                     for k1_, v1_ in v_.items():
-                        if k1_ not in locked_tank_:
+                        if k1_ not in locked_tank_ and len(v1_) > 0:
                             str1 += k1_ + ' ' 
                             locked_tank_.append(k1_)
                         

@@ -42,6 +42,10 @@ class Port:
         
         ports_info_['lastLoadingPort'] = last_loading_port_
         
+        ports_info_['seawaterDensity'] = {}
+        ports_info_['tide'] = {}
+        
+        
         port_details_ = {}
         for p__, p_ in enumerate(inputs.port_json['portDetails']):
             port_details_[p_['id']] = {'densitySeaWater':p_['densitySeaWater'],
@@ -54,6 +58,10 @@ class Port:
             if p_['portOrder'] <= last_port_:
                 # print(p_['portId'])
                 detail_ = port_details_[p_['portId']]
+                
+                ports_info_['seawaterDensity'][str(p_['portId'])] = float(detail_['densitySeaWater'])
+                ports_info_['tide'][str(p_['portId'])] = float(detail_['tideHeight'])
+                
                 ports_info_['portRotation'][detail_['code']] = {}
                 ports_info_['portRotation'][detail_['code']]['order'] = p_['portOrder']
                 ports_info_['portRotation'][detail_['code']]['maxDraft'] = p_['maxDraft']

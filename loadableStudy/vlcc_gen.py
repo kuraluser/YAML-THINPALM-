@@ -155,12 +155,17 @@ class Generate_plan:
             ampl.read(model_)
             
             ## module dependent constraints    
-            if self.input.module in ['LOADABLE'] and self.input.mode not in ['FullManual']:
-                c1_ = ampl.getConstraint('Condition112d5')
-                c2_ = ampl.getConstraint('Condition114g2')
-                c1_.drop()
-                c2_.drop()
-            
+            if self.input.module in ['LOADABLE']:
+                if self.input.mode not in ['FullManual']:
+                    c1_ = ampl.getConstraint('Condition112d5')
+                    c2_ = ampl.getConstraint('Condition114g2')
+                    c1_.drop()
+                    c2_.drop()
+                    
+                if self.input.mode in ['Manual']:
+                    c3_ = ampl.getConstraint('Constr5b')
+                    c3_.drop()
+                    
             elif self.input.module in ['LOADING']:
                 c1_ = ampl.getConstraint('Condition112d5')
                 c2_ = ampl.getConstraint('Condition114g2')
@@ -391,7 +396,14 @@ class Generate_plan:
 
                 is_succeed = True
                 
-                print("{:.3f}".format(self.input.loadable.info['toLoadPort'].max()), "{:.3f}".format(tot_load[0][1]))
+                # print("{:.3f}".format(self.input.loadable.info['toLoadPort'].max()), "{:.3f}".format(tot_load[0][1]))
+                toLoadPortMax_ = -1
+                if self.input.module in ['LOADABLE']:
+                    toLoadPortMax_ = round(self.input.loadable.info['toLoadPort'].max(),3)
+                elif self.input.module in ['LOADING']:
+                    toLoadPortMax_ = round(max([j_ for i_, j_ in  self.input.loadable['toLoadPort'].items()]),3)
+                
+                print("{:.3f}".format(toLoadPortMax_), "{:.3f}".format(tot_load[0][1]))
                 
                 
             
@@ -610,7 +622,8 @@ class Generate_plan:
                             fillingRatio_ = round(vol_/capacity_,DEC_PLACE)
                             print(parcel1_,parcel2_, k1_, fillingRatio_, round(wt1_/(wt1_+wt2_),2), round(wt2_/(wt1_+wt2_),2), round(api_,2), round(temp_,1), density_, round(weight_,3))
                             
-                            
+                            # re-run once only
+                            # print(self.commingled_ratio)
                             if (fillingRatio_ > 0.98 or fillingRatio_ < 0.98) and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto'] and len(self.commingled_ratio) == 0:
                                 print('Need to regenerate commingle plans!!')
                                 self.commingled_ratio = {parcel1_:round(wt1_/(wt1_+wt2_),2), 
@@ -817,7 +830,7 @@ class Generate_plan:
                     
             self.cargo_in_tank.append(cargo_in_tank_)
             
-            if self.input.module not in ['LOADING']:
+            if self.input.module in ['LOADABLE']:
             
                 load_param = {'Manifolds':[1,2,3],
                          'centreTank':[],
@@ -854,7 +867,7 @@ class Generate_plan:
                 self.topping_seq.append(topping_)
                     
                 
-        if self.input.module not in ['LOADING']:
+        if self.input.module in ['LOADABLE', 'DISCHARGE']:
             # add ROB    
             other_weight_ = {str(pp_):{} for pp_ in range(0,self.input.loadable.info['lastVirtualPort']+1)} 
             for i_, j_ in self.input.vessel.info['onhand'].items():
@@ -869,7 +882,7 @@ class Generate_plan:
                             
             self.other_weight = other_weight_
             
-        else:
+        elif self.input.module in ['LOADING']:
             # initial ROB
             
             # info_ = [{'wt': wt_, 'SG':density_, "vol":vol_, 'tcg':tcg_, 'lcg':lcg_}]
@@ -1266,7 +1279,10 @@ class Generate_plan:
                         
                     
                     self._get_ballast1(info1_, first_cargo_, c_)
-                        
+                    
+                    # print(info1_['stageEndTime'])
+                    self._get_eduction(info1_, c_)
+                    
                     # print(info1_.keys())
                     info1_.pop('simIniDeballastingRateM3_Hr')
                     info1_.pop('simIniBallastingRateM3_Hr')
@@ -1290,6 +1306,33 @@ class Generate_plan:
         
         return data
     
+    
+    def _get_eduction(self, out, cargo):
+        
+        if self.input.loading.seq[cargo].get('eduction',()):
+            # print(self.input.loading.seq[cargo]['eduction'])
+            print(out['stageEndTime'])
+            out['eduction'] = {}
+            
+            cur_stage_ = self.input.loading.seq[cargo]['eduction'][1]
+            pre_stage_ = int(cur_stage_[10:]) - 1
+            if pre_stage_ == 0:
+                timeStart_ = int(out['timeStart'])
+            else:
+                pre_stage_ = 'MaxLoading' + str(pre_stage_)
+                timeStart_ = out['stageEndTime'][pre_stage_]    
+            
+            timeStart_ += self.input.loading.seq[cargo]['eduction'][0]
+            timeEnd_ = timeStart_ + self.input.loading.time_eduction - 60
+            
+            out['eduction']['timeStart'] = str(int(timeStart_))
+            out['eduction']['timeEnd']   = str(int(timeEnd_))
+            out['eduction']['tank'] = [t_  for t_ in self.input.loading.info['eduction'] if t_ not in ['LFPT', 'FPT']]
+            out['eduction']['pumpSelected'] = self.input.loading.eduction_pump
+            
+            # print(out['eduction'])
+            
+        
     
     def _get_ballast1(self, out, first_cargo, cargo):
         # pass
@@ -1777,6 +1820,7 @@ class Generate_plan:
                         info_['toppingSequence'] = self.plans['topping'][sol][k_]
                         info_['timeRequiredForLoading'] = str(round(self.plans['loading_hrs'][sol][k_][0]+self.plans['loading_hrs'][sol][k_][1], 2))
                         info_['cargoNominationTemperature'] = str(self.input.loadable.info['parcel'][k_]['loadingTemperature'])
+                        info_['loadingRateM3Hr'] = str(round(self.plans['loading_rate'][sol][k_][0]))
                         
                         plan_.append(info_)
         
@@ -2021,7 +2065,7 @@ class Generate_plan:
             for k_,v_ in self.plans['ship_status'][sol][virtual_]['other'].items():
                 info_ = {}
                 info_['tankShortName'] = k_
-                info_['quantity'] = str(abs(v_[0]['wt']))
+                info_['quantityMT'] = str(abs(v_[0]['wt']))
                 info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
                 
                 info_['sg'] = str(v_[0]['SG'])
@@ -2096,6 +2140,9 @@ class Generate_plan:
         # print(param['centreTank'])
         # print(param['wingTank'])
         # print(param['slopTank'])
+        
+        # min (vessel, riser)
+        loading_rate_ = min(self.input.vessel.info['loadingRateVessel'], self.input.vessel.info['loadingRateRiser'])
 
         for k_, v_ in components.items():
             rate_ = 0
@@ -2103,7 +2150,7 @@ class Generate_plan:
                 # print(i_,j_, param.get(i_,1), flow_rate[j_])
                 if j_ in ['maxLoadingRate', 'maxRiser']:
                     # print(i_, j_, flow_rate[j_])
-                    rate_ += flow_rate.get(j_, 20500)
+                    rate_ += flow_rate.get(j_, loading_rate_)
                 else:
                     # print(i_, j_, param[i_], flow_rate[j_])
                     if i_ == 'wingTank' and j_ == 'PVValveWingTank':

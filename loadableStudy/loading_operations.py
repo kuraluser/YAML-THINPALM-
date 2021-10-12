@@ -35,15 +35,21 @@ class LoadingOperations(object):
         self.time_interval = {}
         
         self.config = data.config
+        self.eduction_pump = []
         print('time interval:', self.time_interval1)
         
         
-        manifolds_, bottomLines_ = [], []
+        manifolds_, bottomLines_ =  [], []
         for d__, d_ in enumerate(data.loading_info_json['loadingMachinesInUses']):
             if d_['machineName'][:3] in ['Man']:
                 manifolds_.append(int(d_['machineName'][-1]))
             elif d_['machineName'][:3] in ['Bot']:
                 bottomLines_.append(int(d_['machineName'][-1]))
+            elif d_['machineName'][:15] in ['Ballast Eductor']:
+                self.eduction_pump.append(d_['machineName'])
+                
+            
+            
                 
             # pump in use
 
@@ -61,8 +67,10 @@ class LoadingOperations(object):
                      'BottomLines': bottomLines_
                     }
         
+        shoreLoadingRate_ = data.loading_info_json['loadingRates'].get('shoreLoadingRate',1e6)
+        shoreLoadingRate_ = shoreLoadingRate_ if shoreLoadingRate_ not in [None] else 1e6
         
-        loading_rate_ = min(data.loading_info_json['loadingRates']['maxLoadingRate'], data.loading_info_json['loadingRates'].get('shoreLoadingRate',1e6))
+        loading_rate_ = min(data.loading_info_json['loadingRates']['maxLoadingRate'], shoreLoadingRate_)
         self.max_loading_rate = loading_rate_
         # loading_rate_ = 7000
         print('loading rate (max):', loading_rate_)
@@ -70,7 +78,7 @@ class LoadingOperations(object):
         min_loading_rate_ = min_loading_rate_ if min_loading_rate_ not in [None, ""] else 1000.
         print('loading rate (min):', min_loading_rate_)
         
-        self.max_ballast_rate = data.loading_info_json['loadingRates'].get('maxLoadingRate',7000.)*1.025
+        self.max_ballast_rate = data.loading_info_json['loadingRates'].get('maxDeBallastingRate',7000.)*1.025
         # self.max_ballast_rate = 7000.
         print('max ballast:', self.max_ballast_rate)
         

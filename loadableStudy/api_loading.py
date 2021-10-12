@@ -9,6 +9,8 @@ from loading_init import Process_input
 from vlcc_gen import Generate_plan 
 from vlcc_check import Check_plans
 from vlcc_valves import Generate_valves
+import numpy as np
+
 # import json
 
 import pickle
@@ -35,8 +37,8 @@ def loading(data: dict) -> dict:
     gen_output = Generate_plan(params)
     gen_output.run(num_plans=1)
     
-    with open('result.pickle', 'wb') as fp_:
-        pickle.dump(gen_output, fp_)  
+    #with open('result.pickle', 'wb') as fp_:
+    #    pickle.dump(gen_output, fp_)  
     
     # with open('result.pickle', 'rb') as fp_:
     #     gen_output = pickle.load(fp_)
@@ -65,53 +67,403 @@ def loadicator1(data, limits):
            "loadicatorResults":[]}
     # print(limits)
     
-    
-    for s__, s_ in enumerate(data['stages']):
-        u_, v_ = s_['ldTrim'], s_['ldStrength']
-        info_ = {}
-        info_['time'] = int(float(s_['time']))
+    if data['stages'] in [None]:
         
-        info_["calculatedDraftFwdPlanned"] = u_["foreDraftValue"]
-        info_["calculatedDraftMidPlanned"] = u_["meanDraftValue"]
-        info_["calculatedDraftAftPlanned"] = u_["aftDraftValue"]
-        info_["calculatedTrimPlanned"] = u_["trimValue"]
-        info_["blindSector"] = None
-        info_["list"] = str(u_["heelValue"])
-        info_['airDraft'] = u_['airDraftValue']
-        info_['deflection'] = u_.get("deflection", None) 
+        print('Need to calculate the stability!!')
+        params = Get_info(data, limits)
+        ship_status, cargo_tank = params._get_status()
         
-        info_["SF"] = v_["shearingForcePersentValue"]
-        info_['BM'] = v_["bendingMomentPersentValue"]
-        info_['errorDetails'] = [u_["errorDetails"], v_["errorDetails"]]
+        plan_check = Check_plans(params)
+        plan_check._check_plans(ship_status, cargo_tank)
         
-        if info_['deflection'] in [None, ""]:
-            sag_ = 0.
-        else:
-            sag_ = float(u_.get('deflection', 0.))/400
+        for s__, s_ in enumerate(plan_check.stability_values): 
+            u_ = s_['0']
             
-        mid_ship_draft_ = float(u_["meanDraftValue"]) + sag_
-        info_['judgement'] = []
-        # max permissible draft
-        max_draft_ = max([float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_]) 
-        if limits['limits']['draft']['maxDraft'] < max_draft_:
-            info_['judgement'].append('Failed max permissible draft check!')
-        # loadline 
-        if limits['limits']['draft']['loadline'] < max_draft_:
-            info_['judgement'].append('Failed loadline check!')
-        # airDraft
-        if limits['limits']['maxAirDraft'] < float(info_['airDraft']):
-            info_['judgement'].append('Failed airdraft check!')
+            # ['forwardDraft', 'meanDraft', 'afterDraft', 
+            # 'trim', 'heel', 'airDraft', 'freeboard', 
+            # 'manifoldHeight', 'bendinMoment', 'shearForce']
+            
+            info_ = {}
+            info_["calculatedDraftFwdPlanned"] = u_["forwardDraft"]
+            info_["calculatedDraftMidPlanned"] = u_["meanDraft"]
+            info_["calculatedDraftAftPlanned"] = u_["afterDraft"]
+            info_["calculatedTrimPlanned"] = u_["trim"]
+            info_["blindSector"] = None
+            info_["list"] = str(u_["heel"])
+            info_['airDraft'] = u_['airDraft']
+            info_['deflection'] = u_.get("deflection", None) 
+            info_['freeboard'] = u_.get("freeboard", None) 
+            info_['manifoldHeight'] = u_.get("manifoldHeight", None) 
+            info_["SF"] = u_["bendinMoment"]
+            info_['BM'] = u_["shearForce"]
+            info_['errorDetails'] = []
+            
+            if info_['deflection'] in [None, ""]:
+                sag_ = 0.
+            else:
+                sag_ = float(u_.get('deflection', 0.))/400
+                
+            mid_ship_draft_ = float(u_["meanDraft"]) + sag_
+            info_['judgement'] = []
+            
+            
+            # trim
+            if abs(float(u_["trim"])) > 0.1:
+                info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trim"])) +'m)!')
+                # fail_SF_  = True
+            # list
+            if u_["heel"] not in [None and ""] and abs(float(u_["heel"])) > 0.1:
+                info_['judgement'].append('Failed list check ('+ "{:.1f}".format(float(u_["heel"])) +')!')
+                # fail_BM_ = True
+            
+            # max permissible draft
+            max_draft_ = max([float(u_["forwardDraft"]), float(u_["afterDraft"]), mid_ship_draft_]) 
+            if limits['limits']['draft']['maxDraft'] < max_draft_:
+                info_['judgement'].append('Failed max permissible draft check ('+ "{:.2f}".format(max_draft_) +'m)!')
+            # loadline 
+            if limits['limits']['draft']['loadline'] < max_draft_:
+                info_['judgement'].append('Failed loadline check ('+ "{:.2f}".format(max_draft_) +'m)!')
+            # airDraft
+            if limits['limits']['maxAirDraft'] < float(info_['airDraft']) :
+                info_['judgement'].append('Failed airdraft check ('+ "{:.2f}".format(float(info_['airDraft'])) +'m)!')
+            
+            
+            # SF
+            if abs(float(u_["shearForce"])) > 100:
+                info_['judgement'].append('Failed BM check ('+ "{:.0f}".format(float(u_["shearForce"])) +')!')
+                
+            # BM
+            if abs(float(u_["bendinMoment"])) > 100:
+                info_['judgement'].append('Failed SF check ('+ "{:.0f}".format(float(u_["bendinMoment"])) +')!')
+            
+            out["loadicatorResults"].append(info_)
         
-        # SF
-        if abs(float(v_["shearingForcePersentValue"])) > 100:
-            info_['judgement'].append('Failed SF check!')
-            # fail_SF_  = True
-        # BM
-        if abs(float(v_["bendingMomentPersentValue"])) > 100:
-            info_['judgement'].append('Failed BM check!')
-            # fail_BM_ = True
         
-        out["loadicatorResults"].append(info_)
+        
+    else:
+        # 
+        for s__, s_ in enumerate(data['stages']):
+            u_, v_ = s_['ldTrim'], s_['ldStrength']
+            info_ = {}
+            info_['time'] = int(float(s_['time']))
+            
+            info_["calculatedDraftFwdPlanned"] = u_["foreDraftValue"]
+            info_["calculatedDraftMidPlanned"] = u_["meanDraftValue"]
+            info_["calculatedDraftAftPlanned"] = u_["aftDraftValue"]
+            info_["calculatedTrimPlanned"] = u_["trimValue"]
+            info_["blindSector"] = None
+            info_["list"] = str(u_["heelValue"])
+            info_['airDraft'] = u_['airDraftValue']
+            info_['deflection'] = u_.get("deflection", None) 
+            
+            info_["SF"] = v_["shearingForcePersentValue"]
+            info_['BM'] = v_["bendingMomentPersentValue"]
+            info_['errorDetails'] = [u_["errorDetails"], v_["errorDetails"]]
+            
+            if info_['deflection'] in [None, ""]:
+                sag_ = 0.
+            else:
+                sag_ = float(u_.get('deflection', 0.))/400
+                
+            mid_ship_draft_ = float(u_["meanDraftValue"]) + sag_
+            info_['judgement'] = []
+            
+            
+            # trim
+            if abs(float(u_["trimValue"])) > 0.1:
+                info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trimValue"])) +'m)!')
+                # fail_SF_  = True
+            # list
+            if u_["heelValue"] not in [None and ""] and abs(float(u_["heelValue"])) > 0.1:
+                info_['judgement'].append('Failed list check ('+ "{:.1f}".format(float(u_["heelValue"])) +')!')
+                # fail_BM_ = True
+            
+            # max permissible draft
+            # max_draft_ = max([float(u_["forwardDraft"]), float(u_["afterDraft"]), mid_ship_draft_]) 
+            max_draft_ = max([float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_]) 
+            if limits['limits']['draft']['maxDraft'] < max_draft_:
+                info_['judgement'].append('Failed max permissible draft check ('+ "{:.2f}".format(max_draft_) +'m)!')
+            # loadline 
+            if limits['limits']['draft']['loadline'] < max_draft_:
+                info_['judgement'].append('Failed loadline check ('+ "{:.2f}".format(max_draft_) +'m)!')
+            # airDraft
+            if limits['limits']['maxAirDraft'] < float(info_['airDraft']) :
+                info_['judgement'].append('Failed airdraft check ('+ "{:.2f}".format(float(info_['airDraft'])) +'m)!')
+            
+            # SF
+            if abs(float(v_["shearingForcePersentValue"])) > 100:
+                info_['judgement'].append('Failed SF check ('+ "{:.0f}".format(float(v_["shearingForcePersentValue"])) +')!')
+                # fail_SF_  = True
+            # BM
+            if abs(float(v_["bendingMomentPersentValue"])) > 100:
+                info_['judgement'].append('Failed BM check ('+ "{:.0f}".format(float(v_["bendingMomentPersentValue"])) +')!')
+                # fail_BM_ = True
+                        
+            out["loadicatorResults"].append(info_)
+        
+    
     
     
     return out
+
+class Get_info(object):
+    def __init__(self, data, limits):
+        self.data = data
+        # ['portRotation', 'portOrder', 'idPortOrder', 'portOrderId', 'firstPortBunker', 'lastLoadingPort', 
+        # 'numPort', 'operationId', 'maxDraft', 'maxAirDraft', 'ambientTemperature']
+        self.port = lambda: None
+        setattr(self.port, 'info', {})
+        self.port.info['id'] = data['portId']
+        self.port.info['tide'] = limits['limits']['tide'][str(self.port.info['id'])]
+        
+        # ['parcel', 'sg', 'maxPriority', 'priority', 'cargoPort', 'cargoRotation', 'rotationCheck', 
+        # 'virtualPort', 'arrDepVirtualPort', 'virtualArrDepPort', 'lastVirtualPort', 'rotationVirtual', 
+        # 'rotationCargo', 'seawaterDensity', 'commingleCargo', 'operation', 'toLoad', 'toLoadIntend', 
+        # 'toLoadMin', 'toLoadPort', 'toLoadMinPort', 'cargoOrder', 'toLoadPort1', 'numParcel', 'manualOperation', 
+        # 'preloadOperation', 'ballastOperation', 'fixedBallastPort']
+       
+        self.loadable = lambda: None
+        setattr(self.loadable, 'info', {})
+        self.loadable.info['seawaterDensity'] = {}
+        self.loadable.info['seawaterDensity']['0'] = limits['limits']['seawaterDensity'][str(self.port.info['id'])]
+        
+        
+        # ['hasLoadicator', 'banBallast', 'banCargo', 'slopTank', 'loadingRate6', 'loadingRate1', 
+        # 'loadingRateVessel', 'loadingRateRiser', 'name', 'lightweight', 'deadweightConst',
+        # 'draftCondition', 'height', 'depth', 'manifoldHeight', 'cargoTankNames', 'ballastTankNames',
+        # 'otherTankNames', 'cargoTanks', 'ballastTanks', 'fuelTanks', 'dieselTanks', 'freshWaterTanks',
+        # 'tankId', 'tankName', 'category', 'tankFullName', 'ullage', 'ullageCorr', 'ullageInvFunc', 
+        # 'ullageEmpty', 'ullage30cm', 'hydrostatic', 'lcb_mtc', 'tankTCG', 'tankLCG', 'KTM', 'LPP', 
+        # 'SSTable', 'SBTable', 'frames', 'tankGroupLCG', 'tankGroup', 'SFlimits', 'BMlimits', 'locations', 
+        # 'alpha', 'BWCorr', 'C4', 'centerTank', 'wingTank', 'ballastTankBSF', 'BSFlimits', 'distStation', 
+        # 'onhand', 'onhand1', 'sameROB', 'onboard', 'initBallast', 'finalBallast', 'loading', 'rotationVirtual',
+        # 'maxCargo', 'notSym']
+        
+        self.vessel = lambda: None
+        setattr(self.vessel, 'info', {})
+        if data['vesselId'] == 1:
+            
+            with open('KAZUSA.pickle', 'rb') as fp_:
+                self.vessel.info = pickle.load(fp_)
+                
+        self.error = {}
+        self.module = ""
+        self.vessel_id = data['vesselId']
+        
+    def _get_status(self):
+        ship_status, cargo_tank = [{"0":{"cargo": {}, "ballast": {}, "other": {}}}], [{}]
+        
+        for k_, v_ in self.data['planDetails'].items():
+            
+            if k_ in ['stowageDetails']:
+                for l_ in v_:
+                    
+                    if l_['quantity'] > 0. :
+                        cargo_ = 'P' + str(l_['cargoNominationXId'])
+                        wt_  = l_['quantity']
+                        
+                        tankId_ = l_['tankXId']
+                        tankName_ = self.vessel.info['tankId'][tankId_]
+                        capacity_ = self.vessel.info['cargoTanks'][tankName_]['capacityCubm']
+                        # print(tankName_)
+                        
+                        if cargo_ not in cargo_tank[0]:
+                            cargo_tank[0][cargo_] = [tankName_]
+                        else:
+                            cargo_tank[0][cargo_].append(tankName_)
+                            
+                        
+                        api_ = l_['api']
+                        temp_ = l_['temperature']
+                        density_ = self._cal_density(api_, temp_)
+                        vol_ = wt_/density_ 
+                        
+                        fillingRatio_ = round(vol_/capacity_,3)
+                        tcg_ = 0.
+                        if tankName_ in self.vessel.info['tankTCG']['tcg']:
+                            tcg_ = np.interp(vol_, self.vessel.info['tankTCG']['tcg'][tankName_]['vol'],
+                                             self.vessel.info['tankTCG']['tcg'][tankName_]['tcg'])
+                            
+                        lcg_ = 0.
+                        if tankName_ in self.vessel.info['tankLCG']['lcg']:
+                            lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tankName_]['vol'],
+                                             self.vessel.info['tankLCG']['lcg'][tankName_]['lcg'])
+                        
+                        corrUllage_ = round(self.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
+                        
+                        info_ = {"parcel": cargo_,
+                                "wt": wt_,
+                                "SG": density_,
+                                "fillRatio": fillingRatio_,
+                                "tcg": tcg_,
+                                "lcg": lcg_,
+                                "temperature": temp_,
+                                "api": api_,
+                                "corrUllage": corrUllage_,
+                                "maxTankVolume": capacity_,
+                                "vol": vol_}
+                        
+                        ship_status[0]["0"]["cargo"][tankName_] = [info_]
+                    
+                    
+                
+                
+            elif k_ in ['commingleDetails']:
+                for l_ in v_:
+                    
+                    cargo1_ = 'P' + str(l_['cargoNomination1Id'])
+                    cargo2_ = 'P' + str(l_['cargoNomination2Id'])
+                    
+                    wt_  = l_['quantityMT']
+                        
+                    tankId_ = l_['tankId']
+                    tankName_ = self.vessel.info['tankId'][tankId_]
+                    capacity_ = self.vessel.info['cargoTanks'][tankName_]['capacityCubm']
+                    
+                    if cargo1_ not in cargo_tank[0]:
+                        cargo_tank[0][cargo1_] = [tankName_]
+                    else:
+                        cargo_tank[0][cargo1_].append(tankName_)
+                        
+                    if cargo2_ not in cargo_tank[0]:
+                        cargo_tank[0][cargo2_] = [tankName_]
+                    else:
+                        cargo_tank[0][cargo2_].append(tankName_)
+                            
+                    
+                    api_ = l_['api']
+                    temp_ = l_['temperature']
+                    density_ = self._cal_density(api_, temp_)
+                    vol_ = wt_/density_ 
+                    
+                    fillingRatio_ = round(vol_/capacity_,3)
+                    tcg_ = 0.
+                    if tankName_ in self.vessel.info['tankTCG']['tcg']:
+                        tcg_ = np.interp(vol_, self.vessel.info['tankTCG']['tcg'][tankName_]['vol'],
+                                         self.vessel.info['tankTCG']['tcg'][tankName_]['tcg'])
+                        
+                    lcg_ = 0.
+                    if tankName_ in self.vessel.info['tankLCG']['lcg']:
+                        lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tankName_]['vol'],
+                                         self.vessel.info['tankLCG']['lcg'][tankName_]['lcg'])
+                    
+                    corrUllage_ = round(self.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6) 
+                    
+                    info_ = {
+                        "parcel": [cargo1_, cargo2_],
+                        "wt": wt_,
+                        "SG": density_,
+                        "fillRatio": fillingRatio_,
+                        "tcg": tcg_,
+                        "lcg": lcg_,
+                        "temperature": temp_,
+                        "api": api_,
+                        "wt1": None,
+                        "wt2": None,
+                        "wt1percent": None,
+                        "wt2percent": None,
+                        "corrUllage": corrUllage_,
+                        "maxTankVolume": capacity_,
+                        "vol": vol_}
+                    
+                    ship_status[0]["0"]["cargo"][tankName_] = [info_]
+                
+            elif k_ in ['ballastDetails']:
+                for l_ in v_:
+                    
+                    if l_['quantity'] > 0. :
+                        
+                        tankId_ = l_['tankXId'] 
+                        
+                        tank_ = self.vessel.info['tankId'][int(tankId_)]
+                        density_ = 1.025
+                        capacity_ =  self.vessel.info['ballastTanks'][tank_]['capacityCubm']
+                        wt_ = l_['quantity']
+                        vol_ = wt_/density_
+                        
+                        fillingRatio_ = round(vol_/capacity_,3)
+                        
+                        tcg_ = 0.
+                        if tank_ in self.vessel.info['tankTCG']['tcg']:
+                            tcg_ = np.interp(vol_, self.vessel.info['tankTCG']['tcg'][tank_]['vol'],
+                                              self.vessel.info['tankTCG']['tcg'][tank_]['tcg'])
+                            
+                        lcg_ = 0.
+                        if tank_ in self.vessel.info['tankLCG']['lcg']:
+                            lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tank_]['vol'],
+                                              self.vessel.info['tankLCG']['lcg'][tank_]['lcg'])
+                        
+                           
+                        try:
+                            corrLevel_ = self.vessel.info['ullage'][str(tankId_)](vol_).tolist()
+                        except:
+                            print('correct level not available:',tank_, vol_)
+                            corrLevel_ = 0.
+                        
+                        info_ = {"wt": wt_,
+                            "SG": density_,
+                            "fillRatio": fillingRatio_,
+                            "tcg": tcg_,
+                            "lcg": lcg_,
+                            "corrLevel": corrLevel_,
+                            "maxTankVolume": capacity_,
+                            "vol": vol_}
+                        
+                        ship_status[0]["0"]["ballast"][tank_] = [info_]
+            
+            elif k_ in ['robDetails']:
+                for l_ in v_:
+                    
+                    if l_['quantity'] > 0. :
+                        
+                        tankId_ = l_['tankXId'] 
+                        
+                        tank_ = self.vessel.info['tankId'][int(tankId_)]
+                        density_ = l_['density']
+                        wt_ = l_['quantity']
+                        vol_ = wt_/density_
+                        
+                        tcg_ = 0.
+                        if tank_ in self.vessel.info['tankTCG']['tcg']:
+                            tcg_ = np.interp(vol_, self.vessel.info['tankTCG']['tcg'][tank_]['vol'],
+                                              self.vessel.info['tankTCG']['tcg'][tank_]['tcg'])
+                            
+                        lcg_ = 0.
+                        if tank_ in self.vessel.info['tankLCG']['lcg']:
+                            lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tank_]['vol'],
+                                              self.vessel.info['tankLCG']['lcg'][tank_]['lcg'])
+                        
+                        
+                        info_ = {"wt": wt_,
+                                "SG": density_,
+                                "tcg": tcg_,
+                                "lcg": lcg_,
+                                "vol": vol_}
+                        
+                        ship_status[0]["0"]["other"][tank_] = [info_]
+                    
+            
+        
+        
+        return ship_status, cargo_tank
+        
+        
+            
+    def _cal_density(self, api, temperature_F):
+        
+        
+        ## https://www.myseatime.com/blog/detail/cargo-calculations-on-tankers-astm-tables
+    
+        a60 = 341.0957/(141360.198/(api+131.5))**2
+        dt = temperature_F-60
+        vcf_ = np.exp(-a60*dt*(1+0.8*a60*dt))
+        t13_ = (535.1911/(api+131.5)-0.0046189)*0.42/10
+        density = t13_*vcf_*6.2898
+        
+    
+        return round(density,6)
+    
+        
+        
+        
+        

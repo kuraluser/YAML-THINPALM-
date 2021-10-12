@@ -107,6 +107,7 @@ class Loading_seq:
         info["cargoLoadingRatePerTankM3_Hr"] = []
         info["cargoLoadingRateM3_Hr"] = {}
         info["ballast"] = {}
+        info["eduction"] = {}
             
         if info['stage'] == 'initialCondition':
             # print('----', info['stage'])
@@ -314,7 +315,7 @@ class Loading_seq:
             info['iniBallastingRateM3_Hr'] = {}
             info['iniTotDeballastingRateM3_Hr'] = 0.
             info['iniTotBallastingRateM3_Hr'] = 0.
-            
+            info['stageEndTime'] = {}
             
             pre_port_ = self.pre_port
             # print('self.pre_port', self.pre_port)
@@ -337,6 +338,8 @@ class Loading_seq:
                     self._get_plan(plan_, port_)
             
                     info['loadablePlanPortWiseDetails'].append(plan_)
+                    
+                    info['stageEndTime'][v_[:-1]] = time_
                     
                     info_ = {} # get stability info
                     for a_, b_ in plan_.items():
@@ -446,6 +449,7 @@ class Loading_seq:
                     cur_time_ = self.plans.input.loadable['stageTimes'][port_]
                     pre_time_ = self.plans.input.loadable['stageTimes'].get(pre_port_, 0.)
                     
+                    info['stageEndTime'][v_[:-1]] = cur_time_ + self.delay
                           
                     educt_ = self.plans.input.loading.seq[cargo].get('eduction', (None,None))
                     if  educt_[1] == v_[:-1]:

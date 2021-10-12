@@ -42,6 +42,10 @@ class Vessel:
         vessel_info_['loadingRate6'] = {l_['name']: [float(l__['value']) for l__ in l_['values'] if l__['type'] == 6][0]   for l_ in loadingRate_}
         vessel_info_['loadingRate1'] = {l_['name']: [float(l__['value']) for l__ in l_['values'] if l__['type'] == 1][0]   for l_ in loadingRate_}
         
+        vessel_info_['loadingRateVessel'] = float(vessel_json['vessel'].get('maxVessel', 20500))
+        vessel_info_['loadingRateRiser'] = float(vessel_json['vessel'].get('maxRiser', 20500))
+        
+        
         ## 
         vessel_info_['name'] = vessel_json['vessel']['name'].replace(" ", "")
         
@@ -67,6 +71,8 @@ class Vessel:
         
         ##
         vessel_info_['height'] = float(vessel_json['vessel']['keelToMastHeight'])
+        vessel_info_['depth'] = float(vessel_json['vessel']['depthMolded'])
+        vessel_info_['manifoldHeight'] = float(vessel_json['vessel'].get('manifoldHeight', 2.05)) # default Kazusa 
         
         
         ## tanks
@@ -334,6 +340,14 @@ class Vessel:
                     
             
         self.info = vessel_info_     
+        
+        if not Path(vessel_info_['name']+'.pickle').is_file():
+            with open(vessel_info_['name']  +'.pickle', 'wb') as fp_:
+                pickle.dump(vessel_info_, fp_)    
+            
+            
+        
+        
         
     def _get_onboard(self, inputs, loading = False): 
         onboard_json = inputs.vessel_json['onBoard']
