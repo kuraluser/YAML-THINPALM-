@@ -108,8 +108,10 @@ class LoadingOperations(object):
         self._get_ballast(data.loadable_json['planDetails']['departureCondition']['loadablePlanBallastDetails'], cargo_info_)
         self._get_eduction(cargo_info_)
         
-        
-        self.num_pump = 1 if (len(cargo_info_['tankToBallast']) + len(cargo_info_['tankToDeballast']) <= 4) else 2
+        tank_ = [t_ for t_ in cargo_info_['tankToDeballast'] if t_[0] == 'W' ]
+        # self.num_pump = 1 if (len(cargo_info_['tankToBallast']) + len(cargo_info_['tankToDeballast']) <= 4) else 2
+        self.num_pump = 1 if (len(tank_) <= 4) else 2
+        print('num ballast pump:', self.num_pump)
        
         # for d_ in data.loadable_json['planDetails']['departureCondition']['loadablePlanBallastDetails']:
         #     type_, tank_, wt_ = 'Ballast', d_['tankId'], d_['quantityMT']
