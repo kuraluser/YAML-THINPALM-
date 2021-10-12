@@ -859,9 +859,12 @@ class LoadingOperations(object):
                     
             if next_ballast_ not in [(None,None,10000)]:
                 ballast_.append((next_ballast_[0],next_ballast_[1]))    
+                if next_ballast_[1] != ss_:
+                    ballast_stop_.append((next_ballast_[0],next_ballast_[1]))
                 
             if (final_ballast_[0],final_ballast_[1]) not in ballast_:
                 ballast_.append((final_ballast_[0],final_ballast_[1]))    
+                # ballast_stop_.append((next_ballast_[0],next_ballast_[1]))
                 
                 
             ## add MaxLoading1 if necessary 
