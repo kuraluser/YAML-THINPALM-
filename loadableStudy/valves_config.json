@@ -29,9 +29,7 @@
   },
   "deballasting": {
     "timing": {
-      "pumps": [[10000, 120], [15000, 240]],
-      "eductor": 60,
-      "shut": 180
+      "eductionEnd": 60
     },
     "gravity": {
       "initialCondition": {},
@@ -45,7 +43,7 @@
       "openAllTanks": {},
       "increaseToMaxRate": {},
       "loadingAtMaxRate": {
-                "floodingTheBallastPump": {
+        "floodingTheBallastPump": {
           "valveSeqCount": -1,
           "valveSeqInterval": -1
         },
@@ -86,7 +84,8 @@
       },
       "initialRate": {},
       "openAllTanks": {},
-      "increaseToMaxRate": {
+      "increaseToMaxRate": {},
+      "loadingAtMaxRate": {
         "seaToSea": {
           "valveSeqCount": -1,
           "valveSeqInterval": -1
@@ -104,10 +103,24 @@
           "valveSeqInterval": -1
         }
       },
-      "loadingAtMaxRate": {},
       "topping": {}
     }
   },
   "discharging": {},
-  "ballasting": {}
+  "ballasting": {},
+  "vessel": {
+    "1": {
+      "manifold": {
+        "1": ["CDV15","CDV16"],
+        "2": ["CDV25","CDV26"],
+        "3": ["CDV35","CDV36"],
+        "4": ["CDV45","CDV46"]
+      },
+       "bottomLines": {
+        "1": ["CPV101"],
+        "2": ["CPV102"],
+        "3": ["CPV103"]
+      }
+    }
+  }
 }

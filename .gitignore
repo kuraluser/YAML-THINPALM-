@@ -1,0 +1,4 @@
+samples/
+.idea/
+*.pyc
+*.sol
