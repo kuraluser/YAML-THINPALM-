@@ -10,7 +10,6 @@ from vlcc_gen import Generate_plan
 from vlcc_check import Check_plans
 from vlcc_valves import Generate_valves
 import numpy as np
-
 # import json
 
 import pickle
@@ -30,12 +29,27 @@ def loading(data: dict) -> dict:
     
     params = Process_input(data)
     params.prepare_data()
-    params.write_ampl()
+    params.write_ampl(IIS = False)
     
     # input("Press Enter to continue...")
     # collect plan from AMPL
-    gen_output = Generate_plan(params)
-    gen_output.run(num_plans=1)
+    done_ = False 
+    time_left_eduction = 0
+    while not done_:
+        gen_output = Generate_plan(params)
+        gen_output.IIS = False if time_left_eduction < 30 else True
+        gen_output.run(num_plans=1)
+        
+        if time_left_eduction <= 20 and len(gen_output.plans['ship_status']) == 0:
+            time_left_eduction += 10
+            IIS = False if time_left_eduction < 30 else True
+            print('time_left_eduction:', time_left_eduction)
+            params.loading._get_ballast_requirements(time_left_eduction = time_left_eduction)
+            params.get_param()
+            params.write_ampl(IIS = IIS)
+            
+        else:
+            done_ = True
     
     #with open('result.pickle', 'wb') as fp_:
     #    pickle.dump(gen_output, fp_)  
@@ -50,7 +64,7 @@ def loading(data: dict) -> dict:
       
     # gen json  
     out = gen_output.gen_json1({}, plan_check.stability_values)
-
+    
     # ## Valve
     # valve_params = Generate_valves(params, out, gen_output) ## get parameters for valve module
     # valve_params.prepOperation()

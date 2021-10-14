@@ -865,7 +865,8 @@ class LoadingOperations(object):
             if (final_ballast_[0],final_ballast_[1]) not in ballast_:
                 ballast_.append((final_ballast_[0],final_ballast_[1]))    
                 # ballast_stop_.append((next_ballast_[0],next_ballast_[1]))
-
+                
+                
             ## add MaxLoading1 if necessary 
             if single_max_stage_ and  (df_['MaxLoading1']['Time'],'MaxLoading1') not in ballast_:
                 ballast_.insert(1, (df_['MaxLoading1']['Time'],'MaxLoading1'))
@@ -905,7 +906,7 @@ class LoadingOperations(object):
             print(start_time_-df_[ss_]['Time'], start_time_)
                 
             
-    def _get_ballast_requirements(self):
+    def _get_ballast_requirements(self, time_left_eduction = 0):
         
         INDEX = self.config["gantt_chart_index"]
         INDEX1 = self.config["gantt_chart_ballast_index"]
@@ -954,7 +955,7 @@ class LoadingOperations(object):
                             fixed_ballast_.append(stage_+str(c__+1))
                             self.seq[c_]['ballastLimit'][stage_] = max(0,time_left_)
                             
-                            while time_left_ <= 30:
+                            while time_left_ <= time_left_eduction:
                                 time_left_ += time_interval_
                                 stage_ = stage_[:10] + str(int(stage_[10:])-1)
                                 fixed_ballast__.append(stage_)

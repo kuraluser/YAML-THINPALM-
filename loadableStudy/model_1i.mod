@@ -219,7 +219,8 @@ set P_stable0 default P1;  # loading P1 = 1..NP-1 # discharge P = 1..NP
 set P_stable = P_stable0 diff fixBallastPort diff sameBallastPort; # stable port
 
 # for departure of last discharging port min draft constraint
-set P_stable1 =  P_stable diff {NP}; 
+set NP1 default {NP}; # NP1 = {} for cargo left in last discharge port
+set P_stable1 =  P_stable diff NP1; 
 
 param capacityCargoTank{t in T} >= 0; # cargo tank capacity (in m3)
 param densityCargoTank{t in T} >= 0 default 1.0; # cargo tank density (in t/m3)
