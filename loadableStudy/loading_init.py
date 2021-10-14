@@ -289,7 +289,7 @@ class Process_input(object):
                     self.trim_lower[str(port_)] =  b_
                     
                 elif  d_[0:3] in ['Max']:
-                    a_, b_ = max_trim_, 0.1
+                    a_, b_ = max_trim_, 0.05
                     print(d_,'Max loading -- trim constraint:', b_, a_)
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_
