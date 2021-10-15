@@ -17,10 +17,6 @@
     "increaseToMaxRate": {},
     "loadingAtMaxRate": {},
     "topping": {
-      "shuttingSequence_5": {
-        "valveSeqCount": -1,
-        "valveSeqInterval": -1
-      },
       "shuttingSequence": {
         "valveSeqCount": 1,
         "valveSeqInterval": 1
@@ -120,6 +116,10 @@
         "1": ["CPV101"],
         "2": ["CPV102"],
         "3": ["CPV103"]
+      },
+      "eductorValves": {
+        "1": ["BPV18", "BPV16", "BPV17", "BP1"],
+        "2": ["BPV28", "BPV26", "BPV27", "BP2"]
       }
     }
   }
