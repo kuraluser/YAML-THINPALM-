@@ -42,8 +42,8 @@ class Vessel:
         vessel_info_['loadingRate6'] = {l_['name']: [float(l__['value']) for l__ in l_['values'] if l__['type'] == 6][0]   for l_ in loadingRate_}
         vessel_info_['loadingRate1'] = {l_['name']: [float(l__['value']) for l__ in l_['values'] if l__['type'] == 1][0]   for l_ in loadingRate_}
         
-        vessel_info_['loadingRateVessel'] = float(vessel_json['vessel'].get('maxVessel', 20500))
-        vessel_info_['loadingRateRiser'] = float(vessel_json['vessel'].get('maxRiser', 20500))
+        vessel_info_['loadingRateVessel'] = float(vessel_json['vessel'].get('maxLoadRate', 20500))
+        vessel_info_['loadingRateRiser'] = float(vessel_json['vessel'].get('mastRiser', 20500))
         
         
         ## 
@@ -72,7 +72,7 @@ class Vessel:
         ##
         vessel_info_['height'] = float(vessel_json['vessel']['keelToMastHeight'])
         vessel_info_['depth'] = float(vessel_json['vessel']['depthMolded'])
-        vessel_info_['manifoldHeight'] = float(vessel_json['vessel'].get('manifoldHeight', 2.05)) # default Kazusa 
+        vessel_info_['manifoldHeight'] = float(vessel_json['vessel'].get('heightOfManifoldAboveDeck', 2.05)) # default Kazusa 
         
         
         ## tanks
@@ -449,14 +449,16 @@ class Vessel:
         
             
         if  inputs.loadable.info['preloadOperation']:
-            info_ = {}
+            info_, wt_ = {}, 0.
             for k_, v_ in inputs.loadable.info['preloadOperation'].items():
                 info_[k_] = {}
                 for k1_, v1_ in v_.items():
                     tank_ = self.info['tankId'][k1_]
                     info_[k_][tank_] = v1_
+                    wt_ += v1_
                     
             inputs.loadable.info['preloadOperation'] = info_
+            inputs.loadable.info['preloadAmt'] = wt_
 
         
     def _get_onhand(self, inputs): 

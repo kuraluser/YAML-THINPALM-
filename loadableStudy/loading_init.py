@@ -283,13 +283,13 @@ class Process_input(object):
                     self.trim_lower[str(port_)] = b_
                     
                 elif not last_cargo_ and d_ in [self.loading.seq[c_]['lastStage'] + str(c__+1)]:
-                    a_, b_ = 1.01, 0.99
+                    a_, b_ = 1.005, 0.96
                     print(d_,'lastStage -- trim constraint:', b_, a_)
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_
                     
                 elif  d_[0:3] in ['Max']:
-                    a_, b_ = max_trim_, 0.1
+                    a_, b_ = max_trim_, 0.05
                     print(d_,'Max loading -- trim constraint:', b_, a_)
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_

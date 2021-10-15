@@ -108,8 +108,10 @@ class LoadingOperations(object):
         self._get_ballast(data.loadable_json['planDetails']['departureCondition']['loadablePlanBallastDetails'], cargo_info_)
         self._get_eduction(cargo_info_)
         
-        
-        self.num_pump = 1 if (len(cargo_info_['tankToBallast']) + len(cargo_info_['tankToDeballast']) <= 4) else 2
+        tank_ = [t_ for t_ in cargo_info_['tankToDeballast'] if t_[0] == 'W' ]
+        # self.num_pump = 1 if (len(cargo_info_['tankToBallast']) + len(cargo_info_['tankToDeballast']) <= 4) else 2
+        self.num_pump = 1 if (len(tank_) <= 4) else 2
+        print('num ballast pump:', self.num_pump)
        
         # for d_ in data.loadable_json['planDetails']['departureCondition']['loadablePlanBallastDetails']:
         #     type_, tank_, wt_ = 'Ballast', d_['tankId'], d_['quantityMT']
@@ -857,9 +859,12 @@ class LoadingOperations(object):
                     
             if next_ballast_ not in [(None,None,10000)]:
                 ballast_.append((next_ballast_[0],next_ballast_[1]))    
+                if next_ballast_[1] != ss_:
+                    ballast_stop_.append((next_ballast_[0],next_ballast_[1]))
                 
             if (final_ballast_[0],final_ballast_[1]) not in ballast_:
                 ballast_.append((final_ballast_[0],final_ballast_[1]))    
+                # ballast_stop_.append((next_ballast_[0],next_ballast_[1]))
                 
                 
             ## add MaxLoading1 if necessary 
@@ -901,7 +906,7 @@ class LoadingOperations(object):
             print(start_time_-df_[ss_]['Time'], start_time_)
                 
             
-    def _get_ballast_requirements(self):
+    def _get_ballast_requirements(self, time_left_eduction = 0):
         
         INDEX = self.config["gantt_chart_index"]
         INDEX1 = self.config["gantt_chart_ballast_index"]
@@ -950,7 +955,7 @@ class LoadingOperations(object):
                             fixed_ballast_.append(stage_+str(c__+1))
                             self.seq[c_]['ballastLimit'][stage_] = max(0,time_left_)
                             
-                            while time_left_ <= 30:
+                            while time_left_ <= time_left_eduction:
                                 time_left_ += time_interval_
                                 stage_ = stage_[:10] + str(int(stage_[10:])-1)
                                 fixed_ballast__.append(stage_)

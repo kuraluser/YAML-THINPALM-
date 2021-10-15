@@ -10,7 +10,6 @@ from vlcc_gen import Generate_plan
 from vlcc_check import Check_plans
 from vlcc_valves import Generate_valves
 import numpy as np
-
 # import json
 
 import pickle
@@ -30,12 +29,27 @@ def loading(data: dict) -> dict:
     
     params = Process_input(data)
     params.prepare_data()
-    params.write_ampl()
+    params.write_ampl(IIS = False)
     
     # input("Press Enter to continue...")
     # collect plan from AMPL
-    gen_output = Generate_plan(params)
-    gen_output.run(num_plans=1)
+    done_ = False 
+    time_left_eduction = 0
+    while not done_:
+        gen_output = Generate_plan(params)
+        gen_output.IIS = False if time_left_eduction < 30 else True
+        gen_output.run(num_plans=1)
+        
+        if time_left_eduction <= 20 and len(gen_output.plans['ship_status']) == 0:
+            time_left_eduction += 10
+            IIS = False if time_left_eduction < 30 else True
+            print('time_left_eduction:', time_left_eduction)
+            params.loading._get_ballast_requirements(time_left_eduction = time_left_eduction)
+            params.get_param()
+            params.write_ampl(IIS = IIS)
+            
+        else:
+            done_ = True
     
     #with open('result.pickle', 'wb') as fp_:
     #    pickle.dump(gen_output, fp_)  
@@ -50,7 +64,7 @@ def loading(data: dict) -> dict:
       
     # gen json  
     out = gen_output.gen_json1({}, plan_check.stability_values)
-
+    
     # ## Valve
     # valve_params = Generate_valves(params, out, gen_output) ## get parameters for valve module
     # valve_params.prepOperation()
@@ -108,13 +122,13 @@ def loadicator1(data, limits):
             
             
             # trim
-            if abs(float(u_["trim"])) > 0.1:
+            if abs(float(u_["trim"])) > 3:
                 info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trim"])) +'m)!')
-                # fail_SF_  = True
+               
             # list
             if u_["heel"] not in [None and ""] and abs(float(u_["heel"])) > 0.1:
                 info_['judgement'].append('Failed list check ('+ "{:.1f}".format(float(u_["heel"])) +')!')
-                # fail_BM_ = True
+                
             
             # max permissible draft
             max_draft_ = max([float(u_["forwardDraft"]), float(u_["afterDraft"]), mid_ship_draft_]) 
@@ -158,7 +172,7 @@ def loadicator1(data, limits):
             
             info_["SF"] = v_["shearingForcePersentValue"]
             info_['BM'] = v_["bendingMomentPersentValue"]
-            info_['errorDetails'] = [u_["errorDetails"], v_["errorDetails"]]
+            info_['errorDetails'] = [l_ for l_ in u_["errorDetails"]+v_["errorDetails"] if l_ not in [""]]
             
             if info_['deflection'] in [None, ""]:
                 sag_ = 0.
@@ -170,13 +184,13 @@ def loadicator1(data, limits):
             
             
             # trim
-            if abs(float(u_["trimValue"])) > 0.1:
+            if abs(float(u_["trimValue"])) > 3:
                 info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trimValue"])) +'m)!')
-                # fail_SF_  = True
+                
             # list
             if u_["heelValue"] not in [None and ""] and abs(float(u_["heelValue"])) > 0.1:
                 info_['judgement'].append('Failed list check ('+ "{:.1f}".format(float(u_["heelValue"])) +')!')
-                # fail_BM_ = True
+                
             
             # max permissible draft
             # max_draft_ = max([float(u_["forwardDraft"]), float(u_["afterDraft"]), mid_ship_draft_]) 

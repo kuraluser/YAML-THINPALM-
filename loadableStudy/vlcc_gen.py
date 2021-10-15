@@ -19,6 +19,9 @@ DEC_PLACE = 3
 CONS = {'Condition01z': 'Min tolerance constraints violated!!',
         'Constr122': 'Priority constraints violated!!',
         'Condition112d1': '1P and 1S cannot have same weight!!',
+        'Condition112d2': '2P and 2S cannot have same weight!!',
+        'Condition112d3': '4P and 4S cannot have same weight!!',
+        'Condition112d4': '5P and 5S cannot have same weight!!',
         'Condition114g1': 'Deballast amt during loading cargo issue!!',
         'Constr13': 'Displacement bound issue!!',
         'Constr13b': 'Deadweight bound issue!!',
@@ -48,7 +51,7 @@ FIXCONS = ['Condition0', 'Condition01', 'Condition03', 'Condition041', 'Conditio
            'Constr15b1', 'Constr15b2', 'Constr15c1', 'Constr15c2', 'Constr153', 'Constr154',
            'Constr16b1', 'Constr16b2', 'Constr161', 'Constr163', 'Constr164',
            'Constr18a', 'Constr18b', 'Constr19a', 'Constr19b', 'Constr18d', 'Condition200a',
-           'Condition20a', 'Condition21a']
+           'Condition20a1', 'Condition21a1', 'Condition20a2', 'Condition21a2']
 
 DENSITY = {'DSWP':1.0, 'DWP':1.0, 'FWS':1.0, 'DSWS':1.0,
                    'FO2P':0.98, 'FO2S':0.98, 'FO1P':0.98, 'FO1S':0.98, 'BFOSV':0.98, 'FOST':0.98, 'FOSV':0.98,
@@ -1327,7 +1330,7 @@ class Generate_plan:
             
             out['eduction']['timeStart'] = str(int(timeStart_))
             out['eduction']['timeEnd']   = str(int(timeEnd_))
-            out['eduction']['tank'] = [t_  for t_ in self.input.loading.info['eduction'] if t_ not in ['LFPT', 'FPT']]
+            out['eduction']['tank'] = {self.input.vessel.info['tankName'][t_]:t_  for t_ in self.input.loading.info['eduction'] if t_ not in ['LFPT', 'FPT']}
             out['eduction']['pumpSelected'] = self.input.loading.eduction_pump
             
             # print(out['eduction'])
@@ -1431,55 +1434,56 @@ class Generate_plan:
                 if info_ not in out['ballast']['BP1']:
                     out['ballast']['BP1'].append(info_)
             
+            if self.input.loading.num_pump > 1:
             ## pump 2 ----------------------------------------------------
-            timeStart2_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
-            end_bp2_ = pump_.get('BP2', 0.)
-            
-            if eduction_stage_ == d__+1:
-                timeEnd2_ = timeStart2_ + ballast_time_
-            else:
-                timeEnd2_ = timeEnd_
-            
-            time_ = min(timeEnd2_, end_bp2_) - timeStart2_
-            amt_ = deballast_/self.input.loading.num_pump* time_/60.
-            
-            
-            ## patch empty slots
-            if len(out['ballast']['BP2']) > 0:
-                pre_ = int(out['ballast']['BP2'][-1]['timeEnd'])
+                timeStart2_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
+                end_bp2_ = pump_.get('BP2', 0.)
                 
-                if pre_ < timeStart2_:
-                    info_ = {'timeStart': str(pre_), 'timeEnd': str(timeStart2_),
+                if eduction_stage_ == d__+1:
+                    timeEnd2_ = timeStart2_ + ballast_time_
+                else:
+                    timeEnd2_ = timeEnd_
+                
+                time_ = min(timeEnd2_, end_bp2_) - timeStart2_
+                amt_ = deballast_/self.input.loading.num_pump* time_/60.
+                
+                
+                ## patch empty slots
+                if len(out['ballast']['BP2']) > 0:
+                    pre_ = int(out['ballast']['BP2'][-1]['timeEnd'])
+                    
+                    if pre_ < timeStart2_:
+                        info_ = {'timeStart': str(pre_), 'timeEnd': str(timeStart2_),
+                                 "rateM3_Hr": str("0.00"),
+                                 "quantityM3": str(0)}
+                        if info_ not in out['ballast']['BP2']:
+                            out['ballast']['BP2'].append(info_)
+                    
+                
+                
+                if time_ > 0.:
+                    info_ = {'timeStart': str(timeStart2_), 'timeEnd': str(timeEnd2_),
+                             "rateM3_Hr": str(round(deballast_/self.input.loading.num_pump,2)),
+                             "quantityM3": str(round(amt_))}
+                else:
+                    info_ = {'timeStart': str(timeStart_), 'timeEnd': str(timeEnd_),
                              "rateM3_Hr": str("0.00"),
                              "quantityM3": str(0)}
-                    if info_ not in out['ballast']['BP2']:
-                        out['ballast']['BP2'].append(info_)
-                
-            
-            
-            if time_ > 0.:
-                info_ = {'timeStart': str(timeStart2_), 'timeEnd': str(timeEnd2_),
-                         "rateM3_Hr": str(round(deballast_/self.input.loading.num_pump,2)),
-                         "quantityM3": str(round(amt_))}
-            else:
-                info_ = {'timeStart': str(timeStart_), 'timeEnd': str(timeEnd_),
-                         "rateM3_Hr": str("0.00"),
-                         "quantityM3": str(0)}
-            
-            if info_ not in out['ballast']['BP2']:
-                out['ballast']['BP2'].append(info_)
-            
-            if timeEnd2_ < timeEnd_:
-                info_ = {'timeStart': str(timeEnd2_), 'timeEnd': str(timeEnd_),
-                         "rateM3_Hr": str("0.00"),
-                         "quantityM3": str(0)}
                 
                 if info_ not in out['ballast']['BP2']:
                     out['ballast']['BP2'].append(info_)
+                
+                if timeEnd2_ < timeEnd_:
+                    info_ = {'timeStart': str(timeEnd2_), 'timeEnd': str(timeEnd_),
+                             "rateM3_Hr": str("0.00"),
+                             "quantityM3": str(0)}
+                    
+                    if info_ not in out['ballast']['BP2']:
+                        out['ballast']['BP2'].append(info_)
             
             timeStart_ = timeEnd_
             
-        ## 
+        ## change ballast name to ballastId
         if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
             bp1_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP1']['pumpId']
             out['ballast'][bp1_] = out['ballast'].pop('BP1')
