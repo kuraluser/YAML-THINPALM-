@@ -66,11 +66,11 @@ def loading(data: dict) -> dict:
     out = gen_output.gen_json1({}, plan_check.stability_values)
     
     # ## Valve
-    # valve_params = Generate_valves(params, out, gen_output) ## get parameters for valve module
-    # valve_params.prepOperation()
-    # valve_out = valve_params.integrateValves()
-    #
-    return out
+    valve_params = Generate_valves(params, out, gen_output) ## get parameters for valve module
+    valve_params.prepOperation()
+    valve_out = valve_params.integrateValves()
+
+    return valve_out
 
 def loadicator1(data, limits):
     

@@ -50,7 +50,7 @@ class Generate_valves:
         self.timeSwitch = {}  # change dataframe
         ## Tanks
         self.ballastTanks = {}  # at each timing what tanks are being used change dataframe
-        self.eductionTanks = input_param.loading.info['eduction']  # Tanks to be educted
+        self.eductionTanks = {c:[] for c in self.cargo}  # Tanks to be educted
         self.ballastValvesMap = {}  # mapping of ballast tank and main valve
         allBallastPumps = {**input_param.vessel.info['vesselPumps']['ballastPump'],
                            **input_param.vessel.info['vesselPumps']['ballastEductor']}
@@ -78,6 +78,7 @@ class Generate_valves:
         """Extract and reformat data required from output to generate valves"""
         self.getToppingSequence('topping')
         self.getBallastTanks('deballasting')  # only has gravity/pump data
+        self.getBallastTanks('ballasting')
         self.getDeballastTiming('loadingAtMaxRate')
         return
 
@@ -213,16 +214,12 @@ class Generate_valves:
             ballast_valves = {}
             # Get correct valves based on loading plan
 
-            # 1) with gravity or not
-            if self.gravityAllowed[cargo]:  # no BWTS and is first loading port
-                deballast_config = self.valve_config['deballasting']['gravity']
-            else:
-                deballast_config = self.valve_config['deballasting']['nogravity']
-
-            # 2) with eduction or not
-            if len(self.eductionTanks) == 0:
-                del deballast_config['loadingAtMaxRate']['seaTosea']
-                del deballast_config['loadingAtMaxRate']['strippingByEductor']
+            deballast_config = {}
+            isGravity = 'gravity' if self.gravityAllowed[cargo] else 'nogravity' # 1) with gravity or not
+            excludeEductor = ['seaTosea', 'strippingByEductor'] if (len(self.eductionTanks[cargo]) == 0) else [] # 2) with eduction or not
+            for process, item in self.valve_config['deballasting'][isGravity].items():
+                if process not in excludeEductor:
+                    deballast_config[process] = item
 
             # Loop through each stage in loading process and get required valve process
             for stage, info in deballast_config.items():
@@ -253,8 +250,8 @@ class Generate_valves:
 
                                 elif valveType.startswith('STRIPPER SUCTION'):  # Tank stripping valve
                                     name = self.nameTankValve(valveType)
-                                    valves = self.getTankValves(self.eductionTanks, raw_valves[step],
-                                                                'STRIPPER SUCTION', name)
+                                    valves = self.getTankValves(self.eductionTanks[cargo], raw_valves[step],
+                                                                'STRIPPER SUCTION VALVE', name)
                                     # self.updateValveStatus(valves, name)
                                     allsteps += valves
 
@@ -278,7 +275,8 @@ class Generate_valves:
         self.deballast_valves = final_valves
 
         # Additional pump closing before eduction if more than 1 ballast pump used
-        if len(self.ballastPumps['pump']) >= 2:  # Assumption close 2nd pumps if theres 2 pumps
+        pumpCount = len([i for i in self.ballastPumps['pump'] if i != 'Gravity'])
+        if (pumpCount >=2) &  (len(self.eductionTanks[cargo]) > 0):  # Assumption close 2nd pumps if theres 2 pumps
             ballastPumps = [i for i in self.ballastPumps['pump'] if
                             (i not in self.eductionEquipment) & (i != 'Gravity')]
             if len(ballastPumps) == 0:
@@ -324,7 +322,7 @@ class Generate_valves:
                     pump = self.ballastPumps['pump'][-1]  # get one of the pump, assume pump same time if > 1
                     pumpTime = int(self.timeSwitch[cargo][pump]['start'])
                     stage_timeline[pumpTime] = {'cargo': [], 'ballast': []}
-                    if (len(self.eductionTanks) > 0) & (cargo == self.cargo[-1]):
+                    if (len(self.eductionTanks[cargo]) > 0) & (cargo == self.cargo[-1]):
                         eductorTime = int(self.timeSwitch[cargo]['eduction']['start'])
                         stage_timeline[eductorTime] = {'cargo': [], 'ballast': []}
                         shutTime = int(self.timeSwitch[cargo]['eduction']['end'])
@@ -344,7 +342,7 @@ class Generate_valves:
 
                     # Ballast Pump -> Eductor: Eductor and Sea to Sea sequence 3hours before stage end
                     # Ballast Shutting: shutting sequence 1hr before stage end
-                    if (len(self.eductionTanks) > 0) & (cargo == self.cargo[-1]):
+                    if (len(self.eductionTanks[cargo]) > 0) & (cargo == self.cargo[-1]):
                         stage_timeline[eductorTime]['ballast'] += self.deballast_valves[cargo][stage]['seaToSea']
                         stage_timeline[eductorTime]['ballast'] += self.deballast_valves[cargo][stage][
                             'strippingByEductor']
@@ -392,15 +390,37 @@ class Generate_valves:
                     for time, actions in self.ballastTanks[cargo]['deballasting'][stage].items():
                         valves_arr = []
                         for tank in actions['open']:
-                            ballastTankValves = {k: v for k, v in self.ballastValvesMap[tank].items() if
-                                                 k != 'operation'}
-                            ballastTankValves['operation'] = 'open'
-                            valves_arr += [ballastTankValves]
+                            if tank in self.ballastValvesMap:  # Check for ballast tanks not in ballast system
+                                ballastTankValves = {k: v for k, v in self.ballastValvesMap[tank].items() if
+                                                     k != 'operation'}
+                                ballastTankValves['operation'] = 'open'
+                                valves_arr += [ballastTankValves]
                         for tank in actions['close']:
-                            ballastTankValves = {k: v for k, v in self.ballastValvesMap[tank].items() if
-                                                 k != 'operation'}
-                            ballastTankValves['operation'] = 'close'
-                            valves_arr += [ballastTankValves]
+                            if tank in self.ballastValvesMap:
+                                ballastTankValves = {k: v for k, v in self.ballastValvesMap[tank].items() if
+                                                     k != 'operation'}
+                                ballastTankValves['operation'] = 'close'
+                                valves_arr += [ballastTankValves]
+                        if time not in stage_timeline:
+                            stage_timeline[time] = {'cargo': [], 'ballast': []}
+                        if len(valves_arr) > 0:
+                            stage_timeline[time]['ballast'] += valves_arr
+
+                if stage in self.ballastTanks[cargo]['ballasting']:
+                    for time, actions in self.ballastTanks[cargo]['ballasting'][stage].items():
+                        valves_arr = []
+                        for tank in actions['open']:
+                            if tank in self.ballastValvesMap:
+                                ballastTankValves = {k: v for k, v in self.ballastValvesMap[tank].items() if
+                                                     k != 'operation'}
+                                ballastTankValves['operation'] = 'open'
+                                valves_arr += [ballastTankValves]
+                        for tank in actions['close']:
+                            if tank in self.ballastValvesMap:
+                                ballastTankValves = {k: v for k, v in self.ballastValvesMap[tank].items() if
+                                                     k != 'operation'}
+                                ballastTankValves['operation'] = 'close'
+                                valves_arr += [ballastTankValves]
                         if time not in stage_timeline:
                             stage_timeline[time] = {'cargo': [], 'ballast': []}
                         if len(valves_arr) > 0:
@@ -551,7 +571,7 @@ class Generate_valves:
         return valves
 
     # TODO: input.loading.info-> tanksto ballast/tanksto deballast?
-    def getBallastTanks(self, operation='deballasting'):
+    def getBallastTanks(self, operation):
         """Get Ballast tanks used at each stage and time.
             Certain ballast tanks may start deballasting at a later time,
             rather than right from the start"""
@@ -562,7 +582,11 @@ class Generate_valves:
             ballast_time = {}  # Tanks being used for ballasting at each timestamp
             deballast_time = {}
             if cargo in self.cargo:
+                if cargo not in self.ballastTanks:
+                    self.ballastTanks[cargo] = {}
                 prevDeballastTank = []
+                startTime = -100 # initialise
+                endTime = -100
                 for stages in e['sequence'][1:]:  # First stage omitted, arrival condition
                     stageName = stages['stage']
                     # Tanks used for deballasting
@@ -575,7 +599,7 @@ class Generate_valves:
                                 endTime = int(list(substages.values())[0]["timeEnd"])
                                 deballast_time[stageName][startTime] = {'close': [], 'open': []}
                                 deballast_time[stageName][endTime] = {'close': [], 'open': []}
-                            tanks = [info['tankName'] for i, info in substages.items()]  # Current stage opened tanks
+                            tanks = [info['tankShortName'] for i, info in substages.items()]  # Current stage opened tanks
                             # print(prevDeballastTank) #[2P, 3P, 4P, 4S, 5S]
                             # print(tanks)#[2S, 3P, 4P, 4S, 5S]
                             # Close tanks in previous stages but not in current stages
@@ -589,17 +613,15 @@ class Generate_valves:
                             for tank in tanksToBeOpened:
                                 deballast_time[stageName][startTime]['open'].append(tank)
                                 prevDeballastTank.append(tank)
-                            # print(tanksToBeClosed, tanksToBeOpened)
                             if len(substages) > 0:
                                 prevEndTime = endTime
-                            # prevDeballastTank = tanks
+
                 # Close last set of tanks opened at the stage
                 lastStageName = list(deballast_time.keys())[-1]
-                if len(deballast_time[lastStageName][endTime]['close']) == 0:
-                    # tanks = deballast_time[lastStageName][startTime]['open']
-                    deballast_time[lastStageName][endTime]['close'] = prevDeballastTank
-            result[cargo] = {operation: deballast_time}
-        self.ballastTanks = result
+                if endTime > 0:
+                    if len(deballast_time[lastStageName][endTime]['close']) == 0:
+                        deballast_time[lastStageName][endTime]['close'] = prevDeballastTank
+            self.ballastTanks[cargo][operation] = deballast_time
         return
 
     def getToppingSequence(self, stage='topping'):
@@ -619,7 +641,7 @@ class Generate_valves:
                         for substages in stages['simCargoLoadingRatePerTankM3_Hr']:
                             for tankId, tanks in substages.items():
                                 time = int(tanks['timeEnd'])
-                                tankName = tanks['tankName']
+                                tankName = tanks['tankShortName']
                                 tank_endTime.append({'time': time, 'tank': tankName})
 
             # Sort tanks according to first to end to last
@@ -642,42 +664,43 @@ class Generate_valves:
                 self.timeSwitch[cargo] = {}
                 for stages in e['sequence'][1:]:  # First stage omitted, arrival condition
                     # Gravity, Pumps
-                    # Find name of pump
                     for equipment, info in stages['ballast'].items():
                         # map pump id to pump name if available
-                        pumpName = self.ballastPumpMap[str(equipment)] if str(
-                            equipment) in self.ballastPumpMap else str(equipment)
+                        if len(info) > 0:
+                            pumpName = self.ballastPumpMap[str(equipment)] if str(
+                                equipment) in self.ballastPumpMap else str(equipment)
 
-                        if pumpName not in self.ballastPumps['pump']:
-                            self.ballastPumps['pump'].append(pumpName)
-                        if pumpName == 'Gravity':
-                            self.gravityAllowed[cargo] = True
-                        # if pumpName != equipment:  # save ballast pumps being used
-                        #     if pumpName[0] not in self.ballastPumps['pump']:
-                        #         self.ballastPumps['pump'].append(pumpName)
-                        # else:  # If pump not in pump data(gravity), then use equipment name given in output
-                        #     self.ballastPumps['pump'].append(pumpName)
+                            if pumpName not in self.ballastPumps['pump']:
+                                self.ballastPumps['pump'].append(pumpName)
+                            if pumpName == 'Gravity':
+                                self.gravityAllowed[cargo] = True
+                            # if pumpName != equipment:  # save ballast pumps being used
+                            #     if pumpName[0] not in self.ballastPumps['pump']:
+                            #         self.ballastPumps['pump'].append(pumpName)
+                            # else:  # If pump not in pump data(gravity), then use equipment name given in output
+                            #     self.ballastPumps['pump'].append(pumpName)
 
-                        # Get gravity and pump timings
-                        for substage in info:
-                            start = float(substage['timeStart'])
-                            end = float(substage['timeEnd'])
-                            if float(substage['rateM3_Hr']) > 0.001:  # if theres deballasting
-                                if pumpName not in self.timeSwitch[cargo]:
-                                    self.timeSwitch[cargo][pumpName] = {}
-                                if 'start' not in self.timeSwitch[cargo][pumpName]:  # First gravity/pump operation
-                                    self.timeSwitch[cargo][pumpName]['start'] = start
-                                    self.timeSwitch[cargo][pumpName]['end'] = end
-                                else:  # last/subsequent gravity operation, update end time if theres a later end time
-                                    prevEnd = self.timeSwitch[cargo][pumpName]['end']
-                                    if prevEnd < end:
+                            # Get gravity and pump timings
+                            for substage in info:
+                                start = float(substage['timeStart'])
+                                end = float(substage['timeEnd'])
+                                if float(substage['rateM3_Hr']) > 0.001:  # if theres deballasting
+                                    if pumpName not in self.timeSwitch[cargo]:
+                                        self.timeSwitch[cargo][pumpName] = {}
+                                    if 'start' not in self.timeSwitch[cargo][pumpName]:  # First gravity/pump operation
+                                        self.timeSwitch[cargo][pumpName]['start'] = start
                                         self.timeSwitch[cargo][pumpName]['end'] = end
+                                    else:  # last/subsequent gravity operation, update end time if theres a later end time
+                                        prevEnd = self.timeSwitch[cargo][pumpName]['end']
+                                        if prevEnd < end:
+                                            self.timeSwitch[cargo][pumpName]['end'] = end
 
+                    # Eductor
                     if len(stages['eduction']) > 0:
                         self.timeSwitch[cargo]['eduction'] = {}
                         self.timeSwitch[cargo]['eduction']['start'] = stages['eduction']['timeStart']
                         self.timeSwitch[cargo]['eduction']['end'] = stages['eduction']['timeEnd']
-                        self.eductionTanks = stages['eduction']['tank']
+                        self.eductionTanks[cargo] = list(stages['eduction']['tank'].values())
                         if len(stages['eduction']['pumpSelected']) == 0:
                             self.ballastPumps['eductor'].append('Ballast Eductor 1')
                             eductorUsed = ["1"]

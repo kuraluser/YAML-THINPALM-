@@ -61,10 +61,10 @@ fname = 'loading_commingle_first_port.json'
 
 # fname = 'loading_information_100000057.json' # commingle
 
-# fname = 'loading_information_request_100000057.json'
+fname = '../samples/100000270request1.json'
 
 # fname = 'AP18.json'
-fname = '100000270request1.json'
+# fname = '100000270request1.json'
 
 ## to be modified in main.py --------------------------------------------
 data = {}
