@@ -24,9 +24,6 @@
     }
   },
   "deballasting": {
-    "timing": {
-      "eductionEnd": 60
-    },
     "gravity": {
       "initialCondition": {},
       "openSingleTank": {
@@ -120,7 +117,8 @@
       "eductorValves": {
         "1": ["BPV18", "BPV16", "BPV17", "BP1"],
         "2": ["BPV28", "BPV26", "BPV27", "BP2"]
-      }
+      },
+      "notballastTanks": ["AWBP", "AWBS", "APT"]
     }
   }
 }
