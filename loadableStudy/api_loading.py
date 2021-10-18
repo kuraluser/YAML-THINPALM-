@@ -32,24 +32,30 @@ def loading(data: dict) -> dict:
     params.write_ampl(IIS = False)
     
     # input("Press Enter to continue...")
-    # collect plan from AMPL
-    done_ = False 
-    time_left_eduction = 0
-    while not done_:
-        gen_output = Generate_plan(params)
-        gen_output.IIS = False if time_left_eduction < 30 else True
-        gen_output.run(num_plans=1)
-        
-        if time_left_eduction <= 20 and len(gen_output.plans['ship_status']) == 0:
-            time_left_eduction += 10
-            IIS = False if time_left_eduction < 30 else True
-            print('time_left_eduction:', time_left_eduction)
-            params.loading._get_ballast_requirements(time_left_eduction = time_left_eduction)
-            params.get_param()
-            params.write_ampl(IIS = IIS)
+    if not params.error:
+        # collect plan from AMPL
+        done_ = False 
+        time_left_eduction = 0
+        while not done_:
+            gen_output = Generate_plan(params)
+            gen_output.IIS = False if time_left_eduction < 30 else True
+            gen_output.run(num_plans=1)
             
-        else:
-            done_ = True
+            if time_left_eduction <= 20 and len(gen_output.plans['ship_status']) == 0:
+                time_left_eduction += 10
+                IIS = False if time_left_eduction < 30 else True
+                print('time_left_eduction:', time_left_eduction)
+                params.loading._get_ballast_requirements(time_left_eduction = time_left_eduction)
+                params.get_param()
+                params.write_ampl(IIS = IIS)
+                
+            else:
+                done_ = True
+                
+    else:
+        gen_output = Generate_plan(params)
+        gen_output.run(num_plans=1)
+            
     
     #with open('result.pickle', 'wb') as fp_:
     #    pickle.dump(gen_output, fp_)  
