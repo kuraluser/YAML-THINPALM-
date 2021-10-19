@@ -277,7 +277,7 @@ class Process_input(object):
                             self.loadable['ballastOperation'][k_][str(port_)] = v_[0]['quantityMT']
                         
                 if not last_cargo_ and d_ in [self.loading.seq[c_]['justBeforeTopping'] + str(c__+1)]:
-                    a_, b_ = min(max_trim_, top_trim_), 0.1
+                    a_, b_ = min(max_trim_, top_trim_), 0.05
                     print(d_,'justBeforeTopping trim -- constraint:', b_, a_)
                     self.trim_upper[str(port_)] = a_
                     self.trim_lower[str(port_)] = b_
@@ -728,7 +728,7 @@ class Process_input(object):
                 str1 = 'param minBallastAmt := '
                 for i_, j_ in self.vessel.info['ullage30cm'].items():
                     if i_ not in  self.vessel.info['banBallast']:
-                        str1 += i_ + ' ' + "{:.3f}".format(j_) + ' '
+                        str1 += i_ + ' ' + "{:.2f}".format(j_-0.1) + ' '
                       
                 print(str1+';', file=text_file)
                 

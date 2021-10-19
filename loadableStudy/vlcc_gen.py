@@ -32,18 +32,30 @@ CONS = {'Condition01z': 'Min tolerance constraints violated!!',
         'Condition21b': 'BM lower bound issue!!',
         'Condition21c': 'BM upper bound issue!!',
         'Condition111': "Load all cargo issue!!",
-        'Condition115': "Deballast limitation issue!!"
+        'Condition115': "Deballast limitation issue!!",
+        'Condition112g1': "SLP has to be used issue!!",
+        'Condition112g2': "SLS has to be used issue!!"
+        
         }
 
-FIXCONS = ['Condition0', 'Condition01', 'Condition03', 'Condition041', 'Condition052', 'Condition06', 'condition22',
+FIXCONS = ['Condition0', 'Condition01', 'Condition03', 
+           'Condition04', 'Condition05',
+           'Condition041', 'Condition050', 'Condition050a', 
+           'Condition050b', 'Condition050b1',
+           'Condition050c', 'Condition050c1',
+           'Condition052', 'Condition06', 'condition22',
            'condition23', 'condition23a', 'condition23b',
            'condition24', 'condition24a', 'condition25', 'condition27',
+           'Constr5a',
            'Constr8', 'Constr11', 'Constr12a1',
            'Condition112a', 'Condition112b', 'Condition112c1', 'Condition112c2', 'Condition112c3',
            'Condition112a1', 'Condition112a2',
            'Condition112b1', 'Condition112b2',
+           'Condition112f', 
+           'Condition112g1', 'Condition112g2', 
            'Condition113d1', 'Condition113d2', 'Condition113d3',
            'Condition114a1', 'Condition114a2', 'Condition114a3',
+           "Condition114b", "Condition114c", "Condition114d2",
            'Condition114e1', 'Condition114e2', 'Condition114e3', 'Condition114e4', 'Condition114e5', 'Condition114e6',
            'Condition114f1',
            'Constr17a', 'Constr13c1', 'Constr13c2',
@@ -1831,6 +1843,7 @@ class Generate_plan:
         elif category == 'dTotal':
              if len(self.plans['cargo_status'][sol]) > 0:
                  
+                slop_qty_ = {} 
                 if virtual_ in ['0']:
                     data_ = {}
                     
@@ -1839,9 +1852,25 @@ class Generate_plan:
                         for k1_, v1_ in v_.items():
                             data_[k_]  += v1_
                             
+                            if k1_ in ['SLS', 'SLP']:
+                                if k_ not in slop_qty_.keys():
+                                    slop_qty_[k_] = v1_
+                                else:
+                                    slop_qty_[k_] += v1_
+                            
+                            
                     self.plans['cargo_status'][sol][virtual_] = data_
-                    
                 
+                else:
+                    for k_, v_ in self.plans['ship_status'][sol][virtual_]['cargo'].items(): 
+                        if k_ in ['SLS', 'SLP']:
+                            if v_[0]['parcel'] not in slop_qty_.keys():
+                                slop_qty_[v_[0]['parcel']] = v_[0]['wt']
+                            else:
+                                slop_qty_[v_[0]['parcel']] += v_[0]['wt']
+                        
+                    
+                # print(virtual_, self.plans['cargo_status'][sol][virtual_])
             
                 for k_, v_ in self.plans['cargo_status'][sol][virtual_].items():
                     #print(k_, v_)
@@ -1855,6 +1884,7 @@ class Generate_plan:
                     info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])
                     
                     info_['dischargeMT'] = str(0.0)
+                    disch_ = 0
                     if virtual_ not in ['0']:
                         pre_ = str(int(virtual_)-1)
                         disch_ = self.plans['cargo_status'][sol][pre_][k_] - v_
@@ -1863,8 +1893,10 @@ class Generate_plan:
                     info_['priority'] = int(self.input.loadable.info['parcel'][k_]['priority'])
                     info_['colorCode'] = self.input.loadable.info['parcel'][k_]['color']
                     
-                    info_['dischargingRate'] = None
-                    info_['timeRequiredForDischarging'] = None
+                    info_['slopQuantity'] = str(round(slop_qty_.get(k_, 0.0),1))
+                    
+                    info_['dischargingRate'] = str(10000)
+                    info_['timeRequiredForDischarging'] = str(round(disch_/10000,1))
                     info_['cowDetails'] = []
                         
                     

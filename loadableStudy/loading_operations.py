@@ -133,7 +133,8 @@ class LoadingOperations(object):
                 order_ += 1
                         
         cargo_info_['timing_delay1'] = [0 for d_ in range(len(cargo_info_['loading_order1']))]
-        # cumsum
+        # cumsum  60: initial delay, 120: cargo 1, 180: cargo 2
+        # cargo_info_['timing_delay1'] = [180, 180]
         for d_ in data.loading_info_json['loadingSequences']['loadingDelays']:
             if d_['cargoNominationId'] in [0]:
                 cargo_info_['timing_delay1'][0] +=  d_['duration']
@@ -141,7 +142,7 @@ class LoadingOperations(object):
                 o_ = cargo_info_['loading_order1']['P'+str(d_['cargoNominationId'])]-1
                 cargo_info_['timing_delay1'][o_] += d_['duration']
                 
-                       
+        # cargo_info_['loading_order1'] = {'P17338': 1, 'P17339': 2}               
             
         
         # add plans -------------------------------------------------------------------------
@@ -167,6 +168,8 @@ class LoadingOperations(object):
                 cargo_info_['timing_delay'][v_-1] = cargo_info_['timing_delay1'][v_-1]
         
         # remove -1; info only for current loading in this port
+        # cargo_info_['loading_order'] = ['P17338', 'P17339']
+        # cargo_info_['timing_delay'] = cargo_info_['timing_delay1']
         cargo_info_['loading_order'] = [d_ for d_ in cargo_info_['loading_order'] if d_ not in [-1]]
         cargo_info_['timing_delay'] = [d_ for d_ in cargo_info_['timing_delay'] if d_ not in [-1]]
         
@@ -533,6 +536,7 @@ class LoadingOperations(object):
             self.commingle_loading1 = True if False in empty_ else False # at cargo level
                         
             # open first tank ---------------------------------
+            preload_one_tank_ = False
             first_tank__ = [t_ for t_ in OPEN_TANKS if t_ in self.info['cargo_tank'][cargo_to_load_]] ### fixed
             first_tank_, t_ = False, 0
             while not first_tank_:
@@ -540,9 +544,15 @@ class LoadingOperations(object):
                 if df_['Initial'][tank_] in [None]: # incase the tank is preloaded
                     first_tank_ = tank_
                     break
+                elif t_+1 == len(first_tank__):
+                    print('all tanks are preloaded')
+                    first_tank_ = tank_
+                    preload_one_tank_ = True
+                    break
                 t_ += 1
                 
             # first_tank_ = first_tank__[0]
+            print('preload_one_tank_', preload_one_tank_)
             
             self.seq[cargo_to_load_]['firstTank'] = first_tank_     
             # copy self.load_param
@@ -560,20 +570,25 @@ class LoadingOperations(object):
             print('initial rate: ', loading_rate_, first_tank_) # m3/hr
             self.seq[cargo_to_load_]['initialRate'] = loading_rate_     
             
-            # Open one tank
+            # Open one tank 
             df_['Open'] =  df_['Initial']  
             df_['Open']['Time'] = 5
             
             stages_['openSingleTank'] = (df_['Initial']['Time'], df_['Open']['Time'])
-            # Initial rate - fill first tank
+            # Initial rate - fill first tank -------------------------------------------
             df_['InitialRate'] =  df_['Initial']
             df_['InitialRate']['Time'] = 15
-            df_['InitialRate'][first_tank_] = (cargo_to_load_, loading_rate_/6) # P111, vol
+            
+            
+            if preload_one_tank_:
+                df_['InitialRate'][first_tank_] += (cargo_to_load_, loading_rate_/6) # P111, vol
+            else:
+                df_['InitialRate'][first_tank_] = (cargo_to_load_, loading_rate_/6) # P111, vol
             
             stages_['initialRate'] = (df_['Open']['Time'], df_['InitialRate']['Time'])
             
             
-            # open all empty tanks 
+            # open all empty tanks ----------------------------------------------------
             df_['OpenAll'] =  df_['Initial']
             df_['OpenAll']['Time'] = 20 # end time
             
@@ -582,27 +597,37 @@ class LoadingOperations(object):
             total_tank_ = 0
             for t_ in self.info['cargo_tank'][cargo_to_load_]:
                 if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
-                    continue # not counting commingle tank
+                    continue # not counting commingle tank unless numTanktoLoad = 1
                 
                 if 'W' not in t_:
                     total_tank_ += 1
                 else:
                     total_tank_ += 2
+                    
+            if preload_one_tank_:
+                total_tank_ = 1 # only one tank                
             
             cargo_loaded_ = loading_rate_/4
             cargo_loaded_per_tank_ = cargo_loaded_/total_tank_
             # should have used same ullage but used uniform volume instead
-            for t_ in self.info['cargo_tank'][cargo_to_load_]:
+            
+            if preload_one_tank_:
                 
-                if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
-                    continue # not counting commingle tank
+                df_['OpenAll'][first_tank_] += (cargo_to_load_, cargo_loaded_per_tank_)
                 
-                if t_[-1] == 'C' or t_ in ['SLS','SLP']:
-                    df_['OpenAll'][t_] = (cargo_to_load_, cargo_loaded_per_tank_)
-                else:
-                    df_['OpenAll'][t_] = (cargo_to_load_, 2*cargo_loaded_per_tank_)
+            else:
+                            
+                for t_ in self.info['cargo_tank'][cargo_to_load_]:
                     
-            # increase to max rate
+                    if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
+                        continue # not counting commingle tank
+                    
+                    if t_[-1] == 'C' or t_ in ['SLS','SLP']:
+                        df_['OpenAll'][t_] = (cargo_to_load_, cargo_loaded_per_tank_)
+                    else:
+                        df_['OpenAll'][t_] = (cargo_to_load_, 2*cargo_loaded_per_tank_)
+                    
+            # increase to max rate ----------------------------------------------------------------
             df_['IncMax'] =  df_['Initial']
             df_['IncMax']['Time'] = 30 # end time
             
@@ -614,18 +639,26 @@ class LoadingOperations(object):
             df_inc_max_ = pd.DataFrame(index=INDEX[1:])
             df_inc_max_['IncMax'] = 0.
             
-            for t_ in self.info['cargo_tank'][cargo_to_load_]:
-                if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
-                    continue # not counting commingle tank
+            if preload_one_tank_:
                 
-                if t_[-1] == 'C' or t_ in ['SLS','SLP']:
-                    df_['IncMax'][t_] = (cargo_to_load_, cargo_loaded_per_tank_)
-                    df_inc_max_['IncMax'][t_] = cargo_loaded_per_tank_
-                else:
-                    df_['IncMax'][t_] = (cargo_to_load_, 2*cargo_loaded_per_tank_)
-                    df_inc_max_['IncMax'][t_] = 2*cargo_loaded_per_tank_
-                    
+                df_['IncMax'][first_tank_] += (cargo_to_load_, cargo_loaded_per_tank_)
+                df_inc_max_['IncMax'][first_tank_] = cargo_loaded_per_tank_
+
+            else:
             
+                for t_ in self.info['cargo_tank'][cargo_to_load_]:
+                    if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
+                        continue # not counting commingle tank
+                    
+                    if t_[-1] == 'C' or t_ in ['SLS','SLP']:
+                        df_['IncMax'][t_] = (cargo_to_load_, cargo_loaded_per_tank_)
+                        df_inc_max_['IncMax'][t_] = cargo_loaded_per_tank_
+                    else:
+                        df_['IncMax'][t_] = (cargo_to_load_, 2*cargo_loaded_per_tank_)
+                        df_inc_max_['IncMax'][t_] = 2*cargo_loaded_per_tank_
+                        
+            
+            ## backward calculation ------------------------------------------------------------------------
             # staggering rate  ## fixed
             # param_ = {'maxShoreRate': 11129, 
             #          'wingTank': 7900,
@@ -695,28 +728,40 @@ class LoadingOperations(object):
             commingle_start_ = None
             if self.commingle_loading1:
                 commingle_tank_ = self.info['commingle']['tankName']
-                initial_vol_ = df_['Initial'][commingle_tank_][1] # stick to the original density and not commingle density
-                capacity_ = self.vessel.info['cargoTanks'][commingle_tank_]['capacityCubm']
-                ratio_ = initial_vol_/capacity_ 
+                
+                if preload_one_tank_:
+                    ratio_ = 0
+                else:
+                    initial_vol_ = df_['Initial'][commingle_tank_][1] # stick to the original density and not commingle density
+                    capacity_ = self.vessel.info['cargoTanks'][commingle_tank_]['capacityCubm']
+                    ratio_ = initial_vol_/capacity_ 
                 
                 add_vol_ = staggering_rate_['AmtBefTop'][commingle_tank_]
                 
                 total_vol1_ = staggering_rate_['AmtBefTop'].sum() - df_inc_max_['IncMax'].sum()
                 total_vol2_ = total_vol1_ - add_vol_ # - commingle vol
                 
-                first_half_ = ratio_*total_vol2_/param_['maxShoreRate']*60 # min
+                if preload_one_tank_:
+                    first_half_ = 0
+                    commingle_start_ = int(5)
+                
+                else:
+                    first_half_ = ratio_*total_vol2_/param_['maxShoreRate']*60 # min
+                    commingle_start_ = int(first_half_ + 30)
+                
+                
                 second_half_ = ((1-ratio_)*total_vol2_ + add_vol_)/param_['maxShoreRate']*60 
                 time_taken_ = first_half_ + second_half_
                 
-                commingle_start_ = int(first_half_ + 30)
                 
-                staggering_rate_['LoadingRateM3Min1'] = ratio_*(staggering_rate_['AmtBefTop'] - df_inc_max_['IncMax'])/first_half_
+                
+                staggering_rate_['LoadingRateM3Min1'] = ratio_*(staggering_rate_['AmtBefTop'] - df_inc_max_['IncMax'])/max(0.0001,first_half_)
                 staggering_rate_['LoadingRateM3Min1'][commingle_tank_] = np.nan
                 
                 staggering_rate_['LoadingRateM3Min2'] = (1-ratio_)*(staggering_rate_['AmtBefTop'] - df_inc_max_['IncMax'])/second_half_
                 staggering_rate_['LoadingRateM3Min2'][commingle_tank_] = add_vol_/second_half_
                 
-                print('comminglePartition:', first_half_, second_half_)
+                print('comminglePartition:', round(first_half_), round(second_half_))
                 
             else:
                 time_taken_ =  (staggering_rate_['AmtBefTop'].sum() - df_inc_max_['IncMax'].sum())/param_['maxShoreRate']*60 # min
@@ -762,7 +807,7 @@ class LoadingOperations(object):
                                 vol2_ = (time_ - first_half_ - 30) * staggering_rate_['LoadingRateM3Min2'][t_]
                                 
                             if t_ == self.info['commingle']['tankName']:
-                                preloaded_ = df_[ss_][t_]
+                                preloaded_ = df_[ss_][t_][:2]
                                 df_[ss_][t_] = preloaded_ + (cargo_to_load_, vol2_)
                                 
                             else:
@@ -796,7 +841,7 @@ class LoadingOperations(object):
                             vol2_ = (time_ - first_half_ - 30) * staggering_rate_['LoadingRateM3Min2'][t_]
                             
                         if t_ == self.info['commingle']['tankName']:
-                            preloaded_ = df_[ss_][t_]
+                            preloaded_ = df_[ss_][t_][:2]
                             df_[ss_][t_] = preloaded_ + (cargo_to_load_, vol2_)
                             
                         else:
