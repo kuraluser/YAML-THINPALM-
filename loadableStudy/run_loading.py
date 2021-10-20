@@ -88,5 +88,5 @@ if __name__ == "__main__":
 
     result = gen_sequence(data)
     
-    with open('result.json2', 'w') as f_:
+    with open('result.json', 'w') as f_:
         json.dump(result, f_)
