@@ -72,17 +72,19 @@ def loading(data: dict) -> dict:
     out = gen_output.gen_json1({}, plan_check.stability_values)
 
     # Valve
-    if not params.error:
-       valve_params = Generate_valves(params, out, gen_output) ## get parameters for valve module
-       valve_params.prepOperation()
-       valve_out = valve_params.integrateValves()
-    else:
+    if params.error:
        print('Error while processing input. Skipping valve module.')
-       pass
+       return out
+    elif len(gen_output.plans.get('ship_status')) == 0:
+        print('Infeasible Solution. Skipping valve module.')
+        return out
+    else:
+        valve_params = Generate_valves(params, out, gen_output)  ## get parameters for valve module
+        valve_params.prepOperation()
+        valve_out = valve_params.integrateValves()
+        return valve_out
 
-    return valve_out
 
-    # return out
 
 
 def loadicator1(data, limits):
