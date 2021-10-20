@@ -99,6 +99,8 @@ class Process_input1(object):
         
         
         
+        self.full_discharge = True
+        
         # self._set_trim(trim_upper, trim_lower)
         ballast_ = sum([v_ for k_, v_ in self.vessel.info['initBallast']['wt'].items()])
         weight_ = sum([v1_ for k_, v_ in self.loadable.info['preloadOperation'].items() for k1_, v1_ in v_.items()])
@@ -128,6 +130,17 @@ class Process_input1(object):
 #            # get estimate cargo weight
             cargo_weight_  = weight_ + self.loadable.info['toDischargePort'][p_] 
 #            print(str(port_)+arr_dep_, cargo_weight_)
+    
+
+
+            if p_ == self.loadable.info['lastVirtualPort'] and cargo_weight_ > 100:
+                # last port dep
+                self.full_discharge = False
+                self.trim_lower[str(self.loadable.info['lastVirtualPort'])] = - 1e-4
+                self.trim_upper[str(self.loadable.info['lastVirtualPort'])] = 1e-4
+                
+                
+                
             
 ##            ballast_weight_ = 20000
             est_deadweight_ = min(cont_weight_ + misc_weight_ + cargo_weight_ + ballast_, max_deadweight_)
@@ -326,6 +339,12 @@ class Process_input1(object):
                 for k_ in range(1, self.loadable.info['lastVirtualPort']+1):
                     str1 += ' ' + str(k_)
                 print(str1+';', file=text_file)
+                
+                print('# NP1',file=text_file)#  
+                if not self.full_discharge:
+                    str1 = 'set NP1 := '  # to virtual ports
+                    print(str1+';', file=text_file)
+                
                 
     
                 print('# cargo density @ low temperature (in t/m3)',file=text_file)#  

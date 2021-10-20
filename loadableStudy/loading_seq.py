@@ -150,7 +150,7 @@ class Loading_seq:
             
         elif info['stage'] == 'openSingleTank':
             
-            pass
+            info['simCargoLoadingRatePerTankM3_Hr'] = [{}]
             
                 
             # c"deballastingRateM3_Hr"] = {}
@@ -518,7 +518,7 @@ class Loading_seq:
         elif info['stage'] == "topping":
             
             
-            
+            info['simDeballastingRateM3_Hr'] = [{}]
             info["cargoLoadingRatePerTankM3_Hr"] = []
             info["simCargoLoadingRatePerTankM3_Hr"] = []
             
