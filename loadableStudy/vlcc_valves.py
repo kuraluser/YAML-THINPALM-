@@ -108,8 +108,8 @@ class Generate_valves:
                 stage_idx = self.stages.index(stage)
                 stageTimeEnd = int(self.output["events"][cargo_idx]["sequence"][stage_idx]['timeEnd'])
                 for time, info in self.loading_timeline[cargo][stage].items():
-                    cargoValveInfoJson = {'time': 0, 'operation': '', 'valves': [], 'stage': []}
-                    ballastValveInfoJson = {'time': 0, 'operation': '', 'valves': [], 'stage': []}
+                    cargoValveInfoJson = {'time': "0", 'operation': '', 'valves': [], 'stage': []}
+                    ballastValveInfoJson = {'time': "0", 'operation': '', 'valves': [], 'stage': []}
                     # Cargo
                     for cvalve in info['cargo']:
                         # loop through all valves for particular time in stage
@@ -117,7 +117,7 @@ class Generate_valves:
                         if cvalve['operation'] != cargoValveInfoJson['operation']:
                             if len(cargoValveInfoJson['valves']) > 0:
                                 cargo_valves.append(cargoValveInfoJson.copy())
-                            cargoValveInfoJson = {'time': time, 'operation': cvalve['operation'],
+                            cargoValveInfoJson = {'time': str(time), 'operation': cvalve['operation'],
                                                     'valves': [cvalve['valve']], 'stage': [cvalve['stageNo']]}
                         else:
                             cargoValveInfoJson['valves'].append(cvalve['valve'])
@@ -130,7 +130,7 @@ class Generate_valves:
                         if ballastValveInfoJson['operation'] != bvalve['operation']:
                             if len(ballastValveInfoJson['valves']) > 0:
                                 ballast_valves.append(ballastValveInfoJson.copy())
-                            ballastValveInfoJson = {'time': time, 'operation': bvalve['operation'],
+                            ballastValveInfoJson = {'time': str(time), 'operation': bvalve['operation'],
                                                     'valves': [bvalve['valve']], 'stage': [bvalve['stageNo']]}
 
                         else:
