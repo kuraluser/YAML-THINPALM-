@@ -59,6 +59,7 @@ class Check_plans:
                                       'afterDraft': "{:.2f}".format(result['da']),
                                       'trim': "{:.2f}".format(0.00 if round(result['trim'],2) == 0 else result['trim']),
                                       'heel': None,
+                                      'gom': None,
                                       'airDraft': "{:.2f}".format(result['airDraft']),
                                       'freeboard':"{:.2f}".format(result['freeboard']),
                                       'manifoldHeight':"{:.2f}".format(result['manifoldHeight']),

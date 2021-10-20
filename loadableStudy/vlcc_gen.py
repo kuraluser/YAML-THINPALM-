@@ -633,6 +633,9 @@ class Generate_plan:
                                 density_ = self.input.loading._cal_density(round(api_,2), round(temp_,1))
                                 
                             vol_ = weight_/density_ 
+                            vol1_ = wt1_/density_ 
+                            vol2_ = wt2_/density_ 
+                            
                             
                             fillingRatio_ = round(vol_/capacity_,DEC_PLACE)
                             print(parcel1_,parcel2_, k1_, fillingRatio_, round(wt1_/(wt1_+wt2_),2), round(wt2_/(wt1_+wt2_),2), round(api_,2), round(temp_,1), density_, round(weight_,3))
@@ -664,6 +667,8 @@ class Generate_plan:
                             
                             tankId_ = self.input.vessel.info['tankName'][k1_]
                             corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
+                            corrUllage1_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol1_).tolist(), 6)
+                            corrUllage2_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol2_).tolist(), 6)
 
                                   
                             info_ = {'parcel':parcel_, 'wt': round(weight_,3), 'SG': round(density_,4),
@@ -674,7 +679,8 @@ class Generate_plan:
                                      'wt1percent':wt1_/(wt1_+wt2_), 'wt2percent':wt2_/(wt1_+wt2_),
                                      'corrUllage':corrUllage_,
                                      'maxTankVolume':capacity_,
-                                     'vol':vol_}
+                                     'vol':vol_, 'vol1':vol1_, 'vol2':vol2_,
+                                     'corrUllage1':corrUllage1_,'corrUllage2':corrUllage2_}
                             
                             # print(info_)
                             
@@ -1020,6 +1026,8 @@ class Generate_plan:
                     density_ = self.input.loading._cal_density(round(api_,2), round(temp_,1))
                         
                     vol_ = weight_/density_ 
+                    vol1_ = wt1_/density_
+                    vol2_ = wt2_/density_
                     
                     fillingRatio_ = round(vol_/capacity_,DEC_PLACE)
                     print(parcel1_,parcel2_, k1_, fillingRatio_, round(wt1_/(wt1_+wt2_),2), round(wt2_/(wt1_+wt2_),2), round(api_,2), round(temp_,1), density_, round(weight_,3))
@@ -1039,7 +1047,10 @@ class Generate_plan:
                     
                     tankId_ = self.input.vessel.info['tankName'][k1_]
                     corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
-
+                    
+                    corrUllage1_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol1_).tolist(), 6)
+                    corrUllage2_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol2_).tolist(), 6)
+                    
                           
                     info_ = {'parcel':parcel_, 'wt': round(weight_,3), 'SG': round(density_,4),
                              'fillRatio': fillingRatio_, 'tcg':tcg_,  'lcg':lcg_,
@@ -1049,7 +1060,8 @@ class Generate_plan:
                              'wt1percent':wt1_/(wt1_+wt2_), 'wt2percent':wt2_/(wt1_+wt2_),
                              'corrUllage':corrUllage_,
                              'maxTankVolume':capacity_,
-                             'vol':vol_}
+                             'vol':vol_, 'vol1':vol1_, 'vol2':vol2_, 
+                             'corrUllage1':corrUllage1_,'corrUllage2':corrUllage2_}
                     
                     self.initial_cargo_weight[k_] = [info_]
                     

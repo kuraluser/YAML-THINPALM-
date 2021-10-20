@@ -75,7 +75,7 @@ def loading(data: dict) -> dict:
     if params.error:
        print('Error while processing input. Skipping valve module.')
        return out
-    elif len(gen_output.plans.get('ship_status')) == 0:
+    elif len(gen_output.plans.get('ship_status', [])) == 0:
         print('Infeasible Solution. Skipping valve module.')
         return out
     else:
@@ -126,6 +126,7 @@ def loadicator1(data, limits):
             info_["SF"] = u_["bendinMoment"]
             info_['BM'] = u_["shearForce"]
             info_['errorDetails'] = []
+            info_['gomValue'] = None
             
             if info_['deflection'] in [None, ""]:
                 sag_ = 0.
@@ -172,7 +173,7 @@ def loadicator1(data, limits):
     else:
         # 
         for s__, s_ in enumerate(data['stages']):
-            u_, v_ = s_['ldTrim'], s_['ldStrength']
+            u_, v_, w_  = s_['ldTrim'], s_['ldStrength'], s_['ldIntactStability']
             info_ = {}
             info_['time'] = int(float(s_['time']))
             
@@ -184,7 +185,7 @@ def loadicator1(data, limits):
             info_["list"] = str(u_["heelValue"])
             info_['airDraft'] = u_['airDraftValue']
             info_['deflection'] = u_.get("deflection", None) 
-            
+            info_['gomValue'] = w_.get("bigintialGomValue", None)
             info_["SF"] = v_["shearingForcePersentValue"]
             info_['BM'] = v_["bendingMomentPersentValue"]
             info_['errorDetails'] = [l_ for l_ in u_["errorDetails"]+v_["errorDetails"] if l_ not in [""]]

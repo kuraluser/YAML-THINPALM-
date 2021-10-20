@@ -140,6 +140,7 @@ class Loading_seq:
                          'afterDraft': plan_['afterDraft'], 
                          'trim': plan_['trim'], 
                          'heel': None, 
+                         'gom': None,
                          'airDraft': plan_['airDraft'],
                          'bendinMoment': plan_['bendinMoment'], 
                          'shearForce': plan_['shearForce']
@@ -664,7 +665,7 @@ class Loading_seq:
                 info_['tankShortName'] = k_
                 info_['tankName'] =  self.plans.input.vessel.info['cargoTanks'][k_]['name']
                 info_['tankId'] = int(self.plans.input.vessel.info['tankName'][k_])
-                info_['quantityMT'] = str(round(abs(v_[0]['wt']),2))
+                info_['quantityMT'] = str(round(abs(v_[0]['wt']),1))
                 info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
                 info_['api'] = str(round(abs(v_[0]['api']),2))
                 info_['temperature'] = str(round(abs(v_[0]['temperature']),2))
@@ -677,6 +678,13 @@ class Loading_seq:
                 
                 info_['colorCode'] = self.plans.input.loading.info['commingle'].get('colorCode', None)
                 info_['cargoAbbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
+                
+                info_['quantity1MT'] = str(round(abs(v_[0]['wt1']),1))
+                info_['quantity2MT'] = str(round(abs(v_[0]['wt2']),1))
+                info_['ullage1'] = str(round(abs(v_[0]['corrUllage1']),3))
+                info_['ullage2'] = str(round(abs(v_[0]['corrUllage2']),3))
+                info_['quantity1M3'] = str(round(abs(v_[0]['vol1']),2))
+                info_['quantity2M3'] = str(round(abs(v_[0]['vol2']),2))
                 
                 plan["loadableQuantityCommingleCargoDetails"].append(info_)
                 
@@ -795,6 +803,8 @@ class Loading_seq:
         plan["airDraft"] = self.stability[str(port)]['airDraft']
         plan["bendinMoment"] = self.stability[str(port)]['bendinMoment']
         plan["shearForce"] = self.stability[str(port)]['shearForce']
+        plan["gom"] = self.stability[str(port)]['gom']
+        
         
         
         
