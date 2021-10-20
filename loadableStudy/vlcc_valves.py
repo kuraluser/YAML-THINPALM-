@@ -594,31 +594,31 @@ class Generate_valves:
                         deballast_time[stageName] = {}
                         prevEndTime = 0
                         for substages in stages[f'sim{operation.title()}RateM3_Hr']:
-                            if len(substages) > 0:  # get timings
+                            if len(substages) > 0:  # get timings and tank info for non empty dictionary
                                 startTime = int(list(substages.values())[0]["timeStart"])
                                 endTime = int(list(substages.values())[0]["timeEnd"])
                                 deballast_time[stageName][startTime] = {'close': [], 'open': []}
                                 deballast_time[stageName][endTime] = {'close': [], 'open': []}
-                            tanks = [info['tankShortName'] for i, info in substages.items()]  # Current stage opened tanks
-                            # print(prevDeballastTank) #[2P, 3P, 4P, 4S, 5S]
-                            # print(tanks)#[2S, 3P, 4P, 4S, 5S]
-                            # Close tanks in previous stages but not in current stages
-                            tanksToBeClosed = [prevTank for prevTank in prevDeballastTank if prevTank not in tanks]
-                            for prevTank in tanksToBeClosed:
-                                deballast_time[stageName][prevEndTime]['close'].append(prevTank)
-                                prevDeballastTank.remove(prevTank)
 
-                            # Open tanks not in previous stages but in current stages
-                            tanksToBeOpened = [tank for tank in tanks if tank not in prevDeballastTank]
-                            for tank in tanksToBeOpened:
-                                deballast_time[stageName][startTime]['open'].append(tank)
-                                prevDeballastTank.append(tank)
-                            if len(substages) > 0:
+                                tanks = [info['tankShortName'] for i, info in substages.items()]  # Current stage opened tanks
+
+                                # Close tanks in previous stages but not in current stages
+                                tanksToBeClosed = [prevTank for prevTank in prevDeballastTank if prevTank not in tanks]
+                                for prevTank in tanksToBeClosed:
+                                    deballast_time[stageName][prevEndTime]['close'].append(prevTank)
+                                    prevDeballastTank.remove(prevTank)
+
+                                # Open tanks not in previous stages but in current stages
+                                tanksToBeOpened = [tank for tank in tanks if tank not in prevDeballastTank]
+                                for tank in tanksToBeOpened:
+                                    deballast_time[stageName][startTime]['open'].append(tank)
+                                    prevDeballastTank.append(tank)
                                 prevEndTime = endTime
 
                 # Close last set of tanks opened at the stage
-                lastStageName = list(deballast_time.keys())[-1]
-                if endTime > 0:
+                nonEmptystageName = [i for i in deballast_time.keys() if len(deballast_time[i]) > 0]
+                if (endTime > 0) & (len(nonEmptystageName) >= 1):
+                    lastStageName = nonEmptystageName[-1]
                     if len(deballast_time[lastStageName][endTime]['close']) == 0:
                         deballast_time[lastStageName][endTime]['close'] = prevDeballastTank
             self.ballastTanks[cargo][operation] = deballast_time
