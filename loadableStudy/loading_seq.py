@@ -568,13 +568,14 @@ class Loading_seq:
                     
                     port_ = [a_ for a_, b_ in self.plans.input.loadable['stages'].items() if b_ == v_][0]
                     time_ = self.plans.input.loading.seq[cargo]['gantt'][v_[:-1]]['Time'] + self.plans.input.loading.seq[cargo]['startTime']
-                    
+                    time1_ = self.plans.input.loading.seq[cargo]['gantt'][v_[:-1]]['Time'] 
                     if v_[:-1] !=  self.plans.input.loading.seq[cargo]['lastStage']:
-                        print(time_)
+                        # print(time_)
+                        time0_ = time_
                         c_ = self.plans.input.loading.info['loading_order'][int(v_[-1])-1]
                         time_interval_ = self.plans.input.loading.time_interval[c_]
-                        time_ = time_interval_ * round(time_/time_interval_) + self.plans.input.loading.seq[cargo]['startTime']
-                        print(time_)
+                        time_ = time_interval_ * round(time1_/time_interval_) + self.plans.input.loading.seq[cargo]['startTime']
+                        print(v_, time0_, '->', time_)
 
                     plan_ = {'time': str(int(time_+self.delay)), 
                      "loadableQuantityCommingleCargoDetails":[],
