@@ -205,7 +205,7 @@ class Loading_seq:
             info["simCargoLoadingRatePerTankM3_Hr"] = []
             info1_ = {}
             for k_, v_ in info["cargoLoadingRatePerTankM3_Hr"][0].items():
-                info1_[k_] = {'tanShortName': self.plans.input.vessel.info['tankId'][k_],
+                info1_[k_] = {'tankShortName': self.plans.input.vessel.info['tankId'][k_],
                                                                "rate": v_, 
                                                                "timeStart": info["timeStart"],
                                                                "timeEnd": info["timeEnd"]}
@@ -242,7 +242,7 @@ class Loading_seq:
             info["cargoLoadingRateM3_Hr"] = {0:str(self.plans.input.loading.seq[cargo]['maxShoreRate'])}
             
             tot_num_ = len(self.plans.input.loadable['toLoadCargoTank'][cargo])
-            rate_ = round(self.plans.input.loading.seq[cargo]['initialRate']/tot_num_,2)
+            # rate_ = round(self.plans.input.loading.seq[cargo]['initialRate']/tot_num_,2)
             info["cargoLoadingRatePerTankM3_Hr"] = []
             info["simCargoLoadingRatePerTankM3_Hr"] = []
             

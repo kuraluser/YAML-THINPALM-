@@ -43,7 +43,7 @@ class Check_plans:
                     plan_ = {**v_['cargo'], **v_['ballast'], **v_['other']}
                     
                     
-                    if hasattr(self.input.loadable, "info"):
+                    if self.input.module in ['LOADABLE', 'DISCHARGE']: #hasattr(self.input.loadable, "info"):
                         seawater_density_ = self.input.loadable.info['seawaterDensity'][k_]
                     else:
                         seawater_density_ = self.input.seawater_density
@@ -239,7 +239,7 @@ class Check_plans:
             origin_port_ = self.input.port.info['portOrder'][port_order_]
             tide_ = self.input.port.info['portRotation'][origin_port_]['tideHeight']
             
-        elif self.input.module in ['LOADING', 'DISCHARGE']:
+        elif self.input.module in ['LOADING', 'DISCHARGE', 'DISCHARGING']:
             tide_ = 0.
         elif self.input.module in [""]:
             tide_ = self.input.port.info['tide']
@@ -286,9 +286,9 @@ class Check_plans:
         
         # print(df_,da_,dm_,trim_)
 
-        if self.input.vessel_id in [1]:
+        if int(self.input.vessel_id) in [1]:
             sdraft_ = da_ 
-        elif self.input.vessel_id in [2]:
+        elif int(self.input.vessel_id) in [2]:
             sdraft_ = dm_
         
         base_drafts, indx = np.unique(self.input.vessel.info['SSTable']['baseDraft'].to_numpy(dtype=np.float), return_index=True)

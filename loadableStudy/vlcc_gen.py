@@ -11,6 +11,7 @@ import json
 
 from vlcc_ortools import vlcc_ortools
 from loading_seq import Loading_seq
+from discharging_seq import Discharging_seq
 
 from copy import deepcopy
 
@@ -38,32 +39,33 @@ CONS = {'Condition01z': 'Min tolerance constraints violated!!',
         
         }
 
+# FIXCONS =  []
 FIXCONS = ['Condition0', 'Condition01', 'Condition03', 
-           'Condition04', 'Condition05',
-           'Condition041', 'Condition050', 'Condition050a', 
-           'Condition050b', 'Condition050b1',
-           'Condition050c', 'Condition050c1',
-           'Condition052', 'Condition06', 'condition22',
-           'condition23', 'condition23a', 'condition23b',
-           'condition24', 'condition24a', 'condition25', 'condition27',
-           'Constr5a',
-           'Constr8', 'Constr11', 'Constr12a1',
-           'Condition112a', 'Condition112b', 'Condition112c1', 'Condition112c2', 'Condition112c3',
-           'Condition112a1', 'Condition112a2',
-           'Condition112b1', 'Condition112b2',
-           'Condition112f', 
-           'Condition112g1', 'Condition112g2', 
-           'Condition113d1', 'Condition113d2', 'Condition113d3',
-           'Condition114a1', 'Condition114a2', 'Condition114a3',
-           "Condition114b", "Condition114c", "Condition114d2",
-           'Condition114e1', 'Condition114e2', 'Condition114e3', 'Condition114e4', 'Condition114e5', 'Condition114e6',
-           'Condition114f1',
-           'Constr17a', 'Constr13c1', 'Constr13c2',
-           'Constr13a',
-           'Constr15b1', 'Constr15b2', 'Constr15c1', 'Constr15c2', 'Constr153', 'Constr154',
-           'Constr16b1', 'Constr16b2', 'Constr161', 'Constr163', 'Constr164',
-           'Constr18a', 'Constr18b', 'Constr19a', 'Constr19b', 'Constr18d', 'Condition200a',
-           'Condition20a1', 'Condition21a1', 'Condition20a2', 'Condition21a2']
+            'Condition04', 'Condition05',
+            'Condition041', 'Condition050', 'Condition050a', 
+            'Condition050b', 'Condition050b1',
+            'Condition050c', 'Condition050c1',
+            'Condition052', 'Condition06', 'condition22',
+            'condition23', 'condition23a', 'condition23b',
+            'condition24', 'condition24a', 'condition25', 'condition27',
+            'Constr5a',
+            'Constr8', 'Constr11', 'Constr12a1',
+            'Condition112a', 'Condition112b', 'Condition112c1', 'Condition112c2', 'Condition112c3',
+            'Condition112a1', 'Condition112a2',
+            'Condition112b1', 'Condition112b2',
+            'Condition112f', 
+            'Condition112g1', 'Condition112g2', 
+            'Condition113d1', 'Condition113d2', 'Condition113d3',
+            'Condition114a1', 'Condition114a2', 'Condition114a3',
+            "Condition114b", "Condition114c", "Condition114d2",
+            'Condition114e1', 'Condition114e2', 'Condition114e3', 'Condition114e4', 'Condition114e5', 'Condition114e6',
+            'Condition114f1',
+            'Constr17a', 'Constr13c1', 'Constr13c2',
+            'Constr13a',
+            'Constr15b1', 'Constr15b2', 'Constr15c1', 'Constr15c2', 'Constr153', 'Constr154',
+            'Constr16b1', 'Constr16b2', 'Constr161', 'Constr163', 'Constr164',
+            'Constr18a', 'Constr18b', 'Constr19a', 'Constr19b', 'Constr18d', 'Condition200a',
+            'Condition20a1', 'Condition21a1', 'Condition20a2', 'Condition21a2']
 
 DENSITY = {'DSWP':1.0, 'DWP':1.0, 'FWS':1.0, 'DSWS':1.0,
                    'FO2P':0.98, 'FO2S':0.98, 'FO1P':0.98, 'FO1S':0.98, 'BFOSV':0.98, 'FOST':0.98, 'FOSV':0.98,
@@ -156,6 +158,10 @@ class Generate_plan:
                 model_ = 'model_1i.mod'
                 dat_file = 'input_discharge.dat'
                 
+            elif self.input.module in ['DISCHARGING']:
+                model_ = 'model_4i.mod'
+                dat_file = 'input_discharging.dat'
+                
             print(model_)
             ampl = AMPL()
             # ampl.option['show_presolve_messages'] = True
@@ -171,6 +177,7 @@ class Generate_plan:
             
             ## module dependent constraints    
             if self.input.module in ['LOADABLE']:
+                
                 if self.input.mode not in ['FullManual']:
                     c1_ = ampl.getConstraint('Condition112d5')
                     c2_ = ampl.getConstraint('Condition114g2')
@@ -207,15 +214,32 @@ class Generate_plan:
                 wwt_ = ampl.getConstraint('condition24a')
                 wwt_.drop()
                 
+            elif self.input.module in ['DISCHARGING']:
+                 # drop slop tanks must be used constraints
+                c1_ = ampl.getConstraint('Condition112g1')
+                c2_ = ampl.getConstraint('Condition112g2')
+                c1_.drop()
+                c2_.drop()
+                
+                # 5% different in vol
+                c3_ = ampl.getConstraint('Condition112a1')
+                c4_ = ampl.getConstraint('Condition112a2')
+                c3_.drop()
+                c4_.drop()
+                
+                cw_ = ampl.getConstraint('Constr13b')
+                cw_.drop()
+                
             ## vessel dependent constraints    
-            if self.input.vessel_id == 1 and self.input.mode not in ['FullManual']:
+            if int(self.input.vessel_id) in [1] and self.input.mode not in ['FullManual']:
+                
                 # drop mean draft in BF and SF
                 c4_ = ampl.getConstraint('Condition20a2')
                 c5_ = ampl.getConstraint('Condition21a2')
                 c4_.drop()
                 c5_.drop()
                 
-            elif self.input.vessel_id == 2:
+            elif int(self.input.vessel_id) in [2]:
                 # drop aft draft in BF and SF
                 c4_ = ampl.getConstraint('Condition20a1')
                 c5_ = ampl.getConstraint('Condition21a1')
@@ -284,11 +308,17 @@ class Generate_plan:
                         ampl.read(model_)
                         
                         ## module dependent constraints    
-                        if self.input.module in ['LOADABLE'] and self.input.mode not in ['FullManual']:
-                            c1_ = ampl.getConstraint('Condition112d5')
-                            c2_ = ampl.getConstraint('Condition114g2')
-                            c1_.drop()
-                            c2_.drop()
+                        if self.input.module in ['LOADABLE']:
+                            # .mode in ['Auto', 'Manual', 'FullManual']
+                            if self.input.mode not in ['FullManual']:
+                                c1_ = ampl.getConstraint('Condition112d5')
+                                c2_ = ampl.getConstraint('Condition114g2')
+                                c1_.drop()
+                                c2_.drop()
+                    
+                            if self.input.mode in ['Manual']:
+                                c3_ = ampl.getConstraint('Constr5b')
+                                c3_.drop()
                         
                         elif self.input.module in ['LOADING']:
                             c1_ = ampl.getConstraint('Condition112d5')
@@ -316,8 +346,25 @@ class Generate_plan:
                             wwt_ = ampl.getConstraint('condition24a')
                             wwt_.drop()
                             
+                        elif self.input.module in ['DISCHARGING']:
+                            
+                            # drop slop tanks must be used constraints
+                            c1_ = ampl.getConstraint('Condition112g1')
+                            c2_ = ampl.getConstraint('Condition112g2')
+                            c1_.drop()
+                            c2_.drop()
+                            
+                            # 5% different in vol
+                            c3_ = ampl.getConstraint('Condition112a1')
+                            c4_ = ampl.getConstraint('Condition112a2')
+                            c3_.drop()
+                            c4_.drop()
+                            
+                            cw_ = ampl.getConstraint('Constr13b')
+                            cw_.drop()
+                            
                         ## vessel dependent constraints    
-                        if self.input.vessel_id == 1:
+                        if int(self.input.vessel_id) in [1]:
                             
                             # drop mean draft in BF and SF
                             c4_ = ampl.getConstraint('Condition20a2')
@@ -325,7 +372,7 @@ class Generate_plan:
                             c4_.drop()
                             c5_.drop()
                             
-                        elif self.input.vessel_id == 2:
+                        elif int(self.input.vessel_id) in [2]:
                             # drop aft draft in BF and SF
                             c4_ = ampl.getConstraint('Condition20a1')
                             c5_ = ampl.getConstraint('Condition21a1')
@@ -636,7 +683,6 @@ class Generate_plan:
                             vol1_ = wt1_/density_ 
                             vol2_ = wt2_/density_ 
                             
-                            
                             fillingRatio_ = round(vol_/capacity_,DEC_PLACE)
                             print(parcel1_,parcel2_, k1_, fillingRatio_, round(wt1_/(wt1_+wt2_),2), round(wt2_/(wt1_+wt2_),2), round(api_,2), round(temp_,1), density_, round(weight_,3))
                             
@@ -943,6 +989,46 @@ class Generate_plan:
            
             self.other_weight = other_weight_
             
+        elif self.input.module in ['DISCHARGING']:
+            # initial ROB
+            
+            # info_ = [{'wt': wt_, 'SG':density_, "vol":vol_, 'tcg':tcg_, 'lcg':lcg_}]
+            initial_ROB_ = {}
+            for k_, v_ in self.input.info['ROB'][0].items():
+                info_ = {}
+                info_['wt'] = v_[0]['quantityMT']
+                info_['vol'] = v_[0]['quantityM3']
+                info_['SG'] = round(v_[0]['quantityMT']/v_[0]['quantityM3'],2)
+                info_['tcg'] = v_[0]['tcg']
+                info_['lcg'] = v_[0]['lcg']
+                
+                initial_ROB_[k_] = [info_]
+                
+            
+            # final ROB
+            final_ROB_ = {}
+            for k_, v_ in self.input.info['ROB'][1].items():
+                info_ = {}
+                info_['wt'] = v_[0]['quantityMT']
+                info_['vol'] = v_[0]['quantityM3']
+                info_['SG'] = round(v_[0]['quantityMT']/v_[0]['quantityM3'],2)
+                info_['tcg'] = v_[0]['tcg']
+                info_['lcg'] = v_[0]['lcg']
+                
+                final_ROB_[k_] = [info_]
+            
+            other_weight_ = {}
+            for pp_ in range(0,self.input.loadable.info['lastVirtualPort']+1):
+                other_weight_[str(pp_)] = {}
+                
+                if pp_ == 0:
+                    other_weight_[str(pp_)] = initial_ROB_
+                else:
+                    other_weight_[str(pp_)] = final_ROB_
+            
+           
+            self.other_weight = other_weight_
+            
             
             
         self.initial_cargo_weight = {}
@@ -977,6 +1063,27 @@ class Generate_plan:
                     self.initial_cargo_weight[k1_] = [info_]
                     
                     
+        elif self.input.module in ['DISCHARGING']:
+                         
+            for k_, v_ in self.input.info['cargo_plans'][0].items():
+                
+                tankId_ = self.input.vessel.info['tankName'][k_]
+                
+                if len(v_) == 1:
+                    vol_ = v_[0]['quantityM3']
+                    corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
+                    
+                    info_ = {'parcel':v_[0]['cargo'], 'wt': round(v_[0]['quantityMT'],1), 'SG': v_[0]['SG'],
+                                         'fillRatio': None, 'tcg':v_[0]['tcg'],  'lcg':v_[0]['lcg'],
+                                         'temperature':v_[0]['temperature'],
+                                         'api':v_[0]['api'],
+                                         'corrUllage':corrUllage_
+                                         }
+                    
+                    self.initial_cargo_weight[k_] = [info_]
+                
+                else:
+                    exit()
                     
                 
         elif self.input.module in ['LOADING']:
@@ -1146,7 +1253,7 @@ class Generate_plan:
             
             for i_ in range(0, port_+1):
                 
-                if i_ == port_ and self.input.module not in ['LOADING', 'DISCHARGE']:
+                if i_ == port_ and self.input.module not in ['LOADING', 'DISCHARGE','DISCHARGING']:
                     break
                 
                 ship_status_[str(i_)] = {'cargo':{},'ballast':{},'other':{}}
@@ -1219,7 +1326,118 @@ class Generate_plan:
         weight_temp_ = sum([v_*s_ for (v_,s_) in zip(vol_bbls_60_,temp)])/sum(vol_bbls_60_)
         
         return weight_api_, weight_temp_
+    
+    ## for DISCHARGING 
+    def gen_json3(self, constraints, stability_values):
         
+        
+        EVENTS = ["initialCondition", "floodSeparator", "warmPumps",
+                  "initialRate", "increaseToMaxRate", "dischargingAtMaxRate", 
+                  "reducedRate"]
+        
+        data = {}
+        data['message'] = None
+        data['processId'] = self.input.process_id
+        data['portId'] = self.input.port_id
+        data['dischargingInfoId'] = self.input.information_id
+        data['hasLoadicator'] = self.input.has_loadicator
+        
+        # self.plans['ship_status'] = []
+        
+        if len(self.plans['ship_status']) == 0:
+            
+            data['message'] = {**self.input.error, **self.plans['message']}
+            data['errors'] = self._format_errors(data['message'])
+            
+            return data
+        
+        discharging_seq = Discharging_seq(self, stability_values)
+        # loading_seq._get_ballast()
+        # events
+        data["events"] = []
+        
+        for c__, c_ in enumerate(self.input.discharging.info['discharging_order']):
+            print(c_)
+            info_ = {}
+            info_["dsCargoNominationId"] = int(c_[1:])
+            cargo_ = self.input.discharging.info['dsCargoNominationId'][c_]
+            info_["cargoNominationId"] = int(cargo_[1:])
+            info_["sequence"] = []
+            first_cargo_ = c__ == 0
+            
+            
+            
+            for e__, e_ in enumerate(EVENTS):
+                info1_ = {"stage": e_}
+                discharging_seq._stage(info1_, cargo_+str(c__), c__+1)
+                
+                if e_ == 'initialCondition' and first_cargo_:
+                    self.gTimeStart = int(info1_['timeStart'])
+                
+                
+                if e_ in ['dischargingAtMaxRate']:
+                    for d__, d_ in enumerate(info_['sequence'][1:]):
+                        # print(d_['stage'])
+                        info_['sequence'][d__+1]['deballastingRateM3_Hr'] = info1_.get('iniDeballastingRateM3_Hr', {})
+                        info_['sequence'][d__+1]['ballastingRateM3_Hr'] = info1_.get('iniBallastingRateM3_Hr', {})
+                        
+                        info2_ = {'simIniDeballastingRateM3_Hr': deepcopy(info1_.get('simIniDeballastingRateM3_Hr', {})),
+                                  'simIniBallastingRateM3_Hr': deepcopy(info1_.get('simIniBallastingRateM3_Hr', {}))}
+                        
+                        # if len(info2_['simIniDeballastingRateM3_Hr']) > 0:
+                        for k_, v_ in info2_['simIniDeballastingRateM3_Hr'].items():
+                            info2_['simIniDeballastingRateM3_Hr'][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                            info2_['simIniDeballastingRateM3_Hr'][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                            
+                        for k_, v_ in info2_['simIniBallastingRateM3_Hr'].items():
+                            info2_['simIniBallastingRateM3_Hr'][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                            info2_['simIniBallastingRateM3_Hr'][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                             
+                        
+                        
+                        # info2_['simIniDeballastingRateM3_Hr'][0]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                        # info2_['simIniDeballastingRateM3_Hr'][0]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                        
+                        # info2_['simIniBallastingRateM3_Hr'][0]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                        # info2_['simIniBallastingRateM3_Hr'][0]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                            
+                        info_['sequence'][d__+1]['simDeballastingRateM3_Hr'] = [info2_['simIniDeballastingRateM3_Hr']]
+                        info_['sequence'][d__+1]['simBallastingRateM3_Hr'] = [info2_['simIniBallastingRateM3_Hr']]
+                        
+                        
+                        # self._get_ballast(info_['sequence'][d__+1], info1_, first_cargo_)
+                        
+                        
+                    
+                    # self._get_ballast1(info1_, first_cargo_, c_)
+                    
+                    # print(info1_['stageEndTime'])
+                    # self._get_eduction(info1_, c_)
+                    
+                    # print(info1_.keys())
+                    info1_.pop('simIniDeballastingRateM3_Hr')
+                    info1_.pop('simIniBallastingRateM3_Hr')
+                    info1_.pop('iniDeballastingRateM3_Hr')
+                    info1_.pop('iniBallastingRateM3_Hr')
+                        
+                
+                
+                info_["sequence"].append(info1_)
+                
+            data["events"].append(info_)
+                
+            
+        
+        data["plans"] = {'arrival':discharging_seq.initial_plan, 'departure':discharging_seq.final_plan}
+        data["stages"] = discharging_seq.stages
+        data["dischargingInformation"] = None #self.input.loading_information
+        
+        data['message'] = {'limits':self.input.limits}
+        
+            
+        
+        
+        return data
     
     
     ## for LOADING
@@ -1629,7 +1847,7 @@ class Generate_plan:
         
     
     
-    ## for discharging
+    ## for discharging study
     def gen_json2(self, constraints, stability_values):
         data = {}
         data['message'] = None
@@ -1881,9 +2099,7 @@ class Generate_plan:
                             else:
                                 slop_qty_[v_[0]['parcel']] += v_[0]['wt']
                         
-                    
-                # print(virtual_, self.plans['cargo_status'][sol][virtual_])
-            
+               
                 for k_, v_ in self.plans['cargo_status'][sol][virtual_].items():
                     #print(k_, v_)
                     
@@ -1910,7 +2126,6 @@ class Generate_plan:
                     info_['dischargingRate'] = str(10000)
                     info_['timeRequiredForDischarging'] = str(round(disch_/10000,1))
                     info_['cowDetails'] = []
-                        
                     
                     plan_.append(info_)
                                     

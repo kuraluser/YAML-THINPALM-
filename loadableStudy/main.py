@@ -19,6 +19,7 @@ from typing import List
 import json
 from api_vlcc import gen_allocation, loadicator
 from api_loading import gen_sequence, loadicator1
+from api_discharging import gen_sequence1
 from vlcc_ullage import get_correction, cal_density
 import pickle
 import numpy as np
@@ -111,6 +112,9 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
         result = await run_in_process(gen_allocation, data)
     elif data['module'] in ['LOADING']:
         result = await run_in_process(gen_sequence, data)
+    elif data['module'] in ['DISCHARGING']:
+        result = await run_in_process(gen_sequence1, data)
+        
         
     gDate = str(datetime.datetime.now())
     query = users.update().\
@@ -174,6 +178,19 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
         await post_response(status_url_, {"processId" : uid, "dischargeStudyStatusId" : 4}, uid)
         
         
+    elif data['module'] in ['DISCHARGING']:
+        logger.info(uid + ": Discharging sequence completed")
+        
+        status_url_ = config['url']['DISCHARGING']['discharging-status'].format(vesselId=data['discharging']['vesselId'],
+                                                                    voyageId=data['discharging']['voyageId'],
+                                                                    infoId=data['discharging']['infoId'])
+        result_url_ = config['url']['DISCHARGING']['discharging-patterns'].format(vesselId=data['discharging']['vesselId'],
+                                                                    voyageId=data['discharging']['voyageId'],
+                                                                    infoId=data['discharging']['infoId'])
+        
+        await post_response(status_url_, {"processId" : uid, "loadingInfoStatusId" : 4}, uid)
+        
+        
     # print(result_url_)
     logger.info(uid + ": Upload result")
     
@@ -213,13 +230,19 @@ def get_data(data, gID):
         # print('DISCHARGE MODULE')
         data_['discharge'] = data
         vessel_id_ = data_['discharge']['vesselId']
+        
+    elif data_['module'] in ['DISCHARGING']:
+        # print('DISCHARGE MODULE')
+        data_['discharging'] = data
+        data_['discharging']['infoId'] = data["dischargeInformation"]["dischargeInfoId"]
+        vessel_id_ = data_['discharging']['vesselId']
     
         
     data_['vessel'] = None
     data_['processId'] = gID
     data_['config'] = config["vessel"][str(vessel_id_)]
     
-    print('module', data_['module'])
+    print('module', data_['module'], vessel_id_)
     
     return data_
     
@@ -251,8 +274,10 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
         vesselId_ = data_['loading']['vesselId']
     elif data_['module'] in ['DISCHARGE']:
         vesselId_ = data_['discharge']['vesselId']
+    elif data_['module'] in ['DISCHARGING']:
+        vesselId_ = data_['discharging']['vesselId']
  
-        # print('LOADING', vesselId_)
+    print(vesselId_)
         
     vessel_url_ = config['url']['vessel-details'].format(vesselId=vesselId_)
 #    print(vessel_url_)
@@ -266,6 +291,8 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
         logger.info(gID + ": Add new loading")
     elif data_['module'] in ['DISCHARGE']:
         logger.info(gID + ": Add new discharge")
+    elif data_['module'] in ['DISCHARGING']:
+        logger.info(gID + ": Add new discharging")
         
         # print('No action taken!!', data_['module'])
         
