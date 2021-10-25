@@ -61,7 +61,7 @@ fname = 'loading_commingle_first_port.json'
 
 # fname = 'loading_information_100000057.json' # commingle
 
-fname = '../samples/loading_information_request_100000066.json'
+fname = '../samples/loading_information_request_100000240.json'
 
 # fname = 'AP18.json'
 # fname = '100000270request1.json'

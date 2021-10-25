@@ -706,7 +706,7 @@ class Generate_valves:
                             eductorUsed = ["1"]
                         else:
                             self.ballastPumps['eductor'] += stages['eduction']['pumpSelected']
-                            eductorUsed = [i[-1] for i in stages['eduction']['pumpSelected']]
+                            eductorUsed = [i['pumpName'][-1] for i in list(stages['eduction']['pumpSelected'].values())]
                         for i in eductorUsed:
                             self.eductionEquipment += self.vesselDetails["eductorValves"][i]
         return
