@@ -96,7 +96,7 @@ def loadicator1(data, limits):
            "loadicatorResults":[]}
     # print(limits)
     
-    if data['stages'] in [None]:
+    if data['stages'] in [None, []]:
         
         print('Need to calculate the stability!!')
         params = Get_info(data, limits)
@@ -160,11 +160,21 @@ def loadicator1(data, limits):
             
             # SF
             if abs(float(u_["shearForce"])) > 100:
-                info_['judgement'].append('Failed BM check ('+ "{:.0f}".format(float(u_["shearForce"])) +')!')
+                
+                if abs(float(u_["shearForce"])) == 10000:
+                    info_['judgement'].append('Failed SF check (None)!')
+                    info_["SF"]  = None
+                else:
+                    info_['judgement'].append('Failed SF check ('+ "{:.0f}".format(float(u_["shearForce"])) +')!')
                 
             # BM
             if abs(float(u_["bendinMoment"])) > 100:
-                info_['judgement'].append('Failed SF check ('+ "{:.0f}".format(float(u_["bendinMoment"])) +')!')
+                if abs(float(u_["bendinMoment"])) == 10000:
+                    info_['judgement'].append('Failed BM check (None)!')
+                    info_["BM"]  = None
+                else:
+                    info_['judgement'].append('Failed BM check ('+ "{:.0f}".format(float(u_["bendinMoment"])) +')!')
+ 
             
             out["loadicatorResults"].append(info_)
         
@@ -277,7 +287,7 @@ class Get_info(object):
                 self.vessel.info = pickle.load(fp_)
                 
         self.error = {}
-        self.module = ""
+        self.module = "ULLAGE"
         self.vessel_id = data['vesselId']
         
     def _get_status(self):

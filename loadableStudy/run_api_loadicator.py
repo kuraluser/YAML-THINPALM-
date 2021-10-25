@@ -15,6 +15,8 @@ fname1 = 'loadicator_6606.json'
 fname1 = 'loadicator_8380.json'
 fname1 = 'loadicator_0713.json'
 
+fname1 = 'loadicator_request1025.json'
+
 headers = {'Accept' : 'application/json', 'Content-Type' : 'application/json'}
 #
 url3 = 'http://127.0.0.1:8000/loadicator_results'

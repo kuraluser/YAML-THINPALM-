@@ -43,7 +43,7 @@ class Check_plans:
                     plan_ = {**v_['cargo'], **v_['ballast'], **v_['other']}
                     
                     
-                    if self.input.module in ['LOADABLE', 'DISCHARGE']: #hasattr(self.input.loadable, "info"):
+                    if self.input.module in ['LOADABLE', 'DISCHARGE', "ULLAGE"]: #hasattr(self.input.loadable, "info"):
                         seawater_density_ = self.input.loadable.info['seawaterDensity'][k_]
                     else:
                         seawater_density_ = self.input.seawater_density
@@ -63,8 +63,8 @@ class Check_plans:
                                       'airDraft': "{:.2f}".format(result['airDraft']),
                                       'freeboard':"{:.2f}".format(result['freeboard']),
                                       'manifoldHeight':"{:.2f}".format(result['manifoldHeight']),
-                                      'bendinMoment': "{:.2f}".format(result['maxBM'][1]),
-                                      'shearForce':  "{:.2f}".format(result['maxSF'][1])
+                                      'bendinMoment': "{:.2f}".format(result.get('maxBM',[None, 10000])[1]),
+                                      'shearForce':  "{:.2f}".format(result.get('maxSF',[None, 10000])[1])
                                       }
                     
                     # update correction ullage
@@ -241,7 +241,7 @@ class Check_plans:
             
         elif self.input.module in ['LOADING', 'DISCHARGE', 'DISCHARGING']:
             tide_ = 0.
-        elif self.input.module in [""]:
+        elif self.input.module in ["ULLAGE"]:
             tide_ = self.input.port.info['tide']
             
         result['airDraft'] = self.input.vessel.info['height'] - da_ + tide_
