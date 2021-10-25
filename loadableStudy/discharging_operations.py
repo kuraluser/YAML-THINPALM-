@@ -82,7 +82,7 @@ class DischargingOperations(object):
                 pass
             else:
                 
-                self.discharging_rate[order_] = d_.get('dischargingRate', 7000)
+                self.discharging_rate[order_] = d_.get('maxDischargingRate', 7000)
                 
                 cargo_ = 'P'+str(d_['dsCargoNominationId'])
                 

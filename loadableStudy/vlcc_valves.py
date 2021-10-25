@@ -20,7 +20,7 @@ class Generate_valves:
         self.cargoTanksUsed = input_param.loading.info['cargoTanksUsed']
         self.ballastTanksUsed = input_param.loading.info['ballastTanksUsed']  #### to check
         self.BWTS = False  # False for all MOL VLCC, need to update for other vessel
-        self.firstport = input_param.first_discharge_port
+        self.firstport = input_param.first_loading_port
         self.gravityAllowed = {c: False for c in self.cargo}  # update based on output
         # self.gravityAllowed = {c: (not self.BWTS) & (self.firstport) & (c == self.cargo[0]) for c in self.cargo}
 
