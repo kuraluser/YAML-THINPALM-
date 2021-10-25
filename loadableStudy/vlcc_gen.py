@@ -1573,7 +1573,11 @@ class Generate_plan:
             out['eduction']['timeStart'] = str(int(timeStart_))
             out['eduction']['timeEnd']   = str(int(timeEnd_))
             out['eduction']['tank'] = {self.input.vessel.info['tankName'][t_]:t_  for t_ in self.input.loading.info['eduction'] if t_ not in ['LFPT', 'FPT']}
-            out['eduction']['pumpSelected'] = self.input.loading.eduction_pump
+            eduction_ = []
+            for p_ in self.input.loading.eduction_pump:
+                eduction_.append(str(self.input.vessel.info['vesselPumps']['ballastEductor'][p_]['pumpId']))
+            out['eduction']['pumpSelected'] = eduction_ #self.input.loading.eduction_pump
+
             
             # print(out['eduction'])
             
