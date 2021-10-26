@@ -127,6 +127,7 @@ set T_loaded within T; # set of loaded tanks (preloaded condition)
 
 set C; # set of all cargoes
 set C_loaded within C; # set of all loaded cargoes preloaded condition)
+set C_loaded1 within C default {}; # set of all loaded cargoes with auto discharge)
 set C_max;
 set C_equal default C;
 set C_slop default C;
@@ -182,6 +183,11 @@ param W0{c in C, t in T} >=0 default 0; # weight of cargo c remained in tank t a
 param Q0{c in C, t in T} = W0[c,t]/densityCargo_Low[c]; # volume of cargo c remained in tank t at initial state
 check {c in C_loaded, t in T_loaded diff Tc[c]}: Q0[c,t]=I_loaded[c,t]; # check cargo-tank compatibility in existing allocation.
 
+set fixCargoPort default {}; # for fixing preloaded cargo
+param W1{c in C, t in T, p in fixCargoPort} >=0 default 0; # fix weight of cargo c  in port p at tank remained 
+param Q1{c in C, t in T, p in fixCargoPort} = W1[c,t,p]/densityCargo_Low[c]; # volume of cargo c remained in tank t at initial state
+
+
 param W_loaded{C_loaded,T_loaded,P} default 0; # the weight of preloaded cargo to be moved from tank t at port p
 param V_loaded{c in C_loaded, t in T_loaded, p in P} = W_loaded[c,t,p]/densityCargo_Low[c]; # the volume of preloaded cargo to be moved from tank t at port p
 
@@ -220,7 +226,9 @@ set P_stable = P_stable0 diff fixBallastPort diff sameBallastPort; # stable port
 
 # for departure of last discharging port min draft constraint
 set NP1 default {NP}; # NP1 = {} for cargo left in last discharge port
-set P_stable1 =  P_stable diff NP1; 
+set P_stable1 =  P_stable diff NP1; # port with min draft requirement
+set P_stable2{C} default P_stable; 
+set P_opt default {};
 
 param capacityCargoTank{t in T} >= 0; # cargo tank capacity (in m3)
 param densityCargoTank{t in T} >= 0 default 1.0; # cargo tank density (in t/m3)
@@ -407,6 +415,7 @@ var y{c in C,t in T,p in P} = w[c,t,p]/densityCargo_Low[c]; # volume of cargo (w
 var qw2f{C,T,Pbar} >=0 integer; # weight of cargo remained in tank t after visiting port p.
 var qw{c in C,t in T,p in Pbar} = qw2f[c,t,p]/10;
 var qty{c in C,t in T,p in Pbar} = qw[c,t,p]/densityCargo_Low[c]; # volume of cargo remained in tank t after visiting port p.
+var qwz{c in C,t in T,p in Pbar} binary;
 
 var xwB{TB,Pbar} binary; # 1 if ballast tank t is filled with water at port p
 var xB{TB,Pbar} binary; # 1 if ballast tank t is filled with water at port p
@@ -498,7 +507,9 @@ subject to condition23a {c in C_loaded, t in T diff T_loaded, p in P}: y[c,t,p]=
 subject to condition23b {c in C_loaded, t in T diff T_loaded, p in P}: qty[c,t,p]=x[c,t]; # preloaded cargo can only be loaded to its corresponding preloaded tanks.
 
 subject to condition24 {c in C, t in T}: qty[c,t,0] = Q0[c,t]; # follow the existing stowage of preloaded cargoes
-subject to condition24a {c in C_loaded, t in T_loaded, p in P}: y[c,t,p] = V_loaded[c,t,p]; # follow the existing stowage of preloaded cargoes
+subject to condition24a {c in C_loaded diff C_loaded1, t in T_loaded, p in P diff fixCargoPort}: y[c,t,p] = V_loaded[c,t,p]; # follow the existing stowage of preloaded cargoes
+subject to condition24b {c in C_loaded1, t in T, p in fixCargoPort}: qty[c,t,p] = Q1[c,t,p]; # follow the existing stowage of preloaded cargoes
+
 
 ## locked tank / pre-allocated condition
 subject to condition25 {c in C_locked, t in T_locked}: x[c,t] = A_locked[c,t]; # follow the existing stowage of locked cargoes
@@ -561,14 +572,14 @@ subject to Condition112a1 {(u,v) in symmetricVolTank, p in P_last_loading}: sum{
 subject to Condition112a2 {(u,v) in symmetricVolTank, p in P_last_loading}:     -diffVol <= sum{c in C}qw[c,u,p]/densityCargo_Low[c]/capacityCargoTank[u] - sum{c in C}qw[c,v,p]/densityCargo_Low[c]/capacityCargoTank[v];
 
 # equal weight in 1W, 2W, 4W, 5W
-subject to Condition112d1 {c in C_equal, p in P_stable}: qw[c,'1P',p] = qw[c,'1S',p];
-subject to Condition112d2 {c in C_equal, p in P_stable}: qw[c,'2P',p] = qw[c,'2S',p];
-subject to Condition112d3 {c in C_equal, p in P_stable}: qw[c,'4P',p] = qw[c,'4S',p];
-subject to Condition112d4 {c in C_equal, p in P_stable}: qw[c,'5P',p] = qw[c,'5S',p];
+subject to Condition112d1 {c in C_equal, p in P_stable2[c]}: qw[c,'1P',p] = qw[c,'1S',p];
+subject to Condition112d2 {c in C_equal, p in P_stable2[c]}: qw[c,'2P',p] = qw[c,'2S',p];
+subject to Condition112d3 {c in C_equal, p in P_stable2[c]}: qw[c,'4P',p] = qw[c,'4S',p];
+subject to Condition112d4 {c in C_equal, p in P_stable2[c]}: qw[c,'5P',p] = qw[c,'5S',p];
+
 # only for discharging
-subject to Condition112d5 {c in C_equal, p in P_stable}: qw[c,'3P',p] = qw[c,'3S',p];
-
-
+subject to Condition112d5 {c in C_equal, p in P_stable2[c]}: qw[c,'3P',p] = qw[c,'3S',p];
+subject to Condition116a {c in C_loaded1, t in T, p in P_opt} : qw[c,t,p] <= 1e5*qwz[c,t,p];
 
 # diff cargos in slop tanks, except when only one cargo
 #subject to Condition112f {c in C}: x[c,'SLS'] + x[c,'SLP'] <= diffSlop;
@@ -581,8 +592,8 @@ subject to Condition112d5 {c in C_equal, p in P_stable}: qw[c,'3P',p] = qw[c,'3S
 subject to Condition112f {c in C, (u,v) in cargoTankNonSym}: x[c,u] + x[c,v] <= diffSlop;
 
 # slop tanks have to be used
-subject to Condition112g1 : sum{c in C_slop} x[c,'SLS'] = 1;
-subject to Condition112g2 : sum{c in C_slop} x[c,'SLP'] = 1;
+subject to Condition112g1 : sum{c in C_slop} x[c,'SLP'] = 1;
+subject to Condition112g2 : sum{c in C_slop} x[c,'SLS'] = 1;
 
 # each row must have a the cargo for C_max, empty when only 1 cargo is loaded
 subject to Condition112h1 {c in C_max}: x[c,'1P'] + x[c,'1C'] >= 1;

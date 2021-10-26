@@ -7,7 +7,8 @@ Created on Fri Nov 27 12:05:21 2020
 
 class Port:
     def __init__(self, inputs):
-        
+        ports_info_ = {}
+        ports_info_['bunkering'], ports_info_['normalOp'] = {},{}
         ## remove bunkering operation if loading/discharging are done at the same port
         port_operation_ = {}
         for p__, p_ in enumerate(inputs.port_json['portRotation']):
@@ -16,10 +17,19 @@ class Port:
             else:
                 port_operation_[p_['portId']].append(p_['operationId'])
                 
+                
+            if p_['operationId'] not in [1,2]:
+                ports_info_['bunkering'][p__] = p_
+            else:
+                ports_info_['normalOp'][p__] = p_['portId']
+                
+        print('bunkering:', ports_info_['bunkering'])
+                
         for k_, v_ in port_operation_.items():
             if len(v_) > 1:
                 oper_ = [l_  for l_ in v_ if l_ in [1,2]]
                 port_operation_[k_] = oper_
+                
              
         ## assume either loading or discharging but not both
         port_rotation_, order_ = [], 1
@@ -34,7 +44,7 @@ class Port:
         else:
             last_loading_port_ = 0
         
-        ports_info_ = {}
+        
         ports_info_['portRotation'] = {}
         ports_info_['portOrder'], ports_info_['idPortOrder'] = {}, {}
         ports_info_['portOrderId'] = {}
@@ -59,7 +69,12 @@ class Port:
                 # print(p_['portId'])
                 detail_ = port_details_[p_['portId']]
                 
-                ports_info_['seawaterDensity'][str(p_['portId'])] = float(detail_['densitySeaWater'])
+                densitySeaWater_ = detail_.get('densitySeaWater', 1.025)
+                if densitySeaWater_ in [None, ""]:
+                    densitySeaWater_ = 1.025
+                    
+                
+                ports_info_['seawaterDensity'][str(p_['portId'])] = float(densitySeaWater_)
                 ports_info_['tide'][str(p_['portId'])] = float(detail_['tideHeight'])
                 
                 ports_info_['portRotation'][detail_['code']] = {}

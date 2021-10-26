@@ -127,7 +127,7 @@ set T_loaded within T; # set of loaded tanks (preloaded condition)
 
 set C; # set of all cargoes
 set C_loaded within C; # set of all loaded cargoes preloaded condition)
-set C_loaded1 within C; # set of all loaded cargoes with auto discharge)
+set C_loaded1 within C default {}; # set of all loaded cargoes with auto discharge)
 set C_max;
 set C_equal default C;
 set C_slop default C;
@@ -598,8 +598,8 @@ subject to Condition116a {c in C_loaded1, t in T, p in P_opt} : qw[c,t,p] <= 1e5
 subject to Condition112f {c in C, (u,v) in cargoTankNonSym}: x[c,u] + x[c,v] <= diffSlop;
 
 # slop tanks have to be used
-subject to Condition112g1 : sum{c in C_slop} x[c,'SLS'] = 1;
-subject to Condition112g2 : sum{c in C_slop} x[c,'SLP'] = 1;
+subject to Condition112g1 : sum{c in C_slop} x[c,'SLP'] = 1;
+subject to Condition112g2 : sum{c in C_slop} x[c,'SLS'] = 1;
 
 # each row must have a the cargo for C_max, empty when only 1 cargo is loaded
 subject to Condition112h1 {c in C_max}: x[c,'1P'] + x[c,'1C'] >= 1;

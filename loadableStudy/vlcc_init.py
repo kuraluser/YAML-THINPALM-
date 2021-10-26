@@ -312,6 +312,11 @@ class Process_input(object):
         
         
         # print(self.limits)
+        # set deballast_percent 
+        first_cargo_ = self.loadable.info['toLoadPort1'][1]
+        if first_cargo_ >= 60000:
+            self.deballast_percent = max(1.,self.deballast_percent)
+            print('Change deballast_percent:', self.deballast_percent)
         
         
 #        lpp_ = self.vessel.info['LPP']
@@ -812,7 +817,7 @@ class Process_input(object):
                 for i_, j_ in self.vessel.info['cargoTanks'].items():
                     o_ = self.vessel.info['onboard'].get(i_,{}).get('vol',0.)
                     if o_ > 0:
-                        print(i_,j_['capacityCubm'],o_, 'in input.dat')
+                        print('onboard:', i_,j_['capacityCubm'],o_, 'in input.dat')
                     str1 += i_ + ' ' +  "{:.3f}".format(j_['capacityCubm']-o_/0.98)  + ' '
                 print(str1+';', file=text_file)
                 
@@ -1017,7 +1022,8 @@ class Process_input(object):
                 print('# cargo tank vol restrictions ',file=text_file)#
                 str1 = 'set symmetricVolTank := '
                 for k__, k_  in enumerate(self.config['sym_vol_tanks']):
-                    str1 += '('+ k_[0]  + ',' + k_[1] + ') '
+                    if k_[0] not in self.vessel.info.get('notOnTop', []) and   k_[1] not in self.vessel.info.get('notOnTop', []):
+                        str1 += '('+ k_[0]  + ',' + k_[1] + ') '
                 print(str1+';', file=text_file)
                 
                 

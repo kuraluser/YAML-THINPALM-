@@ -179,26 +179,36 @@ class Generate_plan:
             if self.input.module in ['LOADABLE']:
                 
                 if self.input.mode not in ['FullManual']:
-                    c1_ = ampl.getConstraint('Condition112d5')
-                    c2_ = ampl.getConstraint('Condition114g2')
+                    # auto and manual modes
+                    c1_ = ampl.getConstraint('Condition112d5') # only for discharging
+                    c2_ = ampl.getConstraint('Condition114g2') # only for discharging
                     c1_.drop()
                     c2_.drop()
                     
                 if self.input.mode in ['Manual']:
-                    c3_ = ampl.getConstraint('Constr5b')
+                    c3_ = ampl.getConstraint('Constr5b') # commingle 98%
                     c3_.drop()
                     
+                if self.input.vessel.info['onboard']:
+                    if 'SLP' in self.input.vessel.info.get('notOnTop', []):
+                        slp_ = ampl.getConstraint('Condition112g1') # SLP must be used
+                        slp_.drop()
+                        
+                    if 'SLS' in self.input.vessel.info.get('notOnTop', []): # SLS must be used
+                        sls_ = ampl.getConstraint('Condition112g2')
+                        sls_.drop()
+                    
             elif self.input.module in ['LOADING']:
-                c1_ = ampl.getConstraint('Condition112d5')
-                c2_ = ampl.getConstraint('Condition114g2')
-                c3_ = ampl.getConstraint('Condition01')
+                c1_ = ampl.getConstraint('Condition112d5') # only for discharging
+                c2_ = ampl.getConstraint('Condition114g2') # only for discharging
+                c3_ = ampl.getConstraint('Condition01') # one tank can only take in one cargo
                 c1_.drop()
                 c2_.drop()
                 c3_.drop()
                 
                 # drop slop tanks must be used constraints
-                slp_ = ampl.getConstraint('Condition112g1')
-                sls_ = ampl.getConstraint('Condition112g2')
+                slp_ = ampl.getConstraint('Condition112g1') # SLP must be used
+                sls_ = ampl.getConstraint('Condition112g2') # SLS must be used
                 slp_.drop()
                 sls_.drop()
                 
@@ -206,8 +216,8 @@ class Generate_plan:
                 cw_ = ampl.getConstraint('Constr13b')
                 cw_.drop()
                 # drop slop tanks must be used constraints
-                slp_ = ampl.getConstraint('Condition112g1')
-                sls_ = ampl.getConstraint('Condition112g2')
+                slp_ = ampl.getConstraint('Condition112g1') # SLP must be used
+                sls_ = ampl.getConstraint('Condition112g2')  # SLS must be used
                 slp_.drop()
                 sls_.drop()
                 #
@@ -216,8 +226,8 @@ class Generate_plan:
                 
             elif self.input.module in ['DISCHARGING']:
                  # drop slop tanks must be used constraints
-                c1_ = ampl.getConstraint('Condition112g1')
-                c2_ = ampl.getConstraint('Condition112g2')
+                c1_ = ampl.getConstraint('Condition112g1') # SLP must be used
+                c2_ = ampl.getConstraint('Condition112g2') # SLS must be used
                 c1_.drop()
                 c2_.drop()
                 
@@ -227,7 +237,7 @@ class Generate_plan:
                 c3_.drop()
                 c4_.drop()
                 
-                cw_ = ampl.getConstraint('Constr13b')
+                cw_ = ampl.getConstraint('Constr13b') 
                 cw_.drop()
                 
             ## vessel dependent constraints    
@@ -309,17 +319,26 @@ class Generate_plan:
                         
                         ## module dependent constraints    
                         if self.input.module in ['LOADABLE']:
-                            # .mode in ['Auto', 'Manual', 'FullManual']
                             if self.input.mode not in ['FullManual']:
-                                c1_ = ampl.getConstraint('Condition112d5')
-                                c2_ = ampl.getConstraint('Condition114g2')
+                                # auto and manual modes
+                                c1_ = ampl.getConstraint('Condition112d5') # only for discharging
+                                c2_ = ampl.getConstraint('Condition114g2') # only for discharging
                                 c1_.drop()
                                 c2_.drop()
-                    
+                                
                             if self.input.mode in ['Manual']:
-                                c3_ = ampl.getConstraint('Constr5b')
+                                c3_ = ampl.getConstraint('Constr5b') # commingle 98%
                                 c3_.drop()
-                        
+                                
+                            if self.input.vessel.info['onboard']:
+                                if 'SLP' in self.input.vessel.info.get('notOnTop', []):
+                                    slp_ = ampl.getConstraint('Condition112g1') # SLP must be used
+                                    slp_.drop()
+                                    
+                                if 'SLS' in self.input.vessel.info.get('notOnTop', []): # SLS must be used
+                                    sls_ = ampl.getConstraint('Condition112g2')
+                                    sls_.drop()
+                            
                         elif self.input.module in ['LOADING']:
                             c1_ = ampl.getConstraint('Condition112d5')
                             c2_ = ampl.getConstraint('Condition114g2')
@@ -1061,6 +1080,11 @@ class Generate_plan:
                                      }
                     
                     self.initial_cargo_weight[k1_] = [info_]
+            
+            # add onboard
+            for k_, v_ in self.ship_status_dep[0]['0'].items():
+                self.initial_cargo_weight[k_] = v_
+                
                     
                     
         elif self.input.module in ['DISCHARGING']:
@@ -1573,7 +1597,7 @@ class Generate_plan:
             out['eduction']['timeStart'] = str(int(timeStart_))
             out['eduction']['timeEnd']   = str(int(timeEnd_))
             out['eduction']['tank'] = {self.input.vessel.info['tankName'][t_]:t_  for t_ in self.input.loading.info['eduction'] if t_ not in ['LFPT', 'FPT']}
-
+            
             eduction_ = {}
             for p_ in self.input.loading.eduction_pump:
                 id_ = str(self.input.vessel.info['vesselPumps']['ballastEductor'][p_]['pumpId'])
@@ -1581,7 +1605,6 @@ class Generate_plan:
                 eduction_[id_]['pumpName'] = p_
                 
             out['eduction']['pumpSelected'] = eduction_ #self.input.loading.eduction_pump
-
             
             # print(out['eduction'])
             
@@ -2033,6 +2056,10 @@ class Generate_plan:
                 
                 plan['loadablePlanPortWiseDetails'].append(plan_)
                 
+                
+            # self._set_bunker(plan)
+                
+                
             data['loadablePlanDetails'].append(plan)
         data['message'] = {'limits':self.input.limits}
         
@@ -2041,6 +2068,13 @@ class Generate_plan:
                 
       
         return data
+    
+    def _set_bunker(self, plan):
+        
+        # ['normalOp'] = {0: 359, 1: 2116, 3: 2065}
+        # ['bunkering'] = {2 : {'id': 100003006 ... }}
+        for k_, v_ in self.input.port.info['bunkering'].items():
+            print('bunkering:', k_, v_)
 
     def _get_status(self,sol,port,category):
         

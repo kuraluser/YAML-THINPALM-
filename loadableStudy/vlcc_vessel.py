@@ -33,7 +33,6 @@ class Vessel:
             vessel_info_['banCargo'] = {}
         vessel_info_['slopTank'] = []
         
-        
         ## 
         loadingRate_ = vessel_json.get('selectableParameter', [])
         if len(loadingRate_) == 0:
@@ -353,6 +352,9 @@ class Vessel:
         onboard_json = inputs.vessel_json['onBoard']
         self.info['onboard'] = {} # leftover
         self.info['onboard']['totalWeight'] = 0. # leftover
+        
+        self.info['notOnTop'] = []
+        
         if hasattr(inputs, 'loadable'):
             ave_sg_ = np.mean(inputs.loadable.info['sg'])
         else:
@@ -364,8 +366,14 @@ class Vessel:
             
             # print(o_)
             wt_ = float(o_['plannedArrivalWeight']) if o_['plannedArrivalWeight'] not in [None] else 0.
-            vol1_ = float(o_['volume']) if o_['volume'] not in [None] else 0.
-            if wt_ > 0. and vol1_ > 0.:
+            # vol1_ = float(o_['volume']) if o_['volume'] not in [None] else 0.
+            if wt_ > 0. :
+                
+                api_, temp_ = float(o_['api']), float(o_['temperature'])
+                density_ = inputs.loadable._cal_density(api_, temp_)
+                    
+                vol1_ = wt_/density_
+                
                 if tank_ not in self.info['onboard'].keys():
                     self.info['onboard'][tank_] = {}
                 
@@ -379,6 +387,8 @@ class Vessel:
                 
                 # inputs.loadOnTop = False
                 if not inputs.loadOnTop:
+                    
+                    self.info['notOnTop'].append(tank_)
                     
                     for k_,v_ in inputs.loadable.info['parcel'].items():
                         self.info['banCargo'][k_].append(tank_)
