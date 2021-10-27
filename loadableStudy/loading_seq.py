@@ -679,7 +679,8 @@ class Loading_seq:
                 
                 info_['colorCode'] = self.plans.input.loading.info['commingle'].get('colorCode', None)
                 info_['cargoAbbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
-                
+                info_['abbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
+
                 info_['quantity1MT'] = str(round(abs(v_[0]['wt1']),1))
                 info_['quantity2MT'] = str(round(abs(v_[0]['wt2']),1))
                 info_['ullage1'] = str(round(abs(v_[0]['corrUllage1']),3))
