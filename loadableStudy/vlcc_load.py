@@ -423,7 +423,7 @@ class Loadable:
             cargos_info_['commingleCargo']['mode'] = str(c_['purposeXid'])
             
             cargos_info_['commingleCargo']['slopOnly'] = c_.get('isSlopOnly',False)
-            cargos_info_['commingleCargo']['colorCode'] = c_.get('color', None)
+            cargos_info_['commingleCargo']['colorCode'] = c_.get('commingleColour', None)
     
     
     
