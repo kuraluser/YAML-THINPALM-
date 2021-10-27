@@ -716,7 +716,28 @@ class Loading_seq:
             info_['cargoAbbreviation'] = None
             
             plan["loadablePlanStowageDetails"].append(info_)
+        commingle_tank_ = self.plans.input.loading.info['commingle'].get('tankName', None)
+        tanks_ = [p_['tankShortName'] for p_ in plan["loadablePlanStowageDetails"]]
+        
+        if commingle_tank_ and commingle_tank_ not in tanks_:
+            k_ = commingle_tank_
+            info_ = {}
+            info_['tankShortName'] = k_
+            info_['tankName'] =  self.plans.input.vessel.info['cargoTanks'][k_]['name']
+            info_['tankId'] = int(self.plans.input.vessel.info['tankName'][k_])
+            info_['quantityMT'] = "0.0"
+            info_['quantityM3'] = "0.0"
+            info_['api'] = None 
+            info_['temperature'] = None
+            info_['ullage'] = str(round(self.plans.input.vessel.info['ullageEmpty'][str(info_['tankId'])],3))
+            info_['cargoNominationId'] = None
             
+            info_['cargoId'] = None
+            info_['colorCode'] = None
+            info_['cargoAbbreviation'] = None
+            
+            
+            plan["loadablePlanStowageDetails"].append(info_)
                 
         for k_, v_ in plan["cargoVol"].items():
             plan["cargoVol"][k_] = str(round(v_,2))
