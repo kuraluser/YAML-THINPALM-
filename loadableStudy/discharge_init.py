@@ -60,6 +60,8 @@ class Process_input1(object):
         
         self.mode = ""
         
+        self.accurate = True
+        
     def prepare_dat_file(self, ballast_weight=1000):
         
         # prepare dat file for AMPL
@@ -85,7 +87,8 @@ class Process_input1(object):
         cont_weight_ = self.vessel.info['deadweightConst']['weight'] #+ self.vessel.info['onboard']['totalWeight']
         
         loadline_ = 100.0
-        min_draft_limit_  = 10.425
+        # min_draft_limit_ = 10.425
+        min_draft_limit_ = self.config['min_draft_limit']
         
         self.displacement_lower, self.displacement_upper = {}, {}
         self.base_draft = {}
@@ -97,7 +100,17 @@ class Process_input1(object):
         self.trim_lower[str(self.loadable.info['lastVirtualPort'])] = 2.0
         self.trim_upper[str(self.loadable.info['lastVirtualPort'])] = 3.0
         
-        
+        self.limits = {'draft':{}}
+        self.limits['draft']['loadline'] = loadline_
+        self.limits['draft'] = {**self.limits['draft'], **self.port.info['maxDraft']}
+        self.limits['operationId'] = self.port.info['operationId'] 
+        self.limits['seawaterDensity'] = self.port.info['seawaterDensity'] 
+        self.limits['tide'] = self.port.info['tide'] 
+        self.limits['id'] = self.loadable_id
+        self.limits['vesselId'] = self.vessel_id
+        self.limits['voyageId'] = self.voyage_id
+        self.limits['airDraft'] = self.port.info['maxAirDraft']
+        self.limits['sfbm'] = self.sf_bm_frac
         
         self.full_discharge = True
         
@@ -147,6 +160,11 @@ class Process_input1(object):
             est_displacement_ = lightweight_ + est_deadweight_
             seawater_density_ = self.port.info['portRotation'][port_code_]['seawaterDensity']
             
+            
+            if p_ == self.loadable.info['lastVirtualPort'] and self.full_discharge:
+                min_draft_limit_ -= 2
+                print('last virtual port:', p_, min_draft_limit_)
+                
             
              ## lower bound displacement
             lower_draft_limit_ = min_draft_limit_ #max(self.ports.draft_airdraft[p_], min_draft_limit_)
@@ -341,9 +359,9 @@ class Process_input1(object):
                 print(str1+';', file=text_file)
                 
                 print('# NP1',file=text_file)#  
-                if not self.full_discharge:
-                    str1 = 'set NP1 := '  # to virtual ports
-                    print(str1+';', file=text_file)
+                # if not self.full_discharge:
+                str1 = 'set NP1 := '  # to virtual ports
+                print(str1+';', file=text_file)
                 
                 
     
@@ -372,7 +390,7 @@ class Process_input1(object):
                     str1 = '[' + str(i_) + ', *] := '
                     for k_,v_ in j_.items():
                         if int(k_) > 0:
-                            str1 += str(k_) + ' ' + "{:.1f}".format(int(v_*10)/10) + ' '
+                            str1 += str(k_) + ' ' + "{:.1f}".format(round(v_,1)) + ' '
                     print(str1, file=text_file)
                 print(';', file=text_file)
                 

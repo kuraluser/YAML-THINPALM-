@@ -337,7 +337,10 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
     
     print(module_)
     
-    if module_ in ['LOADABLE']:    
+    if module_ in ['DISCHARGE']:    
+        out = loadicator(data, limits)
+    
+    elif module_ in ['LOADABLE']:    
         out = loadicator(data, limits)
         # # print('>>>Send loadicator results')
         # logger.info(data["processId"] + ": Upload loadicator result")

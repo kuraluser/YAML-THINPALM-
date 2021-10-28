@@ -315,7 +315,7 @@ def loadicator(data, limits):
     if not rerun_:    
         ## feedback loop
         out['feedbackLoop'] = False
-        out['feedbackLoopCount'] = limits['limits']['feedback']['feedbackLoopCount']
+        out['feedbackLoopCount'] = limits['limits'].get('feedback', {}).get('feedbackLoopCount', 0)
         out['sfbmFac'] = limits['limits']['sfbm']
         
         # print('do')

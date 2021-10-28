@@ -79,7 +79,7 @@ class Port:
                 
                 ports_info_['portRotation'][detail_['code']] = {}
                 ports_info_['portRotation'][detail_['code']]['order'] = p_['portOrder']
-                ports_info_['portRotation'][detail_['code']]['maxDraft'] = p_['maxDraft']
+                ports_info_['portRotation'][detail_['code']]['maxDraft'] = float(p_['maxDraft'])
                 ports_info_['portRotation'][detail_['code']]['portId'] = p_['portId']
                 ports_info_['portRotation'][detail_['code']]['seawaterDensity'] = float(p_['seaWaterDensity']) if p_['seaWaterDensity'] not in ["",None] else 1.025
                 ports_info_['portRotation'][detail_['code']]['portRotationId'] = p_['id']

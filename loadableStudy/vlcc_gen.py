@@ -1883,7 +1883,7 @@ class Generate_plan:
         
     
     
-    ## for discharging study
+    ## for discharge study
     def gen_json2(self, constraints, stability_values):
         data = {}
         data['message'] = None
@@ -1956,7 +1956,7 @@ class Generate_plan:
                 plan['dischargePlanPortWiseDetails'].append(plan_)
                 
             data['dischargePlanDetails'].append(plan)
-        # data['message'] = {'limits':self.input.limits}
+        data['message'] = {'limits':self.input.limits}
         
         
         return data

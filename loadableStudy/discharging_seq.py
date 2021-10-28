@@ -586,7 +586,7 @@ class Discharging_seq:
                 
                 info_['colorCode'] = self.plans.input.loading.info['commingle'].get('colorCode', None)
                 info_['cargoAbbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
-                info_['abbreviation'] = self.plans.input.discharging.info['abbreviation'][v_[0]['parcel']]
+                info_['abbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
                 
                 
                 info_['quantity1MT'] = str(round(abs(v_[0]['wt1']),1))

@@ -680,7 +680,7 @@ class Loadable:
             
             
         cargos_info_['numParcel'] = len(self.info['parcel'])
-        cargos_info_['toDischargePort1'] = {a__:a_ for a__, a_ in enumerate(cargos_info_['toDischargePort']) if a_ < 0} 
+        cargos_info_['toDischargePort1'] = {a__: round(a_,1) for a__, a_ in enumerate(cargos_info_['toDischargePort']) if a_ < 0} 
         cargos_info_['toDischargePort'] = np.cumsum(cargos_info_['toDischargePort'])
         
         cargos_info_['manualOperation'] = {}
@@ -689,18 +689,23 @@ class Loadable:
         
         if inputs.discharge_json['arrivalPlan']['loadableQuantityCommingleCargoDetails']:
             inputs.error['Cargo Error'] = ['Commingle cargo not supported!!']
+            return
             
         cargos_info_['preloadOperation'] = {}
+        cargos_info_['preload'] = {}
         
         for d__, d_  in enumerate(inputs.discharge_json['arrivalPlan']['loadablePlanStowageDetails']):
-            parcel_ = self.info['dscargoNominationId']['P' + str(d_['cargoNominationId'])]
             wt_ = float(d_['quantity'])
-            tank_ = d_['tankId']
-            ## need to convert to tankName later
-            if parcel_ not in cargos_info_['preloadOperation']:
-                cargos_info_['preloadOperation'][parcel_] = {}
-                
-            cargos_info_['preloadOperation'][parcel_][tank_] = wt_
+            if wt_ > 0:
+                parcel_ = self.info['dscargoNominationId']['P' + str(d_['cargoNominationId'])]
+                tank_ = d_['tankId']
+                ## need to convert to tankName later
+                if parcel_ not in cargos_info_['preloadOperation']:
+                    cargos_info_['preloadOperation'][parcel_] = {}
+                    cargos_info_['preload'][parcel_]  = 0
+                    
+                cargos_info_['preloadOperation'][parcel_][tank_] = wt_
+                cargos_info_['preload'][parcel_]  += wt_
             
         
         cargos_info_['ballastOperation'] = {}
