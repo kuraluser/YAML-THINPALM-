@@ -652,7 +652,7 @@ class Loading_seq:
                 info_['cargoId'] = self.plans.input.loading.info['cargoId'][v_[0]['parcel']]
                 info_['colorCode'] = self.plans.input.loading.info['colorCode'][v_[0]['parcel']]
                 info_['cargoAbbreviation'] = self.plans.input.loading.info['abbreviation'][v_[0]['parcel']]
-                info_['abbreviation'] = self.plans.input.discharging.info['abbreviation'][v_[0]['parcel']]
+                info_['abbreviation'] = self.plans.input.loading.info['abbreviation'][v_[0]['parcel']]
                 
                 
                     

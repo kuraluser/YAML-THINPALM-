@@ -1833,7 +1833,7 @@ class Generate_plan:
         
         return pump_
         
-    def _get_ballast(self, out, data, first_cargo):
+    def _get_ballast(self, out, data, gravity):
         
         # for stages before maxloadingrate
         # print(out)
@@ -1841,7 +1841,7 @@ class Generate_plan:
         timeEnd_   = int(out['timeEnd'])
         
       
-        pump_ = self._get_pump(timeEnd_,first_cargo)    
+        pump_ = self._get_pump(timeEnd_, gravity)    
             
         # print(out['stage'], pump_)
         
