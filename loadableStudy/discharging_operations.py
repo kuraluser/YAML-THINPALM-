@@ -201,6 +201,7 @@ class DischargingOperations(object):
             # plan_ = []
             if len(plan_) == 0:
                 self.error['Optimization Error'] = ['No discharge plan generated!!']
+                return
             else:
                 plan__ = []
                 
