@@ -169,6 +169,7 @@ def loadicator(data, limits):
             
             info_["SF"] = v_["shearingForcePersentValue"]
             info_['BM'] = v_["bendingMomentPersentValue"]
+            
             info_['errorDetails'] = []
             if u_["errorDetails"] not in [""]:
                 info_['errorDetails'].append(u_["errorDetails"])
@@ -250,12 +251,13 @@ def loadicator(data, limits):
                 
                 info_["SF"] = v_["shearingForcePersentValue"]
                 info_['BM'] = v_["bendingMomentPersentValue"]
-	            info_['errorDetails'] = []
-	            if u_["errorDetails"] not in [""]:
-	                info_['errorDetails'].append(u_["errorDetails"])
-	            if v_["errorDetails"] not in [""]:
-	                info_['errorDetails'].append(v_["errorDetails"])
-	 
+                
+                info_['errorDetails'] = []
+                if u_["errorDetails"] not in [""]:
+                    info_['errorDetails'].append(u_["errorDetails"])
+                if v_["errorDetails"] not in [""]:
+                    info_['errorDetails'].append(v_["errorDetails"])
+ 
                 
                 if info_['deflection'] in [None, ""]:
                     sag_ = 0.

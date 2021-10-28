@@ -558,6 +558,7 @@ class Discharging_seq:
                 info_['cargoId'] = self.plans.input.discharging.info['cargoId'][v_[0]['parcel']]
                 info_['colorCode'] = self.plans.input.discharging.info['colorCode'][v_[0]['parcel']]
                 info_['cargoAbbreviation'] = self.plans.input.discharging.info['abbreviation'][v_[0]['parcel']]
+                info_['abbreviation'] = self.plans.input.discharging.info['abbreviation'][v_[0]['parcel']]
                 
                     
                 if v_[0]['parcel'] not in plan["cargoVol"]:
@@ -585,6 +586,8 @@ class Discharging_seq:
                 
                 info_['colorCode'] = self.plans.input.loading.info['commingle'].get('colorCode', None)
                 info_['cargoAbbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
+                info_['abbreviation'] = self.plans.input.discharging.info['abbreviation'][v_[0]['parcel']]
+                
                 
                 info_['quantity1MT'] = str(round(abs(v_[0]['wt1']),1))
                 info_['quantity2MT'] = str(round(abs(v_[0]['wt2']),1))
@@ -619,6 +622,7 @@ class Discharging_seq:
             info_['cargoId'] = None
             info_['colorCode'] = None
             info_['cargoAbbreviation'] = None
+            info_['abbreviation'] = None
             
             plan["dischargePlanStowageDetails"].append(info_)
             

@@ -150,7 +150,12 @@ class Generate_plan:
                     model_ = 'model_2i.mod'
                 else:
                     if self.input.config.get('objective', "1") == '1':
-                        model_ = 'model_1i.mod'
+                        
+                        model_ = 'model_1i.mod' ## model_1ii.mod
+                        # if self.input.accurate:
+                        #     model_ = 'model_1ii.mod'
+                        # else:
+                        #     model_ = 'model_1i.mod'
                     else:
                         model_ = 'model_3i.mod'
                         
@@ -1542,12 +1547,12 @@ class Generate_plan:
                         info_['sequence'][d__+1]['simDeballastingRateM3_Hr'] = [info2_['simIniDeballastingRateM3_Hr']]
                         info_['sequence'][d__+1]['simBallastingRateM3_Hr'] = [info2_['simIniBallastingRateM3_Hr']]
                         
-                        
-                        self._get_ballast(info_['sequence'][d__+1], info1_, first_cargo_)
+                        gravity_ = self.input.first_loading_port and first_cargo_
+                        self._get_ballast(info_['sequence'][d__+1], info1_, gravity_)
                         
                         
                     
-                    self._get_ballast1(info1_, first_cargo_, c_)
+                    self._get_ballast1(info1_, gravity_, c_)
                     
                     # print(info1_['stageEndTime'])
                     self._get_eduction(info1_, c_)
@@ -1610,7 +1615,7 @@ class Generate_plan:
             
         
     
-    def _get_ballast1(self, out, first_cargo, cargo):
+    def _get_ballast1(self, out, gravity, cargo):
         # pass
     
         timeStart_ = int(out['timeStart'])
@@ -1631,7 +1636,7 @@ class Generate_plan:
             else:
                 timeEnd_ = int(out['timeEnd'])
                 
-            pump_ = self._get_pump(timeEnd_,first_cargo)    
+            pump_ = self._get_pump(timeEnd_, gravity)    
             
             # print(d__+1, timeStart_, timeEnd_, pump_)
             
@@ -1780,9 +1785,9 @@ class Generate_plan:
 
 
         
-    def _get_pump(self, timeEnd_,first_cargo):
+    def _get_pump(self, timeEnd_, gravity):
         
-        if first_cargo:
+        if gravity:
             if self.input.loading.max_loading_rate > 15000:
                 # pump only
                 pump_ = {'Gravity':0}
@@ -2093,6 +2098,7 @@ class Generate_plan:
                         info_["cargoId"] = int(self.input.loadable.info['parcel'][k_]['cargoId'])
                         info_["cargoNominationId"] = int(k_[1:])
                         info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
+                        info_['abbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
                         info_['estimatedAPI'] = str(self.input.loadable.info['parcel'][k_]['api'])
                         info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])
                         info_['loadableMT'] = str(v_)
@@ -2150,6 +2156,7 @@ class Generate_plan:
                     info_["dscargoNominationId"] = int(k_[1:])
                     info_['cargoNominationId'] = int(self.input.loadable.info['parcel'][k_]['cargoNominationId'][1:])
                     info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
+                    info_['abbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
                     info_['estimatedAPI'] = str(self.input.loadable.info['parcel'][k_]['api'])
                     info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])
                     
@@ -2182,6 +2189,7 @@ class Generate_plan:
                 info_['quantityM3'] = str(round(abs(v_[0]['wt'])/v_[0]['SG'],2))
                 
                 info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['abbreviation']
+                info_['abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['abbreviation']
                 info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
                 info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
                 info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
@@ -2219,6 +2227,8 @@ class Generate_plan:
                     
                     
                     info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['abbreviation']
+                    info_['abbreviation'] = self.input.loadable.info['parcel'][v_[0]['parcel']]['abbreviation']
+                    
                     info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
                     info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
                     info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
@@ -2251,6 +2261,8 @@ class Generate_plan:
                     info_['quantityM3'] = str(round(abs(v_[0]['vol']),2))
                     
                     info_['cargoAbbreviation'] = None
+                    info_['abbreviation'] = None
+                    
                     info_['tankId'] = int(self.input.vessel.info['tankName'][k_])
                     
                     
@@ -2459,7 +2471,7 @@ class Generate_plan:
                 else:
                     # print(i_, j_, param[i_], flow_rate[j_])
                     if i_ == 'wingTank' and j_ == 'PVValveWingTank':
-                        rate_ += len(param[i_])/2 * flow_rate[j_]
+                        rate_ += len(param[i_]) * flow_rate[j_]
                     else:
                         rate_ += len(param[i_]) * flow_rate[j_]
     
@@ -2479,7 +2491,8 @@ class Generate_plan:
             
 
     def _topping_seq(self, tanks):
-        fixed_order = ['SLS','SLP','5P','5C', '4P', '4C', '2P','2C', '1P','1C','3P', '3C']
+        # fixed_order = ['SLS','SLP','5P','5C', '4P', '4C', '2P','2C', '1P','1C','3P', '3C']
+        fixed_order = ['SLS', 'SLP', '5P', '5C', '1P', '1C', '4P', '4C', '2P', '2C', '3P', '3C']
         order_ = ['' for o_ in fixed_order]
         
         for t_ in tanks:

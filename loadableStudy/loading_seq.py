@@ -652,6 +652,8 @@ class Loading_seq:
                 info_['cargoId'] = self.plans.input.loading.info['cargoId'][v_[0]['parcel']]
                 info_['colorCode'] = self.plans.input.loading.info['colorCode'][v_[0]['parcel']]
                 info_['cargoAbbreviation'] = self.plans.input.loading.info['abbreviation'][v_[0]['parcel']]
+                info_['abbreviation'] = self.plans.input.discharging.info['abbreviation'][v_[0]['parcel']]
+                
                 
                     
                 if v_[0]['parcel'] not in plan["cargoVol"]:
@@ -680,7 +682,8 @@ class Loading_seq:
                 info_['colorCode'] = self.plans.input.loading.info['commingle'].get('colorCode', None)
                 info_['cargoAbbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
                 info_['abbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
-
+                
+                
                 info_['quantity1MT'] = str(round(abs(v_[0]['wt1']),1))
                 info_['quantity2MT'] = str(round(abs(v_[0]['wt2']),1))
                 info_['ullage1'] = str(round(abs(v_[0]['corrUllage1']),3))
@@ -698,7 +701,7 @@ class Loading_seq:
             
         ##
         empty_ = set(self.plans.input.vessel.info['cargoTankNames']) - set(cargo_tanks_added_)
-#        print(empty_)
+        # print('empty_',empty_)
         for k_ in empty_:
             info_ = {}
             info_['tankShortName'] = k_
@@ -714,8 +717,10 @@ class Loading_seq:
             info_['cargoId'] = None
             info_['colorCode'] = None
             info_['cargoAbbreviation'] = None
+            info_['abbreviation'] = None
             
             plan["loadablePlanStowageDetails"].append(info_)
+            
         commingle_tank_ = self.plans.input.loading.info['commingle'].get('tankName', None)
         tanks_ = [p_['tankShortName'] for p_ in plan["loadablePlanStowageDetails"]]
         
@@ -735,9 +740,13 @@ class Loading_seq:
             info_['cargoId'] = None
             info_['colorCode'] = None
             info_['cargoAbbreviation'] = None
+            info_['abbreviation'] = None
             
             
             plan["loadablePlanStowageDetails"].append(info_)
+            
+                
+            
                 
         for k_, v_ in plan["cargoVol"].items():
             plan["cargoVol"][k_] = str(round(v_,2))
