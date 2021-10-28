@@ -836,12 +836,9 @@ class Loading_seq:
         plan["bendinMoment"] = self.stability[str(port)]['bendinMoment']
         plan["shearForce"] = self.stability[str(port)]['shearForce']
         plan["gom"] = self.stability[str(port)]['gom']
-        
-        
-        
-        
-    
-    
+        plan["manifoldHeight"] = self.stability[str(port)]['manifoldHeight']
+        plan["freeboard"] = self.stability[str(port)]['freeboard']
+
     # def _get_time_interval(self, cargo, stage):
         
     #     return str(self.plans.input.loading.seq[cargo]['stageInterval'][0]), str(self.plans.input.loading.seq[cargo]['stageInterval'][stage][1])
