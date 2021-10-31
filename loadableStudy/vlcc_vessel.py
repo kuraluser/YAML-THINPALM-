@@ -45,6 +45,15 @@ class Vessel:
         vessel_info_['loadingRateRiser'] = float(vessel_json['vessel'].get('mastRiser', 20500))
         
         
+        ##***
+        if vessel_json['vessel']['name'] == 'KAZUSA':
+            vessel_info_['loadingRate6']['SlopTankBranchLine'] = 1292
+        elif vessel_json['vessel']['name'] == 'ATLANTIC PIONEER':
+            vessel_info_['loadingRate6']['SlopTankBranchLine'] = 2372
+            
+        ##***
+        
+        
         ## 
         vessel_info_['name'] = vessel_json['vessel']['name'].replace(" ", "")
         
@@ -536,9 +545,17 @@ class Vessel:
             
             if abs(wt1_-wt2_) <= ROB_CHANGE:
             # if (self.info['onhand1'].get(p1_,{}) == self.info['onhand1'].get(p2_,{})) and (inputs.port.info['portRotation'][port1_]['seawaterDensity'] == inputs.port.info['portRotation'][port2_]['seawaterDensity']):
-                print('ROB:', p1_, p2_, inputs.loadable.info['arrDepVirtualPort'][p1_], inputs.loadable.info['arrDepVirtualPort'][p2_])
-                self.info['sameROB'].append((inputs.loadable.info['arrDepVirtualPort'][p1_],inputs.loadable.info['arrDepVirtualPort'][p2_]))
-            
+                q1_ = inputs.loadable.info['arrDepVirtualPort'][p1_]
+                q2_ = inputs.loadable.info['arrDepVirtualPort'][p2_]
+                s1_ = inputs.loadable.info['seawaterDensity'][q1_]
+                s2_ = inputs.loadable.info['seawaterDensity'][q2_]
+                
+                print('sameROB:', p1_, p2_, inputs.loadable.info['arrDepVirtualPort'][p1_], inputs.loadable.info['arrDepVirtualPort'][p2_])
+                if s1_ == s2_:
+                    self.info['sameROB'].append((inputs.loadable.info['arrDepVirtualPort'][p1_],inputs.loadable.info['arrDepVirtualPort'][p2_]))
+                else:
+                    print('Diff seawater density:', s1_, s2_)
+                
         # print(self.info['onhand'])      
     
     def _get_lcg_parameters(self, vessel_info_, lcg_details_):

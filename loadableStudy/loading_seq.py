@@ -68,8 +68,9 @@ class Loading_seq:
                     ballast_amt_ += (cur_vol_ - pre_vol_)
                
         # print(deballast_amt_, ballast_amt_)
-        plan['totBallastingRateM3_Hr'] = str(round(ballast_amt_/time*60,12))
-        plan['totDeballastingRateM3_Hr'] = str(round(deballast_amt_/time*60,12))
+        plan['totBallastingRateM3_Hr'] = str(round(ballast_amt_/time*60,2))
+        plan['totDeballastingRateM3_Hr'] = str(round(deballast_amt_/time*60,2))
+        # print(deballast_amt_, time)
         
         
         
@@ -360,10 +361,18 @@ class Loading_seq:
                     if  educt_[1] == v_[:-1]:
                         print('eduction', educt_, v_)
                         time_ = educt_[0]
+                        
+                    elif info['gravityNeeded'] and cargo_order == 1:
+                        time1_ = self.plans.input.loading.seq[cargo]['ballastLimit'][v_[:-1]]
+                        time_ = cur_time_-pre_time_
+                        # print('gravity:', v_[:-1], time_, time1_)
+                        time_ = min(time_, time1_)
+                        
                     else:
                         time_ = cur_time_-pre_time_
                         
-                    self._get_ballast_rate(ballast_plan_, port_, pre_port_, time_)
+                    if time_ > 0:
+                        self._get_ballast_rate(ballast_plan_, port_, pre_port_, time_)
                     
                     plan_['deballastingRateM3_Hr'] = ballast_plan_['deballastingRateM3_Hr']
                     plan_['ballastingRateM3_Hr'] = ballast_plan_['ballastingRateM3_Hr']
@@ -378,6 +387,12 @@ class Loading_seq:
                     if  educt_[1] == v_[:-1]:
                         start_ = int(pre_time_+self.delay)
                         end_ = int(pre_time_+ educt_[0] +self.delay)
+                    elif info['gravityNeeded'] and cargo_order == 1:
+                        start1_ = int(pre_time_+self.delay)
+                        start2_ = self.delay + 120
+                        start_ = max(start1_, start2_)
+                        end_ = int(cur_time_+self.delay)
+                    
                     else:
                         start_ = int(pre_time_+self.delay)
                         end_ = int(cur_time_+self.delay)
@@ -401,12 +416,8 @@ class Loading_seq:
                     info['simBallastingRateM3_Hr'].append(info_)
                     
                     
-                    info['totDeballastingRateM3_Hr'].append(ballast_plan_['totDeballastingRateM3_Hr'])
-                    info['totBallastingRateM3_Hr'].append(ballast_plan_['totBallastingRateM3_Hr'])
-                    
-                    
-                    
-                   
+                    info['totDeballastingRateM3_Hr'].append(ballast_plan_.get('totDeballastingRateM3_Hr', '0.00'))
+                    info['totBallastingRateM3_Hr'].append(ballast_plan_.get('totBallastingRateM3_Hr', '0.00'))
                     
                     pre_port_ = port_
                     
@@ -416,8 +427,8 @@ class Loading_seq:
                         info['iniDeballastingRateM3_Hr'] = deepcopy(ballast_plan_['deballastingRateM3_Hr'])
                         info['iniBallastingRateM3_Hr'] = deepcopy(ballast_plan_['ballastingRateM3_Hr'])
                         
-                        info['iniTotDeballastingRateM3_Hr'] = deepcopy(ballast_plan_['totDeballastingRateM3_Hr'])
-                        info['iniTotBallastingRateM3_Hr'] = deepcopy(ballast_plan_['totBallastingRateM3_Hr'])
+                        info['iniTotDeballastingRateM3_Hr'] = deepcopy(ballast_plan_.get('totDeballastingRateM3_Hr', '0.00'))
+                        info['iniTotBallastingRateM3_Hr'] = deepcopy(ballast_plan_.get('totBallastingRateM3_Hr', '0.00'))
                         
                         
                         info['simIniDeballastingRateM3_Hr'] = deepcopy(info['simDeballastingRateM3_Hr'][0])
@@ -450,17 +461,25 @@ class Loading_seq:
                     cur_time_ = self.plans.input.loadable['stageTimes'][port_]
                     pre_time_ = self.plans.input.loadable['stageTimes'].get(pre_port_, 0.)
                     
-                    info['stageEndTime'][v_[:-1]] = cur_time_ + self.delay
+                    info['stageEndTime'][v_[:-1]] = int(cur_time_ + self.delay)
                           
+                   
                     educt_ = self.plans.input.loading.seq[cargo].get('eduction', (None,None))
                     if  educt_[1] == v_[:-1]:
                         print('eduction', educt_, v_)
                         time_ = educt_[0]
+                        
+                    elif info['gravityNeeded'] and cargo_order == 1:
+                        time1_ = self.plans.input.loading.seq[cargo]['ballastLimit'][v_[:-1]]
+                        time_ = cur_time_-pre_time_
+                        # print('gravity:', v_[:-1], time_, time1_)
+                        time_ = min(time_, time1_)
+                        
                     else:
                         time_ = cur_time_-pre_time_
                         
-                    # print(cur_time_, pre_time_)
-                    self._get_ballast_rate(ballast_plan_, port_, pre_port_, time_)
+                    if time_ > 0:
+                        self._get_ballast_rate(ballast_plan_, port_, pre_port_, time_)
                     
                     plan_['deballastingRateM3_Hr'] = ballast_plan_['deballastingRateM3_Hr']
                     plan_['ballastingRateM3_Hr'] = ballast_plan_['ballastingRateM3_Hr']
@@ -496,8 +515,10 @@ class Loading_seq:
                     
                     info['simBallastingRateM3_Hr'].append(info_)
                     
-                    info['totDeballastingRateM3_Hr'].append(ballast_plan_['totDeballastingRateM3_Hr'])
-                    info['totBallastingRateM3_Hr'].append(ballast_plan_['totBallastingRateM3_Hr'])
+                   
+                    info['totDeballastingRateM3_Hr'].append(ballast_plan_.get('totDeballastingRateM3_Hr', '0.00'))
+                    info['totBallastingRateM3_Hr'].append(ballast_plan_.get('totBallastingRateM3_Hr', '0.00'))
+                  
                     
                     
                     pre_port_ = port_
@@ -520,6 +541,7 @@ class Loading_seq:
             
             
             info['simDeballastingRateM3_Hr'] = [{}]
+            info['simBallastingRateM3_Hr'] = [{}]
             info["cargoLoadingRatePerTankM3_Hr"] = []
             info["simCargoLoadingRatePerTankM3_Hr"] = []
             
@@ -838,7 +860,13 @@ class Loading_seq:
         plan["gom"] = self.stability[str(port)]['gom']
         plan["manifoldHeight"] = self.stability[str(port)]['manifoldHeight']
         plan["freeboard"] = self.stability[str(port)]['freeboard']
-
+        
+        
+        
+        
+        
+    
+    
     # def _get_time_interval(self, cargo, stage):
         
     #     return str(self.plans.input.loading.seq[cargo]['stageInterval'][0]), str(self.plans.input.loading.seq[cargo]['stageInterval'][stage][1])

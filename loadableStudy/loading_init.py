@@ -32,8 +32,20 @@ class Process_input(object):
         for p__, p_ in enumerate(data['loading']['loadablePlanPortWiseDetails']):
             if p_['portId'] == self.port_id:
                 self.loadable_json['planDetails'] = p_
-                self.first_loading_port = True if p__ == 0 else False
                 
+                if len(p_['arrivalCondition']['loadablePlanStowageDetails']) == 0:
+                    self.first_loading_port = True 
+                else:
+                    self.first_loading_port = False 
+                
+                break
+            
+        print('first_loading_port :',   self.first_loading_port)              
+    
+    
+        
+        
+        #
         self.loading_info_json = {'trimAllowed':data['loading']['loadingInformation']["loadingDetails"]["trimAllowed"],
                                   "loadingRates":data['loading']['loadingInformation']["loadingRates"],
                                   "loadingStages":data['loading']['loadingInformation']["loadingStages"],
@@ -152,6 +164,8 @@ class Process_input(object):
         
         self.loadable['stages'], self.loadable['stageTimes'] = {}, {}
         self.loadable['toLoadPort'] = {0:round(wt_,1)} ###
+        
+        zero_ballast_ = []
         for c__, c_ in enumerate(self.loading.info['loading_order']):
             last_cargo_ = True if c__+1 == len(self.loading.info['loading_order']) else False
             
@@ -167,6 +181,8 @@ class Process_input(object):
                     self.loadable['toLoadCargoTank'][c_][k_] = v_[1]['quantityMT']
                     
             toLoadTank_ = {t_:0.  for t_ in self.vessel.info['cargoTanks']}
+            
+            
             for d_ in self.loading.seq[c_]['loadingInfo']: # for each column
                 
                 if self.loading.seq[c_]['loadingInfo'][d_]['Weight'] not in [None, np.nan]:
@@ -258,16 +274,19 @@ class Process_input(object):
                 top_trim_ = top_trim_ if top_trim_ not in [None] else 1.0
                 
                 
-                if d_ in self.loading.seq[c_]['fixBallast'] or (last_cargo_ and  d_[0:3] in ['Top']):
+                
+                if d_ in self.loading.seq[c_]['fixBallast'] or (last_cargo_ and  d_[0:3] in ['Top']) or d_ in self.loading.seq[c_]['initBallast']:
                     # print(d_)
                     self.loadable['fixedBallastPort'].append(str(port_))
-                    if d_ in ['Initial1']:
+                    if d_ in ['Initial1'] or d_ in self.loading.seq[c_]['initBallast']:
                         print(d_, 'arrival ballast')
+                        zero_ballast_.append(port_)
                         for k_, v_ in self.loading.info['ballast'][0].items():
                             self.loadable['ballastOperation'][k_][str(port_)] = v_[0]['quantityMT']
                             
                     else:
                         print(d_, 'departure ballast')
+                        zero_ballast_.append(port_)
                         for k_, v_ in self.loading.info['ballast'][-1].items():
                             self.loadable['ballastOperation'][k_][str(port_)] = v_[0]['quantityMT']
                         
@@ -326,7 +345,9 @@ class Process_input(object):
             # print(p_)
             
             cargo_to_load_ = self.loadable['toLoadPort1'][p_]
-            ballast_ = max(0.,ballast_- self.deballast_percent*cargo_to_load_)
+            
+            if p_ not in zero_ballast_:
+                ballast_ = max(0.,ballast_- self.deballast_percent*cargo_to_load_)
             
             cargo_weight_  = self.loadable['toLoadPort'][p_] #* 0.98
             
@@ -337,7 +358,7 @@ class Process_input(object):
             
             
             lower_displacement_limit_ = 120000
-            seawater_density_ = self.seawater_density
+            # seawater_density_ = self.seawater_density
             est_displacement_ = max(lower_displacement_limit_, est_displacement_)  
             
             ## upper bound displacement

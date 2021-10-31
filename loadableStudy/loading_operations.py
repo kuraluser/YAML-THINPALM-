@@ -16,7 +16,10 @@ from copy import deepcopy
 
 # INDEX = ['Time','SLS', 'SLP', '5W', '5C', '4W', '4C', '2W', '2C','1W','1C','3W','3C']
 # INDEX1 = ['LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S', 'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S', 'AWBP', 'AWBS', 'APT']
-OPEN_TANKS = ['3C', '2C', '4C', '5C', '1C', '3W', '4W', '2W', '5W', '1W' ]
+# OPEN_TANKS = ['3C', '2C', '4C', '5C', '1C', '3W', '4W', '2W', '5W', '1W' ]
+OPEN_TANKS = ['1C', '1W', '2C', '2W', '3C','3W', '4C', '4W', '5C', '5W' ]
+
+
 DEC_PLACE = 10
 
 # TIME_EDUCTING = 60*3
@@ -27,10 +30,13 @@ class LoadingOperations(object):
         
         self.error = {}
         
+        self.first_loading_port = data.first_loading_port
         self.ballast_color, self.rob_color = {}, {}
         self.vessel = data.vessel
         
         self.time_interval1 = data.loading_info_json['loadingStages']['stageDuration']*60 # in 60*4 min
+        # self.time_interval1 = 2*60 # in 60*4 min
+        
         self.num_stage_interval = data.loading_info_json['loadingStages']['stageOffset']
         self.time_interval = {}
         
@@ -70,9 +76,9 @@ class LoadingOperations(object):
         shoreLoadingRate_ = data.loading_info_json['loadingRates'].get('shoreLoadingRate',1e6)
         shoreLoadingRate_ = shoreLoadingRate_ if shoreLoadingRate_ not in [None] else 1e6
         
-        loading_rate_ = min(data.loading_info_json['loadingRates']['maxLoadingRate'], shoreLoadingRate_)
+        loading_rate_ = min(data.loading_info_json['loadingRates'].get('maxLoadingRate', 7000), shoreLoadingRate_)
+        # loading_rate_ = 8000
         self.max_loading_rate = loading_rate_
-        # loading_rate_ = 7000
         print('loading rate (max):', loading_rate_)
         min_loading_rate_ = data.loading_info_json['loadingRates']['minLoadingRate']
         min_loading_rate_ = min_loading_rate_ if min_loading_rate_ not in [None, ""] else 1000.
@@ -89,8 +95,11 @@ class LoadingOperations(object):
                                  'slopTank': self.vessel.info['loadingRate6']['SlopTankBranchLine'], #3435,
                                  'toppingSeq':[]}
         
-        
-        self.seawater_density = float(data.port_json['portDetails'][0]['seawaterDensity'])
+        seawater_density_ =  data.port_json['portDetails'][0]['seawaterDensity']
+        if seawater_density_ not in [None, ""]:
+            self.seawater_density = float(data.port_json['portDetails'][0]['seawaterDensity'])
+        else:
+            self.seawater_density = 1.025
         
         self.preloaded_cargos, self.to_load_cargos = [], []
         self.commingle_loading, self.commingle_preloaded = False, False
@@ -497,6 +506,9 @@ class LoadingOperations(object):
         
         for p__, p_ in enumerate(self.info['cargo_plans'][:-1]):
             
+            gravity_ = self.first_loading_port and p__ == 0 and (self.max_loading_rate < 15000)
+            
+            
             df_ = pd.DataFrame(index=INDEX)
             
             df_['Initial'] = None
@@ -631,7 +643,7 @@ class LoadingOperations(object):
             df_['IncMax'] =  df_['Initial']
             df_['IncMax']['Time'] = 30 # end time
             
-            cargo_loaded_ = loading_rate_*25/60
+            cargo_loaded_ = loading_rate_*15/60 + self.staggering_param['maxShoreRate']*10/60
             cargo_loaded_per_tank_ = cargo_loaded_/total_tank_
             
             stages_['increaseToMaxRate'] = (df_['OpenAll']['Time'], df_['IncMax']['Time'])
@@ -783,6 +795,7 @@ class LoadingOperations(object):
                 
                 ballast_ = [(0, 'Initial')]
                 ballast_stop_, before_topping_ = [], 'MaxLoading' + str(stage_)
+                ballast_init_ = [] # for gravity first 2 hr
                 single_max_stage_ = True
                 while (time_ < topping_start_):
                     single_max_stage_ = False
@@ -792,6 +805,10 @@ class LoadingOperations(object):
                     df_[ss_]['Time'] = int(time_)
                     before_topping_ = ss_
                     ballast_.append((int(time_),ss_))
+                    
+                    if int(time_) <= 120 and gravity_:
+                        ballast_init_.append((int(time_),ss_))
+                        
                     for t_ in self.info['cargo_tank'][cargo_to_load_]:
                         if self.commingle_loading1:
                             
@@ -917,9 +934,19 @@ class LoadingOperations(object):
                 ballast_.insert(1, (df_['MaxLoading1']['Time'],'MaxLoading1'))
                
             ballast_limit_ = {}
+            gravity_ = 120
             for aa_, (bb_,cc_) in enumerate(ballast_):
                 if cc_[:3] in ['Max']:
                     time_ = bb_ - ballast_[aa_-1][0]
+                    if self.first_loading_port and p__ == 0 and gravity_ > 0:
+                        if time_ >= gravity_:
+                            time_ -= gravity_
+                            gravity_ = 0
+                        else:
+                            time_ = 0
+                            gravity_ -= time_
+                        
+                    
                     ballast_limit_[cc_] = time_
                     
                     
@@ -932,7 +959,7 @@ class LoadingOperations(object):
             self.seq[cargo_to_load_]['justBeforeTopping'] = just_before_topping_ # last stage before topping
             self.seq[cargo_to_load_]['stageInterval'] = stages_ # time duration for each stage
             self.seq[cargo_to_load_]['startTime'] = start_time_ # start time without delay
-            self.seq[cargo_to_load_]['ballastStop'] = list(ballast_stop_) # need to get ballast for these stages
+            self.seq[cargo_to_load_]['ballastStop'] = list(ballast_stop_) # no ballasting after  these stage
             self.seq[cargo_to_load_]['lastStage'] = ss_
             if self.commingle_loading1:
                 self.seq[cargo_to_load_]['loadingRateM3Min'] = (staggering_rate_['LoadingRateM3Min1'],staggering_rate_['LoadingRateM3Min2'])
@@ -943,6 +970,8 @@ class LoadingOperations(object):
             self.seq[cargo_to_load_]['singleMaxStage'] = single_max_stage_
             self.seq[cargo_to_load_]['commingleStart'] = commingle_start_
             self.seq[cargo_to_load_]['ballastLimit'] = ballast_limit_
+            self.seq[cargo_to_load_]['ballastInit'] = ballast_init_
+            
             
                        
             start_time_ += df_[ss_]['Time']
@@ -965,9 +994,14 @@ class LoadingOperations(object):
         fixed_ballast_ = []
         same_ballast_ = []
         stages_ = []
+        init_ballast_ = []
         
-        for c__,c_ in enumerate(self.info['loading_order']):
+        for c__, c_ in enumerate(self.info['loading_order']):
             print(c__, 'collecting ballast requirements ....')
+            
+            # gravity_ = self.first_loading_port and c__ == 0 and (self.max_loading_rate < 15000)
+            
+            
             df_ = self.seq[c_]['gantt']
             df_ = df_.append(pd.DataFrame(index=INDEX1))
 
@@ -975,8 +1009,15 @@ class LoadingOperations(object):
             if c__ == 0: # first cargo to load
                 print('1st stage to be fixed; collecting ballast ...')
                 fixed_ballast_ = ['Initial1']
+                init_ballast_ = ['Initial1']
                 for k_, v_ in self.info['ballast'][0].items():
                     df_['Initial'][k_] = v_[0]['quantityMT']
+                    
+                for p_ in self.seq[c_]['ballastInit']:
+                    init_ballast_.append(p_[1]+str(c__+1))
+                    for k_, v_ in self.info['ballast'][0].items():
+                        df_[p_[1]][k_] = v_[0]['quantityMT']
+                    
                 
             # topping last cargo topping
             if c__ ==  len(self.info['loading_order']) - 1:
@@ -1108,8 +1149,11 @@ class LoadingOperations(object):
                           
             self.seq[c_]['loadingInfo'] = ddf_  # cargo in m3
             self.seq[c_]['fixBallast'] = fixed_ballast_
+            self.seq[c_]['initBallast'] = init_ballast_
             
             print('fixed ballast: ', fixed_ballast_)
+            print('initial ballast: ', init_ballast_)
+            
             
             # print(df_.columns)
             
@@ -1123,8 +1167,8 @@ class LoadingOperations(object):
         for s__,s_ in enumerate(stages_):
             c_ = self.info['loading_order'][int(s_[-1]) - 1] # less than 10 cargos loading at one port
             if s_[:3] in ['Max']:
-                b_ = round(self.max_ballast_rate * self.seq[c_]['ballastLimit'][s_[:-1]]/60 *1.025,2) # in MT
-                ballast_limit_[s__+1] = b_
+                b_ = round(self.max_ballast_rate * self.seq[c_]['ballastLimit'][s_[:-1]]/60,2) # in MT
+                ballast_limit_[s__+1] = max(0,b_ - 100)  # in MT 
             
             
         
@@ -1210,18 +1254,22 @@ class LoadingOperations(object):
         # print(param['centreTank'])
         # print(param['wingTank'])
         # print(param['slopTank'])
+        
+        # min (vessel, riser)
+        loading_rate_ = min(self.vessel.info['loadingRateVessel'], self.vessel.info['loadingRateRiser'])
 
         for k_, v_ in components.items():
             rate_ = 0
+            # print(v_)
             for i_, j_ in zip(v_[0], v_[1]):
                 # print(i_,j_, param.get(i_,1), flow_rate[j_])
                 if j_ in ['maxLoadingRate', 'maxRiser']:
                     # print(i_, j_, flow_rate[j_])
-                    rate_ += flow_rate.get(j_, 20500)
+                    rate_ += flow_rate.get(j_, loading_rate_)
                 else:
-                    # print(i_, j_, param[i_], flow_rate[j_])
-                    if i_ == 'wingTank' and j_ == 'PVValveWingTank':
-                        rate_ += len(param[i_])/2 * flow_rate[j_]
+                    # print(i_, j_, parWam[i_], flow_rate[j_])
+                    if i_ == 'wingTank':
+                        rate_ += len(param[i_])*2 * flow_rate[j_]
                     else:
                         rate_ += len(param[i_]) * flow_rate[j_]
     
@@ -1232,7 +1280,7 @@ class LoadingOperations(object):
             
             # print('>>>', k_, rate_)
             
-        # print(max_rate)
+        # print(rate)
         
         
         return max_rate

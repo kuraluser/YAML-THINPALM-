@@ -61,7 +61,7 @@ class Process_input(object):
         print('module:', self.module)
         
         
-        self.loadOnTop = data['loadable'].get('loadOnTop', False)
+        self.loadOnTop = data['loadable'].get('loadOnTopForSlopTank', False)
         # self.cargoweight = data['loadable'].get("loadableQuantity", {})
         
         self.cargoweight = data['loadable']['loadableQuantity'].get("totalQuantity", '1000000')
@@ -107,6 +107,7 @@ class Process_input(object):
         self.feedbackLoopCount = data['loadable'].get('feedbackLoopCount', 0)
         self.feedback_sf_bm_frac = data['loadable'].get('feedbackLoopBMSF', 1)
         
+        self.accurate = False # False lower complexity
     
     def _set_config(self, config):
         
@@ -117,6 +118,7 @@ class Process_input(object):
                  "305":"slopTankUpperLimit", "306":"slopTankLowerLimit", 
                  "308":"valveSegregation",
                  "321": "deballastAmt",
+                 "401": "airDraft",
                  "501":"condensateCargoBanTank", "502":"hrvpCargoBanTank",
                  "701": "condensateCargoInterval",
                  "902":"numPlans", "903": "timeLimit", "904":"objective"}
@@ -180,7 +182,13 @@ class Process_input(object):
                 print(config_)
                 
             elif l_['header'] == 'Port/Berth/Terminal Clearance Rules':
-                pass
+                ## 401
+                continue
+                for k__, k_ in enumerate(l_['rules']):
+                    # print(k_['ruleTemplateId'])
+                    v_ =  RULES.get(k_['ruleTemplateId'], None)
+                    config_[v_] = k_['inputs'][0]['value']
+                
             elif l_['header'] == 'Vessel Tank Compatibility Rules':
                 
                 ## "501" "Condensate Cargo cannot be placed in " Modify tank short name
@@ -238,6 +246,8 @@ class Process_input(object):
                         
                         
         self.config = {**config, **config_}          
+        
+        
                     
         # print(config_)    
             
@@ -567,6 +577,14 @@ class Process_input(object):
                         str1 += i_ + ' '
                 print(str1+';', file=text_file)
                 
+                if self.accurate: 
+	                print('# cargo tanks with non-pw lcg details',file=text_file)#  
+	                str1 = 'set T2 := '
+	                for i_, j_ in self.vessel.info['cargoTanks'].items():
+	                    if i_ not in self.vessel.info['tankLCG']['lcg_pw']:
+	                        str1 += i_ + ' '
+	                print(str1+';', file=text_file)
+ 
                 print('# set of tanks compatible with cargo c',file=text_file)
                 for i_,j_ in self.loadable.info['parcel'].items():
                     str1 = 'set Tc[' + str(i_) + '] := '
