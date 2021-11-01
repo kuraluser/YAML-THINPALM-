@@ -58,6 +58,8 @@ class Discharging_seq:
         info["simCargoDischargingRatePerTankM3_Hr"] = [{}]
         info["simBallastingRatePerTankM3_Hr"] = [{}]
         info["simDeballatingRatePerTankM3_Hr"] = [{}]
+        
+        info["Cleaning"] = {"TopClean":[], "BtmClean":[], "FullClean":[]}
         # info["eduction"] = {}
         
         if info['stage'] == 'initialCondition':
@@ -130,7 +132,7 @@ class Discharging_seq:
             
             rate_ = self.plans.input.discharging.seq[cargo]['initialRate']/len(self.plans.input.discharging.seq[cargo]['tanks'])
             
-            info["cargoDischargingRatePerTankM3_Hr"] = [{self.plans.input.vessel.info['tankName'][k_]:str(rate_) 
+            info["cargoDischargingRatePerTankM3_Hr"] = [{self.plans.input.vessel.info['tankName'][k_]:str(round(rate_,2)) 
                                                          for k_, v_ in self.plans.input.loadable.info['preloadOperation'][cargo[:-1]].items()
                                                          if k_ in self.plans.input.discharging.seq[cargo]['tanks']}]
             
@@ -155,7 +157,7 @@ class Discharging_seq:
             
             rate_ = self.plans.input.discharging.seq[cargo]['incMaxRate']/len(self.plans.input.discharging.seq[cargo]['tanks'])
             
-            info["cargoDischargingRatePerTankM3_Hr"] = [{self.plans.input.vessel.info['tankName'][k_]:str(rate_) 
+            info["cargoDischargingRatePerTankM3_Hr"] = [{self.plans.input.vessel.info['tankName'][k_]:str(round(rate_,2)) 
                                                          for k_, v_ in self.plans.input.loadable.info['preloadOperation'][cargo[:-1]].items()
                                                          if k_ in self.plans.input.discharging.seq[cargo]['tanks']}]
             
@@ -366,6 +368,10 @@ class Discharging_seq:
             
             
         elif info['stage'] == 'reducedRate':
+            
+            if len(self.plans.input.discharging.info['cow_tanks'][cargo_order]) > 0:
+                info['stage'] = 'COWStripping'
+            
             start_ = int(self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][0] + start_time_ + self.delay)
             end_   = int(self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
             info["timeStart"] = str(start_)
@@ -465,6 +471,28 @@ class Discharging_seq:
             self.pre_port = pre_port_
             self.last_plan = plan_
             
+        
+        elif info['stage'] == 'dryCheck':
+            
+            start_ = int(self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
+            end_   = int(60 + self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
+            info["timeStart"] = str(start_)
+            info["timeEnd"] = str(end_)
+        
+        elif info['stage'] == 'slopDischarge':
+            
+            start_ = int(60 + self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
+            end_   = int(60*2 + self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
+            info["timeStart"] = str(start_)
+            info["timeEnd"] = str(end_)
+        
+        elif info['stage'] == 'finalStripping':
+            start_ = int(60*2 + self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
+            end_   = int(60*3 + self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
+            info["timeStart"] = str(start_)
+            info["timeEnd"] = str(end_)
+        
+        
         
         else:
             print(info['stage'])
