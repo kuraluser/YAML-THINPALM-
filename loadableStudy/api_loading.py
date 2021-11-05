@@ -78,6 +78,9 @@ def loading(data: dict) -> dict:
     elif len(gen_output.plans.get('ship_status', [])) == 0:
         print('Infeasible Solution. Skipping valve module.')
         return out
+    elif params.vessel_id == 2:
+        print('Valves module not ready for Atlantic Pioneer')
+        return out
     else:
         valve_params = Generate_valves(params, out, gen_output)  ## get parameters for valve module
         valve_params.prepOperation()

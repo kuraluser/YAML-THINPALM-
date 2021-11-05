@@ -9,6 +9,7 @@ class Generate_valves:
         print('')
         print('GENERATE VALVES')
         # Vessel Details
+        self.vesselId = input_param.vessel_id
         with open('valves_config.json') as f_:
             self.valve_config = json.load(f_)
         self.vesselDetails = self.valve_config["vessel"][str(input_param.vessel_id)]
@@ -19,8 +20,8 @@ class Generate_valves:
         self.cargo = input_param.loading.info['loading_order']
         self.cargoTanksUsed = input_param.loading.info['cargoTanksUsed']
         self.ballastTanksUsed = input_param.loading.info['ballastTanksUsed']  #### to check
-        self.BWTS = False  # False for all MOL VLCC, need to update for other vessel
-        self.firstport = input_param.first_loading_port
+        # self.BWTS = False  # False for all MOL VLCC, need to update for other vessel
+        # self.firstport = input_param.first_loading_port
         self.gravityAllowed = {c: False for c in self.cargo}  # update based on output
         # self.gravityAllowed = {c: (not self.BWTS) & (self.firstport) & (c == self.cargo[0]) for c in self.cargo}
 
@@ -47,6 +48,7 @@ class Generate_valves:
         self.ballastPumps = {'pump': [], 'eductor': []}
         self.eductionTime = float(input_param.loading.time_eduction)
         self.eductionEquipment = []
+        self.eductionPumpRestriction = self.vesselDetails['pumpVesselSide'] # Pump usage restriction for eduction (1 pump only or based on port/stbd)
         self.timeSwitch = {}  # change dataframe
         ## Tanks
         self.ballastTanks = {}  # at each timing what tanks are being used change dataframe
@@ -276,28 +278,39 @@ class Generate_valves:
 
         # Additional pump closing before eduction if more than 1 ballast pump used
         pumpCount = len([i for i in self.ballastPumps['pump'] if i != 'Gravity'])
-        if (pumpCount >=2) &  (len(self.eductionTanks[cargo]) > 0):  # Assumption close 2nd pumps if theres 2 pumps
-            ballastPumps = [i for i in self.ballastPumps['pump'] if
-                            (i not in self.eductionEquipment) & (i != 'Gravity')]
-            if len(ballastPumps) == 0:
-                ballastPump = self.ballastPumps['pump'][-1]
-            else:
-                ballastPump = ballastPumps[0]
+        ballastPump = ''
+        if self.eductionPumpRestriction['useOnePump']:  # Only use 1 ballast pump for eduction
+            if (pumpCount >= 2) & (len(self.eductionTanks[cargo]) > 0):  # Assumption close 2nd pumps if theres 2 pumps
+                ballastPumps = [i for i in self.ballastPumps['pump'] if
+                                (i not in self.eductionEquipment) & (i != 'Gravity')]
+                if len(ballastPumps) == 0:
+                    ballastPump = self.ballastPumps['pump'][-1]
+                else:
+                    ballastPump = ballastPumps[0]
+        else:  # select ballast pump based on port/stbd
+            portTanks = [i for i in self.eductionTanks[cargo] if i.endswith('P')]
+            if len(portTanks) == 0:
+                ballastPump = self.eductionPumpRestriction['port']
+            stbdTanks = [i for i in self.eductionTanks[cargo] if i.endswith('S')]
+            if len(stbdTanks) == 0:
+                ballastPump = self.eductionPumpRestriction['stbd']
+
 
             # Get valve details of pump
-            closePump = self.ballastValvesMap[ballastPump].copy()
-            closePump['operation'] = 'close'
-            self.deballast_valves[cargo]['loadingAtMaxRate']['strippingByEductor'] = [closePump] + \
-                                                                                     self.deballast_valves[cargo][
-                                                                                         'loadingAtMaxRate'][
-                                                                                         'strippingByEductor']
-            # for subsequent valve closing, do not close particular pump again, remove that pump
-            pumpIdx = -1
-            for idx, valves in enumerate(self.deballast_valves[cargo]['loadingAtMaxRate']['shuttingSequence']):
-                if (valves['category'] == 'ballastPumps') & (valves['valve'] == ballastPump):
-                    pumpIdx = idx
-            if pumpIdx != -1:
-                self.deballast_valves[cargo]['loadingAtMaxRate']['shuttingSequence'].pop(pumpIdx)
+            if len(ballastPump) > 0:
+                closePump = self.ballastValvesMap[ballastPump].copy()
+                closePump['operation'] = 'close'
+                self.deballast_valves[cargo]['loadingAtMaxRate']['strippingByEductor'] = [closePump] + \
+                                                                                         self.deballast_valves[cargo][
+                                                                                             'loadingAtMaxRate'][
+                                                                                             'strippingByEductor']
+                # for subsequent valve closing, do not close particular pump again, remove that pump
+                pumpIdx = -1
+                for idx, valves in enumerate(self.deballast_valves[cargo]['loadingAtMaxRate']['shuttingSequence']):
+                    if (valves['category'] == 'ballastPumps') & (valves['valve'] == ballastPump):
+                        pumpIdx = idx
+                if pumpIdx != -1:
+                    self.deballast_valves[cargo]['loadingAtMaxRate']['shuttingSequence'].pop(pumpIdx)
         return
 
     def getLoadingValvesTimeLine(self):
@@ -534,6 +547,7 @@ class Generate_valves:
 
     def getOtherValves(self, seq, name):
         """Filter all the types of valves for required info. """
+        preferValves = self.vesselDetails['preferredValves']['name'] if name in self.vesselDetails['preferredValves'] else []
         valves = []
         for valve in seq:
             valveOpen = 'close' if valve['shut'] else 'open'
@@ -541,7 +555,11 @@ class Generate_valves:
             valveLine = valve['pipelineName']
             value = {'valve': valveName, 'line': valveLine, 'operation': valveOpen, 'stageNo': valve['stageNumber'],
                      'category': name}
-            valves.append(value)
+            if len(preferValves) > 0:  # Preference for particular valve type available
+                if valveName in preferValves:
+                    valves.append(value)
+            else:
+                valves.append(value)
         return valves
 
     def getBallastPumps(self, seq, name):
@@ -595,8 +613,8 @@ class Generate_valves:
                         prevEndTime = 0
                         for substages in stages[f'sim{operation.title()}RateM3_Hr']:
                             if len(substages) > 0:  # get timings and tank info for non empty dictionary
-                                startTime = int(list(substages.values())[0]["timeStart"])
-                                endTime = int(list(substages.values())[0]["timeEnd"])
+                                startTime = int(float(list(substages.values())[0]["timeStart"]))
+                                endTime = int(float(list(substages.values())[0]["timeEnd"]))
                                 deballast_time[stageName][startTime] = {'close': [], 'open': []}
                                 deballast_time[stageName][endTime] = {'close': [], 'open': []}
 
