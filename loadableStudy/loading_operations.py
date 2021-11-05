@@ -18,8 +18,6 @@ from copy import deepcopy
 # INDEX1 = ['LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S', 'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S', 'AWBP', 'AWBS', 'APT']
 # OPEN_TANKS = ['3C', '2C', '4C', '5C', '1C', '3W', '4W', '2W', '5W', '1W' ]
 OPEN_TANKS = ['1C', '1W', '2C', '2W', '3C','3W', '4C', '4W', '5C', '5W' ]
-
-
 DEC_PLACE = 10
 
 # TIME_EDUCTING = 60*3

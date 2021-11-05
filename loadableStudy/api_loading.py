@@ -289,14 +289,19 @@ class Get_info(object):
         # 'alpha', 'BWCorr', 'C4', 'centerTank', 'wingTank', 'ballastTankBSF', 'BSFlimits', 'distStation', 
         # 'onhand', 'onhand1', 'sameROB', 'onboard', 'initBallast', 'finalBallast', 'loading', 'rotationVirtual',
         # 'maxCargo', 'notSym']
-        
+
         self.vessel = lambda: None
         setattr(self.vessel, 'info', {})
-        if data['vesselId'] == 1:
+        if data['vesselId'] in [1, "1"]:
             
             with open('KAZUSA.pickle', 'rb') as fp_:
                 self.vessel.info = pickle.load(fp_)
                 
+        elif data['vesselId'] in [2, "2"]:
+            
+            with open('ATLANTICPIONEER.pickle', 'rb') as fp_:
+                self.vessel.info = pickle.load(fp_)
+
         self.error = {}
         self.module = "ULLAGE"
         self.vessel_id = data['vesselId']
