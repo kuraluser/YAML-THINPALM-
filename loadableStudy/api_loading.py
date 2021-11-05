@@ -92,12 +92,22 @@ def loading(data: dict) -> dict:
 
 def loadicator1(data, limits):
     
-    out = {"processId": data["processId"], 
-           "loadingInformationId": data["loadingInformationId"],  
-            'vesselId': data["vesselId"],
-            'portId': data["portId"],
-           "loadicatorResults":[]}
-    # print(limits)
+    if data['module'] == 'LOADING':
+    
+        out = {"processId": data["processId"], 
+               "loadingInformationId": data["loadingInformationId"],  
+                'vesselId': data["vesselId"],
+                'portId': data["portId"],
+               "loadicatorResults":[]}
+        
+    elif data['module'] == 'DISCHARGING':
+    
+        out = {"processId": data["processId"], 
+               "dischargingInformationId": data["dischargingInformationId"],  
+                'vesselId': data["vesselId"],
+                'portId': data["portId"],
+               "loadicatorResults":[]}
+      # print(limits)
     
     if data['stages'] in [None, []]:
         
@@ -177,8 +187,7 @@ def loadicator1(data, limits):
                     info_["BM"]  = None
                 else:
                     info_['judgement'].append('Failed BM check ('+ "{:.0f}".format(float(u_["bendinMoment"])) +')!')
- 
-            
+
             out["loadicatorResults"].append(info_)
         
         
@@ -188,7 +197,7 @@ def loadicator1(data, limits):
         for s__, s_ in enumerate(data['stages']):
             u_, v_, w_  = s_['ldTrim'], s_['ldStrength'], s_['ldIntactStability']
             info_ = {}
-            info_['time'] = int(float(s_['time']))
+            info_['time'] = int(float(s_.get('time',0)))
             
             info_["calculatedDraftFwdPlanned"] = u_["foreDraftValue"]
             info_["calculatedDraftMidPlanned"] = u_["meanDraftValue"]
@@ -209,8 +218,7 @@ def loadicator1(data, limits):
                 info_['errorDetails'].append(v_["errorDetails"])
             if w_["errorDetails"] not in [""]:
                 info_['errorDetails'].append(w_["errorDetails"])
-
-            
+           
             if info_['deflection'] in [None, ""]:
                 sag_ = 0.
             else:

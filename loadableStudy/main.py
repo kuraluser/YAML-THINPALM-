@@ -364,7 +364,7 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
             logger.info(gID + ": Add feedbackloadable")
             background_tasks.add_task(start_cpu_bound_task, gID, data_)
             
-    elif module_ in ['LOADING']:    
+    elif module_ in ['LOADING', 'DISCHARGING']:    
         out = loadicator1(data, limits)
         
     return out
