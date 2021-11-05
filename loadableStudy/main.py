@@ -34,9 +34,7 @@ with open('config.json', "r") as f_:
 #    # vessel_info['ullage_func'] = pickle.load(fp_)
 #    _, ullageCorr, ullageInv, _ = pickle.load(fp_)
    
-with open('KAZUSA.pickle', 'rb') as fp_:
-    # vessel_info['ullage_func'] = pickle.load(fp_)
-    vessel_details = pickle.load(fp_)
+
 
 ## Postgres Database --------------------------------------------------------
 #DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:5432/postgres"
@@ -373,6 +371,17 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
 
 @app.post("/ullage_results/")
 async def ullage_handler(data: dict):
+    
+    if data['vesselId'] in ["1",1]:
+        with open('KAZUSA.pickle', 'rb') as fp_:
+            # vessel_info['ullage_func'] = pickle.load(fp_)
+            vessel_details = pickle.load(fp_)
+            
+    elif data['vesselId'] in ["2",2]:
+        with open('ATLANTICPIONEER.pickle', 'rb') as fp_:
+            # vessel_info['ullage_func'] = pickle.load(fp_)
+            vessel_details = pickle.load(fp_)
+    
     
     ullageCorr, ullageInv = vessel_details['ullageCorr'], vessel_details['ullageInvFunc']
            
