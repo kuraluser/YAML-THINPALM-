@@ -30,7 +30,7 @@ class Port:
                 oper_ = [l_  for l_ in v_ if l_ in [1,2]]
                 port_operation_[k_] = oper_
                 
-             
+        print('port_operation:', port_operation_)     
         ## assume either loading or discharging but not both
         port_rotation_, order_ = [], 1
         for p__, p_ in enumerate(inputs.port_json['portRotation']):

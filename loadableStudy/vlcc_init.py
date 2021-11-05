@@ -54,6 +54,8 @@ class Process_input(object):
         self.loadline_id = data['loadable']['loadlineId']
         self.draft_mark = data['loadable']['draftMark']
         
+        # data['config']['loadable_config'] = True
+        
         self._set_config(data['config'])
         
         self.module = data['module']
@@ -95,7 +97,7 @@ class Process_input(object):
             
         
         self.case_number = data.get('caseNumber', None)
-        self.deballast_percent = self.config['deballast_percent'] #0.4 ## config
+        self.deballast_percent =  self.config.get('loadableConfig',{}).get('deballastAmt', self.config['deballast_percent'])
         self.ballast_percent = self.config['ballast_percent'] #0.4 ## config
         
         self.commingle_temperature = None
@@ -117,7 +119,10 @@ class Process_input(object):
                  "303":"ballastTankUpperLimit", "304":"ballastTankLowerLimit", 
                  "305":"slopTankUpperLimit", "306":"slopTankLowerLimit", 
                  "308":"valveSegregation",
+                 "312": "sameWeightTanks", "317":"commingleTanks",
+                 "319": "lastLoadingPortBallast", 
                  "321": "deballastAmt",
+                 "324": "initBallastTanksAmt", 
                  "401": "airDraft",
                  "501":"condensateCargoBanTank", "502":"hrvpCargoBanTank",
                  "701": "condensateCargoInterval",
@@ -126,126 +131,156 @@ class Process_input(object):
         # self.config = config
         
         config_ = {}
-        for l__, l_ in enumerate(self.rules_json):
-            
-            if l_['header'] == 'Vessel Stability Rules':
-                ## sea or port limit for SF and BM not considered
-                ## Ensure draft not over the load line always true
-                continue
-                for k__, k_ in enumerate(l_['rules']):
-                    
-                    v_ =  RULES.get(k_['ruleTemplateId'], None)
-                    # print(k_['ruleTemplateId'], v_)
-                    
-                    if v_ in ["trimLimit", "listLimit"]:
-                        config_[v_] = [float(k_['inputs'][0]['value']), float(k_['inputs'][1]['value'])]
-                    elif v_ in ["loadingTrim", "SFLimit", "BMLimit", "SSFLimit", "SBMLimit"]:
-                        config_[v_] = float(k_['inputs'][0]['value'])
+        
+        if config.get("loadable_config", False):
+        
+        
+            for l__, l_ in enumerate(self.rules_json):
                 
-                # print(config_)
+                if l_['header'] == 'Vessel Stability Rules':
+                    ## sea or port limit for SF and BM not considered
+                    ## Ensure draft not over the load line always true
+                    # continue
+                    for k__, k_ in enumerate(l_['rules']):
                         
+                        v_ =  RULES.get(k_['ruleTemplateId'], None)
+                        # print(k_['ruleTemplateId'], v_)
+                        
+                        if v_ in ["trimLimit", "listLimit"]:
+                            config_[v_] = [float(k_['inputs'][0]['value']), float(k_['inputs'][1]['value'])]
+                        elif v_ in ["loadingTrim", "SFLimit", "BMLimit", "SSFLimit", "SBMLimit"]:
+                            config_[v_] = float(k_['inputs'][0]['value'])
                     
-            elif l_['header'] == 'Vessel Facility Rules':
-                continue
-            
-                ## 309 "Different types of cargoes in slop tanks" always true
-                ## 310 "Slop tanks must be used" always true
-                ## 311 "Loading Pattern Symmetric" always true
-                ## 312 Symmeteric vol different 
-                    # 1W, 2W, 4W and 5W same weight
-                    # 3W and Slop tanks 5% different
-                ## 313 "Each row(1W+1C, 2W+2C etc.) must at least have 1 tank for large nomination cargo" always true
-                ## 314 ""2 consecutive rows of tank with the same large cargo nomination not allowed. This is applicable to multiple cargo parcels""
-                ## 315 "Do not load cargo in a row if no cargo have nomination larger than 5 wing tanks"
-                ## 316 "Ensure propeller immersion draft should be more than 50 % of the draft value" Need min draft
-                ## 317 "tank can be filled with commingled cargo" 2C, 3C, 4C and slop tanks
-                ## 319 "Ballast Tank Usage Restriction to at last loading port"
-                   # LFPT, APT, AWBP, AWBS for KAZUSA
-                   # APT, FPT, WB6P, WB6S for AP
-                ## 322 "Zero ballast for arrival of first discharge port" zero if possible else non-zero
-                ## 323 "Decreasing ballast except for last loading port" always true
-                ## 324 "Ballast tanks are assumed to be filled at" Need modification
-                ## 325 "Only filled ballast tanks in the departure port can be used to adjust the ballast at the next arrival port"
-                ## 326 "Change in ballast can only be increasing or decreasing for ballast movement during cargo rotation"
-                ## 327 "1 tank can only take in 1 cargo except for tank with commingled cargo"
-                ## 328 "Commingle can be done with maximum two cargoes"
+                    # print(config_)
+                            
+                        
+                elif l_['header'] == 'Vessel Facility Rules':
+                    # continue
                 
-                for k__, k_ in enumerate(l_['rules']):
-                    #print(k_['ruleTemplateId'])
-                    v_ =  RULES.get(k_['ruleTemplateId'], None)
-                    print(k_['ruleTemplateId'], v_)
-                    if v_ in ["cargoTankUpperLimit", "cargoTankLowerLimit", 
-                              "ballastTankUpperLimit", "ballastTankLowerLimit", 
-                              "slopTankUpperLimit", "slopTankUpperLimit", "deballastAmt" ]:
-                        config_[v_] = float(k_['inputs'][0]['value'])
+                    ## 309 "Different types of cargoes in slop tanks" always true
+                    ## 310 "Slop tanks must be used" always true
+                    ## 311 "Loading Pattern Symmetric" always true
+                    ## 312 Symmeteric vol different 
+                        # 1W, 2W, 4W and 5W same weight
+                        # 3W and Slop tanks 5% different
+                    ## 313 "Each row(1W+1C, 2W+2C etc.) must at least have 1 tank for large nomination cargo" always true
+                    ## 314 ""2 consecutive rows of tank with the same large cargo nomination not allowed. This is applicable to multiple cargo parcels""
+                    ## 315 "Do not load cargo in a row if no cargo have nomination larger than 5 wing tanks"
+                    ## 316 "Ensure propeller immersion draft should be more than 50 % of the draft value" Need min draft
+                    ## 317 "tank can be filled with commingled cargo" 2C, 3C, 4C and slop tanks
+                    ## 319 "Ballast Tank Usage Restriction to at last loading port"
+                       # LFPT, APT, AWBP, AWBS for KAZUSA
+                       # APT, FPT, WB6P, WB6S for AP
+                    ## 322 "Zero ballast for arrival of first discharge port" zero if possible else non-zero
+                    ## 323 "Decreasing ballast except for last loading port" always true
+                    ## 324 "Ballast tanks are assumed to be filled at" Need modification
+                    ## 325 "Only filled ballast tanks in the departure port can be used to adjust the ballast at the next arrival port"
+                    ## 326 "Change in ballast can only be increasing or decreasing for ballast movement during cargo rotation"
+                    ## 327 "1 tank can only take in 1 cargo except for tank with commingled cargo"
+                    ## 328 "Commingle can be done with maximum two cargoes"
                     
-                print(config_)
-                
-            elif l_['header'] == 'Port/Berth/Terminal Clearance Rules':
-                ## 401
-                continue
-                for k__, k_ in enumerate(l_['rules']):
-                    # print(k_['ruleTemplateId'])
-                    v_ =  RULES.get(k_['ruleTemplateId'], None)
-                    config_[v_] = k_['inputs'][0]['value']
-                
-            elif l_['header'] == 'Vessel Tank Compatibility Rules':
-                
-                ## "501" "Condensate Cargo cannot be placed in " Modify tank short name
-                ## "502" "High Reid Vapour Cargo cannot be placed in " Modify tank short name
-                continue
-                for k__, k_ in enumerate(l_['rules']):
-                    # print(k_['ruleTemplateId'])
-                    v_ =  RULES.get(k_['ruleTemplateId'], None)
-                    print(k_['ruleTemplateId'], v_)
-                    tanks_ = k_['inputs'][0]["value"].split(',')
-                    tanksId_ = {str(r_['id']): r_['value']   for r_ in k_['inputs'][0]["ruleDropDownMaster"]}
-                    config_[v_] = [tanksId_[t_] for t_ in tanks_]
+                    for k__, k_ in enumerate(l_['rules']):
+                        #print(k_['ruleTemplateId'])
+                        v_ =  RULES.get(k_['ruleTemplateId'], None)
+                        # print(k_['ruleTemplateId'], v_)
+                        if v_ in ["cargoTankUpperLimit", "cargoTankLowerLimit", 
+                                  "ballastTankUpperLimit", "ballastTankLowerLimit", 
+                                  "slopTankUpperLimit", "slopTankUpperLimit" ]:
+                            
+                            config_[v_] = float(k_['inputs'][0]['value'])
+                            
+                        if v_ in ["deballastAmt" ]:
+                            
+                            config_[v_] = float(k_['inputs'][0]['value'])/100
+                            
+                            
+                            
+                        if v_ in ["sameWeightTanks"]:
+                            if k_['inputs'][0]['value'] in ['0']:
+                                config_[v_] = k_['inputs'][1]['value'].split(',')
+                                
+                        if v_ in ["commingleTanks"]:
+                            poss_tanks_ = {str(l_['id']): l_['value'] for l_ in k_['inputs'][0]['ruleDropDownMaster']}
+                            config_[v_] = [poss_tanks_[l_] for l_ in k_['inputs'][0]['value'].split(',')]
+                            
+                        if v_ in ["lastLoadingPortBallast"]:
+                            poss_tanks_ = {str(l_['id']): l_['value'] for l_ in k_['inputs'][1]['ruleDropDownMaster']}
+                            config_[v_] = [poss_tanks_[l_] for l_ in k_['inputs'][1]['value'].split(',')]
+                            
+                            
+                        if v_ in ["initBallastTanksAmt"]:
+                            poss_tanks_ = {str(l_['id']): l_['value'] for l_ in k_['inputs'][0]['ruleDropDownMaster']}
+                            config_[v_] = {'tanks': [poss_tanks_[l_] for l_ in k_['inputs'][0]['value'].split(',')]}
+                            config_[v_]['amt'] = int(k_['inputs'][1]['value'])/100
+                            
+                            
+                elif l_['header'] == 'Port/Berth/Terminal Clearance Rules':
+                    ## 401
+                    # continue
+                    for k__, k_ in enumerate(l_['rules']):
+                        # print(k_['ruleTemplateId'])
+                        v_ =  RULES.get(k_['ruleTemplateId'], None)
+                        config_[v_] = k_['inputs'][0]['value']
                     
-                print(config_)
-                 
-            elif l_['header'] == 'Prior Cargo List Rules':
-                
-                continue
-                ## 710 "Condensate cargo can only be put in a tank for" Missing History
-                
-                for k__, k_ in enumerate(l_['rules']):
-                    # print(k_['ruleTemplateId'])
-                    v_ =  RULES.get(k_['ruleTemplateId'], None)
-                    print(k_['ruleTemplateId'], v_)
-                    config_[v_] = k_['inputs'][0]['value']
+                elif l_['header'] == 'Vessel Tank Compatibility Rules':
                     
-                print(config_)
+                    ## "501" "Condensate Cargo cannot be placed in " Modify tank short name
+                    ## "502" "High Reid Vapour Cargo cannot be placed in " Modify tank short name
+                    # continue
+                    for k__, k_ in enumerate(l_['rules']):
+                        # print(k_['ruleTemplateId'])
+                        v_ =  RULES.get(k_['ruleTemplateId'], None)
+                        # print(k_['ruleTemplateId'], v_)
+                        tanks_ = k_['inputs'][0]["value"].split(',')
+                        tanksId_ = {str(r_['id']): r_['value']   for r_ in k_['inputs'][0]["ruleDropDownMaster"]}
+                        config_[v_] = [tanksId_[t_] for t_ in tanks_]
+                        
+                    # print(config_)
+                     
+                elif l_['header'] == 'Prior Cargo List Rules':
                     
-            elif l_['header'] == 'Definition of Constant/System Rules':
-                
-                ## 901 "Extra loading time" Need modification
-                for k__, k_ in enumerate(l_['rules']):
-                    # print(k_['ruleTemplateId'])
-                    pass
-                
-                
-                
-            elif l_['header'] == 'Algorithm Rules':
-                continue
-                for k__, k_ in enumerate(l_['rules']):
-                    # print(k_['ruleTemplateId'])
-                    v_ =  RULES.get(k_['ruleTemplateId'], None)
-                    print(k_['ruleTemplateId'], v_)
-                    if v_ not in [None, ""]:
+                    
+                    ## 710 "Condensate cargo can only be put in a tank for" Missing History
+                    
+                    for k__, k_ in enumerate(l_['rules']):
+                        # print(k_['ruleTemplateId'])
+                        v_ =  RULES.get(k_['ruleTemplateId'], None)
+                        # print(k_['ruleTemplateId'], v_)
                         config_[v_] = k_['inputs'][0]['value']
                         
-                        if v_ == "objective":
-                            config_[v_] = "1" if config_[v_] == "46" else "3"
-                            # "45": min tank -> model3i.mod
-                            # "46": max load -> model1i.mod
+                    # print(config_)
+                        
+                elif l_['header'] == 'Definition of Constant/System Rules':
+                    
+                    ## 901 "Extra loading time" Need modification
+                    for k__, k_ in enumerate(l_['rules']):
+                        # print(k_['ruleTemplateId'])
+                        pass
+                    
+                    
+                    
+                elif l_['header'] == 'Algorithm Rules':
+                    
+                    for k__, k_ in enumerate(l_['rules']):
+                        # print(k_['ruleTemplateId'])
+                        v_ =  RULES.get(k_['ruleTemplateId'], None)
+                        # print(k_['ruleTemplateId'], v_)
+                        if v_ not in [None, ""]:
+                            config_[v_] = k_['inputs'][0]['value']
+                            
+                            if v_ == "objective":
+                                config_[v_] = "1" if config_[v_] == "46" else "3"
+                                # "45": min tank -> model4i.mod/
+                                # "46": max load -> model1i.mod
                 
-                print(config_)
-                            
-                            
-                        
-                        
-        self.config = {**config, **config_}          
+        # config_['cargoTankUpperLimit'] = 97
+        # config_['slopTankUpperLimit'] = 96
+        # config_['objective'] = "3"
+        
+        
+        config1_ = {}        
+        config1_['loadableConfig'] = config_
+        self.config = {**config, **config1_}          
         
         
                     
@@ -294,7 +329,15 @@ class Process_input(object):
         self.base_draft = {}
         self.sf_base_value, self.sf_draft_corr, self.sf_trim_corr = {}, {}, {}
         self.bm_base_value, self.bm_draft_corr, self.bm_trim_corr = {}, {}, {}
-        self.sf_bm_frac = min(sf_bm_frac, self.feedback_sf_bm_frac)
+        
+        
+        sf_bm_frac_ = sf_bm_frac
+        if self.config['loadableConfig']:
+            sf_bm_frac_ = min(self.config['loadableConfig']['SSFLimit'], self.config['loadableConfig']['SBMLimit'])/100
+            
+        self.sf_bm_frac = min(sf_bm_frac_, self.feedback_sf_bm_frac)
+        
+        
         self.limits = {'draft':{}}
         
         ## config 
@@ -313,11 +356,33 @@ class Process_input(object):
         self.limits['sfbm'] = self.sf_bm_frac
         self.limits['feedback'] = {'feedbackLoop': self.feedbackLoop,'feedbackLoopCount':self.feedbackLoopCount}
         
+        if self.config['loadableConfig'].get('trimLimit', []):
+            self.limits['trimLimit'] = self.config['loadableConfig']['trimLimit']
+        else:
+            self.limits['trimLimit'] = [-0.1, 0.1]
+            
+        if self.config['loadableConfig'].get('listLimit', []):
+            self.limits['listLimit'] = self.config['loadableConfig']['listLimit']
+        else:
+            self.limits['listLimit'] = [-0.1, 0.1]
+            
+        if self.config['loadableConfig'].get('SFLimit', []):
+            self.limits['SFLimit'] = self.config['loadableConfig']['SFLimit']
+        else:
+            self.limits['SFLimit'] = 100
+        
+        if self.config['loadableConfig'].get('BMLimit', []):
+            self.limits['BMLimit'] = self.config['loadableConfig']['BMLimit']
+        else:
+            self.limits['BMLimit'] = 100
+        
+        
+        
         # for loading limits
         last_loading_ = self.port.info['portOrderId'][str(self.port.info['numPort']-1)]
         first_discharge_ = self.port.info['portOrderId'][str(self.port.info['numPort'])]
         self.limits['draft']['maxDraft'] = min(self.port.info['maxDraft'][last_loading_], self.port.info['maxDraft'][first_discharge_])
-        self.limits['maxAirDraft'] = min(self.port.info['maxDraft'][last_loading_], self.port.info['maxDraft'][first_discharge_])
+        self.limits['maxAirDraft'] = min(self.port.info['maxAirDraft'][last_loading_], self.port.info['maxAirDraft'][first_discharge_])
         
         
         
@@ -337,7 +402,8 @@ class Process_input(object):
         
         self._set_trim(trim_upper=trim_upper, trim_lower=trim_lower, trim_load_upper=trim_load, trim_load_lower=trim_load)
         
-        ballast_ = ballast_weight_
+        ballast_ = sum([v_ for k_, v_ in self.vessel.info['initBallast']['wt'].items()])
+        
         for p_ in range(1, self.loadable.info['lastVirtualPort']+1):  # exact to virtual
         
             port__ = self.loadable.info['virtualArrDepPort'][str(p_)] # 1D, 2D
@@ -470,10 +536,16 @@ class Process_input(object):
         self.trim_lower = {str(p_): trim_lower_ for p_ in range(1,self.loadable.info['lastVirtualPort'])}
         self.trim_upper = {str(p_): trim_upper_ for p_ in range(1,self.loadable.info['lastVirtualPort'])}
         
+        
+        if self.config['loadableConfig']:
+            trim_load_upper_, trim_load_lower_ = self.config['loadableConfig']['loadingTrim'], self.config['loadableConfig']['loadingTrim']
+        else:
+            trim_load_upper_, trim_load_lower_ = trim_load_upper, trim_load_lower 
+        
         for p_ in self.loadable.info.get('rotationVirtual',[]):
             for p__ in p_[:-1]:
-                self.trim_upper[str(p__)] = trim_load_upper + 1e-4
-                self.trim_lower[str(p__)] = max(0.0001, trim_load_lower - 1e-4)
+                self.trim_upper[str(p__)] = trim_load_upper_ + 1e-4
+                self.trim_lower[str(p__)] = max(0.0001, trim_load_lower_ - 1e-4)
                 
                
                 
@@ -801,13 +873,13 @@ class Process_input(object):
                 print('# Possible commingled tanks',file=text_file)#
                 str1 = 'set Tm := '
                 if self.loadable.info['commingleCargo']:
-                    if self.loadable.info['commingleCargo'].get('tank',[]):
-                        for t_ in self.loadable.info['commingleCargo']['tank']:
-                            str1 +=  self.vessel.info['tankId'][int(t_)]  + ' '
-                    elif not self.loadable.info['commingleCargo']['slopOnly']:
-                        str1 += '2C 3C 4C SLS SLP'
-                    else:
+                    if self.config['loadableConfig']:
+                        str1 += ''.join(e_+' ' for e_ in self.config['loadableConfig']['commingleTanks'])
+                    elif self.loadable.info['commingleCargo']['slopOnly']:
                         str1 += 'SLS SLP'
+                    else:
+                        str1 += '2C 3C 4C SLS SLP'
+                        
                 print(str1+';', file=text_file)
                 
                 print('# Density commingled cargo',file=text_file)#
@@ -854,12 +926,33 @@ class Process_input(object):
     #            for i_, j_ in self.tanks.cargo_tanks.items():
     #                str1 += j_['tankName'] + ' ' +  str(j_['cargoTankDensity']) + ' '
     #            print(str1+';', file=text_file)
-    #            
-    #            print('#upper loading bound for each tank',file=text_file)#  
-    #            str1 = 'param upperBound := ' 
-    #            for i_, j_ in self.tanks.cargo_tanks.items():
-    #                str1 += j_['tankName'] + ' ' +  j_['maxVolLimit'] + ' '
-    #            print(str1+';', file=text_file)
+    
+                if self.config['loadableConfig']:
+                    print('#upper loading bound for each tank',file=text_file)#  
+                    str1 = 'param upperBound := ' 
+                    for i_, j_ in self.vessel.info['cargoTanks'].items():
+                        if i_ in ['SLS', 'SLP']:
+                            str1 += i_ + ' ' +  "{:.2f}".format(self.config['loadableConfig']['slopTankUpperLimit']/100)  + ' '
+                        else:
+                            str1 += i_ + ' ' +  "{:.2f}".format(self.config['loadableConfig']['cargoTankUpperLimit']/100) + ' '
+                    print(str1+';', file=text_file)
+                        
+                    print('#upper loading bound for each ballast tank',file=text_file)#  
+                    str1 = 'param upperBoundB1 := ' 
+                    for i_, j_ in self.vessel.info['ballastTanks'].items():
+                        if i_ not in self.vessel.info['banBallast']:
+                            str1 += i_ + ' ' +  "{:.2f}".format(self.config['loadableConfig']['ballastTankUpperLimit']/100) + ' '
+                    print(str1+';', file=text_file)
+                    
+                    
+                    print('#equal weight cargo tank',file=text_file)#  
+                    str1 = 'set  equalWeightTank := ' 
+                    for i_ in self.config['loadableConfig']['sameWeightTanks']:
+                        str1 += '('+ i_+'P' + ',' + i_+'S'+ ') '
+                    print(str1+';', file=text_file)
+                    
+                        
+                        
     #            
     #            print('#lower loading bound for each tank',file=text_file)#  
     #            str1 = 'param lowerBound := ' 
@@ -1031,13 +1124,13 @@ class Process_input(object):
                     str1 += str(p_) + ' ' + "{:.4f}".format(density_)  + ' '
                 print(str1+';', file=text_file)
                 
-                print('# cargo tank restrictions ',file=text_file)#
+                print('# cargo tank restrictions ',file=text_file)# tank pair cannot carried same cargo (1P,1C) ... 
                 str1 = 'set cargoTankNonSym := '
                 for k__, k_  in enumerate(self.vessel.info['notSym']):
                     str1 += '('+ k_[0]  + ',' + k_[1] + ') '
                 print(str1+';', file=text_file)
                 
-                print('# cargo tank vol restrictions ',file=text_file)#
+                print('# cargo tank vol restrictions ',file=text_file)# 5% vol diff
                 str1 = 'set symmetricVolTank := '
                 for k__, k_  in enumerate(self.config['sym_vol_tanks']):
                     if k_[0] not in self.vessel.info.get('notOnTop', []) and   k_[1] not in self.vessel.info.get('notOnTop', []):
@@ -1144,8 +1237,14 @@ class Process_input(object):
                 
                 print('# lastLoadingPortBallastBan ',file=text_file) ## config
                 str1 = 'set lastLoadingPortBallastBan := '
-                for k__, k_  in enumerate(self.config['last_loading_port_ballast_ban']):
-                    str1 += k_ + ' '
+                if self.config['loadableConfig']:
+                    for k__, k_  in enumerate(self.vessel.info['ballastTanks'].keys()):
+                        if k_ not in self.vessel.info['banBallast'] + self.config['loadableConfig']['lastLoadingPortBallast']:
+                            str1 += k_ + ' '
+                else:
+                        
+                    for k__, k_  in enumerate(self.config['last_loading_port_ballast_ban']):
+                        str1 += k_ + ' '
                 print(str1+';', file=text_file)
                 
                 print('# first loading Port',file=text_file)#
@@ -1563,7 +1662,10 @@ class Process_input(object):
                 print(str1+';', file=text_file)
                 
                 print('# runtime limit ',file=text_file)#  
-                str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 60))
+                if self.config['loadableConfig']:
+                    str1 = 'param runtimeLimit := ' + str(self.config['loadableConfig']['timeLimit'])
+                else:
+                    str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 60))
                 print(str1+';', file=text_file)
                 
                 

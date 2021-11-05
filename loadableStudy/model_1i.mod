@@ -187,7 +187,6 @@ set fixCargoPort default {}; # for fixing preloaded cargo
 param W1{c in C, t in T, p in fixCargoPort} >=0 default 0; # fix weight of cargo c  in port p at tank remained 
 param Q1{c in C, t in T, p in fixCargoPort} = W1[c,t,p]/densityCargo_Low[c]; # volume of cargo c remained in tank t at initial state
 
-
 param W_loaded{C_loaded,T_loaded,P} default 0; # the weight of preloaded cargo to be moved from tank t at port p
 param V_loaded{c in C_loaded, t in T_loaded, p in P} = W_loaded[c,t,p]/densityCargo_Low[c]; # the volume of preloaded cargo to be moved from tank t at port p
 
@@ -305,7 +304,7 @@ param minCargoAmt default 1000;
 ## cargo tank
 set cargoTankNonSym within T cross T; # non-sym cargo tanks
 set symmetricVolTank within T cross T default  {('1P','1S'), ('2P','2S'),('SLS','SLP'), ('3P','3S'), ('4P','4S'), ('5P','5S')};
-
+set equalWeightTank within T cross T default  {('1P','1S'), ('2P','2S'), ('4P','4S'), ('5P','5S')};
 
 ## stability: set and params
 set AllTanks = T union OtherTanks union TB; # set of all tanks
@@ -555,11 +554,13 @@ subject to Constr12 {t in TB, p in P_stable}: lowerBoundB1[t]*capacityBallastTan
 subject to Constr12a1 {t in T}: sum {c in C} x[c,t] <=100*xt[t];
 subject to Constr12a2: sum{t in T} xt[t] <= maxTankUsed;
 
+
 ## load all  cargo 
 subject to Condition111 {p in P_last_loading}: -intended <= sum{c in C, pp in P:Wcp[c,pp]>0}Wcp[c,pp]-sum{t in T, c in C}qw[c,t,p]<=intended;
 
 ## priority 1 and 2
 subject to Constr122{(c1,c2) in cargoPriority}: sum{t in Tc[c2], p in P_last_loading} qw[c2,t,p]/toLoad[c2] <= sum{t in Tc[c1], p in P_last_loading} qw[c1,t,p]/toLoad[c1];
+
 
 ## symmetric loading
 subject to Condition112a {c in C}: x[c,'1P'] = x[c,'1S'];
@@ -572,10 +573,12 @@ subject to Condition112a1 {(u,v) in symmetricVolTank, p in P_last_loading}: sum{
 subject to Condition112a2 {(u,v) in symmetricVolTank, p in P_last_loading}:     -diffVol <= sum{c in C}qw[c,u,p]/densityCargo_Low[c]/capacityCargoTank[u] - sum{c in C}qw[c,v,p]/densityCargo_Low[c]/capacityCargoTank[v];
 
 # equal weight in 1W, 2W, 4W, 5W
-subject to Condition112d1 {c in C_equal, p in P_stable2[c]}: qw[c,'1P',p] = qw[c,'1S',p];
-subject to Condition112d2 {c in C_equal, p in P_stable2[c]}: qw[c,'2P',p] = qw[c,'2S',p];
-subject to Condition112d3 {c in C_equal, p in P_stable2[c]}: qw[c,'4P',p] = qw[c,'4S',p];
-subject to Condition112d4 {c in C_equal, p in P_stable2[c]}: qw[c,'5P',p] = qw[c,'5S',p];
+#subject to Condition112d1 {c in C_equal, p in P_stable2[c]}: qw[c,'1P',p] = qw[c,'1S',p];
+#subject to Condition112d2 {c in C_equal, p in P_stable2[c]}: qw[c,'2P',p] = qw[c,'2S',p];
+#subject to Condition112d3 {c in C_equal, p in P_stable2[c]}: qw[c,'4P',p] = qw[c,'4S',p];
+#subject to Condition112d4 {c in C_equal, p in P_stable2[c]}: qw[c,'5P',p] = qw[c,'5S',p];
+
+subject to Condition112d1 {c in C_equal, p in P_stable2[c], (u,v) in equalWeightTank}: qw[c,u,p] = qw[c,v,p];
 
 # only for discharging
 subject to Condition112d5 {c in C_equal, p in P_stable2[c]}: qw[c,'3P',p] = qw[c,'3S',p];
@@ -607,6 +610,7 @@ subject to Condition112i2 {c in C_max}: x[c,'2P'] + x[c,'2C'] + x[c,'2S'] + x[c,
 subject to Condition112i3 {c in C_max}: x[c,'3P'] + x[c,'3C'] + x[c,'3S'] + x[c,'4P'] + x[c,'4C'] + x[c,'4S'] <= 5;
 subject to Condition112i4 {c in C_max}: x[c,'4P'] + x[c,'4C'] + x[c,'4S'] + x[c,'5P'] + x[c,'5C'] + x[c,'5S'] <= 5;
 
+
 # first discharge cargo
 subject to Condition112j {c in firstDisCargo}: x[c,'SLS'] + x[c,'SLP'] >= 1;
 
@@ -619,6 +623,7 @@ subject to Condition112b2 {t in T, c in C diff C_loaded diff C_locked, p in P_la
 subject to Condition113d1 {t in TB, p in P_stable}: wB[t,p] >= minBallastAmt[t]*xB[t,p]; # loaded min ballast 
 subject to Condition113d2 {t in TB, p in P_stable}: wB[t,p] <= 1e4*xB[t,p]; # loaded min ballast 
 subject to Condition113d3 {t in minTB, p in P_stable}: wB[t,p] >= minBallastAmt[t]; # loaded min ballast 
+
 
 # initial ballast condition
 subject to Condition114a1 {t in incTB}: initBallast[t] <= wB[t,firstloadingPort];
@@ -640,7 +645,6 @@ subject to Condition114e4 {t in TB, (u,v) in rotatingPort2}:  -wB[t,u] +  wB[t,v
 subject to Condition114e5 {t in TB, (u,v) in rotatingPort2}:    wB[t,u] -  wB[t,v] <= 1e6*(1-zBb2[t]);
 subject to Condition114e6 {t in TB}: zBa2[t] + zBb2[t] = 1;
 
-
 # fixed ballast
 subject to Condition114f1 {t in TB, p in fixBallastPort}:  B_locked[t,p] = wB[t,p];
 
@@ -648,6 +652,7 @@ subject to Condition114f1 {t in TB, p in fixBallastPort}:  B_locked[t,p] = wB[t,
 subject to Condition114g1 {p in loadPort inter P_stable}: sum{t in TB0} wB[t,p] + deballastPercent*loadingPortAmt[p] >= sum{t in TB0} wB[t,p-1];
 # ballast amt
 subject to Condition114g2 {p in dischargePort inter P_stable}: sum{t in TB} wB[t,p-1] + ballastPercent*dischargePortAmt[p] >= sum{t in TB} wB[t,p];
+
 
 # departure of last loading port
 subject to Condition114h {t in lastLoadingPortBallastBan, p in specialBallastPort}: xB[t, p] = 0;
@@ -728,5 +733,14 @@ subject to Condition21a2 {f in 1..Fr, p in P_stable}: SB[f,p] = BV_BM[f,p] + CD_
 subject to Condition21a1 {f in 1..Fr, p in P_stable}: SB[f,p] = BV_BM[f,p] + CD_BM[f,p]*(mean_draft[p]+0.5*est_trim[p]-base_draft[p]) + CT_BM[f,p]*est_trim[p];
 subject to Condition21b {f in 1..Fr, p in P_stable}: lowerBMlimit[f] <= wn[f,p]*LCG_fr[f] + mn[f,p] - SB[f,p];
 subject to Condition21c {f in 1..Fr, p in P_stable}: wn[f,p]*LCG_fr[f] + mn[f,p] -  SB[f,p] <= upperBMlimit[f];
+
+
+
+
+
+
+
+
+
 
 

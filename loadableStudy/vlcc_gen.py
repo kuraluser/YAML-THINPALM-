@@ -149,15 +149,16 @@ class Generate_plan:
                 if self.input.mode in ['FullManual']:
                     model_ = 'model_2i.mod'
                 else:
-                    if self.input.config.get('objective', "1") == '1':
-                        
-                        model_ = 'model_1i.mod' ## model_1ii.mod
-                        # if self.input.accurate:
-                        #     model_ = 'model_1ii.mod'
-                        # else:
-                        #     model_ = 'model_1i.mod'
+                    
+                    if self.input.config['loadableConfig']:
+                        if self.input.config['loadableConfig']['objective'] in ['1']:
+                            model_ = 'model_1i.mod' ## model_1ii.mod
+                        else:
+                            model_ = 'model_3i.mod'
                     else:
-                        model_ = 'model_3i.mod'
+                        model_ = 'model_1i.mod' ## model_1ii.mod
+                        
+                            
                         
             elif self.input.module in ['DISCHARGE']:
                 model_ = 'model_1i.mod'

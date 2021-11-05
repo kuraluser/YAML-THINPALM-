@@ -28,7 +28,7 @@ class Vessel:
         vessel_info_['banBallast'] = inputs.config['ban_ballast']   
         
         if hasattr(inputs, 'loadable'):
-            vessel_info_['banCargo'] = {k_:[] for k_,v_ in inputs.loadable.info['parcel'].items()}
+            vessel_info_['banCargo'] = {k_: v_['banTank'] for k_,v_ in inputs.loadable.info['parcel'].items()}
         else:
             vessel_info_['banCargo'] = {}
         vessel_info_['slopTank'] = []
@@ -321,7 +321,7 @@ class Vessel:
                 print('Error!!')
         
         
-        if inputs.module in ['LOADING']:
+        if inputs.module in ['LOADING', 'DISCHARGING']:
             ## pump data to add other later
             vessel_info_['pumpTypes'] = {}
             for d_ in vessel_json.get('pumpTypes', []):
@@ -414,7 +414,25 @@ class Vessel:
         if inputs.module in ['LOADABLE']:
             ## balllast -------------------------------------------------
             ## config
-            self.info['initBallast'] = {'wt': inputs.config['initial_ballast'],
+            
+            if inputs.config['loadableConfig'].get('initBallastTanksAmt',[]):
+                ratio_ = inputs.config['loadableConfig']['initBallastTanksAmt']['amt']
+                init_ballast_ = {}
+                for t_ in inputs.config['loadableConfig']['initBallastTanksAmt']['tanks']:
+                    if t_[-1] in ["W"]:
+                        t1_, t2_ = 'WB'+t_[0]+'P', 'WB'+t_[0]+'S'
+                        init_ballast_[t1_] = round(self.info['ballastTanks'][t1_]['capacityCubm']*ratio_*1.025,2)
+                        init_ballast_[t2_] = round(self.info['ballastTanks'][t2_]['capacityCubm']*ratio_*1.025,2)
+                        
+                    else:
+                        init_ballast_[t_] = round(self.info['ballastTanks'][t_]['capacityCubm']*ratio_*1.025,2)
+                        
+                
+            else:
+                init_ballast_ = inputs.config['initial_ballast']
+            
+            
+            self.info['initBallast'] = {'wt': init_ballast_,
                                         'dec':[t_ for t_ in self.info['ballastTanks'] if t_ not in self.info['banBallast']],
                                         'inc':[]}
             

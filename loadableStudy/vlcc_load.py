@@ -90,8 +90,22 @@ class Loadable:
             cargos_info_['parcel'][cargo_id_]['SG']  = sg_
             cargos_info_['parcel'][cargo_id_]['maxtempSG']  = sg_
             cargos_info_['parcel'][cargo_id_]['mintempSG']  = sg_
-            cargos_info_['sg'].append(sg_)
             
+            cargos_info_['parcel'][cargo_id_]['condensateCargo']  = c_.get('isCondensateCargo', False)
+            cargos_info_['parcel'][cargo_id_]['hrvpCargo']  = c_.get('isHrvpCargo', False)
+            
+            # cargos_info_['parcel'][cargo_id_]['condensateCargo'] = True
+            if cargos_info_['parcel'][cargo_id_]['condensateCargo']:
+                inputs.error['Cargo Error'] = ['Condensate cargo not supported yet!! Cargo history not available!!']
+                
+            # cargos_info_['parcel'][cargo_id_]['hrvpCargo'] = True
+            cargos_info_['parcel'][cargo_id_]['banTank'] = []
+            if cargos_info_['parcel'][cargo_id_]['hrvpCargo'] and inputs.config['loadableConfig']:
+                cargos_info_['parcel'][cargo_id_]['banTank'] += inputs.config['loadableConfig']['hrvpCargoBanTank']
+                
+            
+            
+            cargos_info_['sg'].append(sg_)
             cargos_info_['maxPriority'] = max(cargos_info_['maxPriority'], c_['priority'])
             cargos_info_['priority'][c_['priority']].append(cargo_id_)
        

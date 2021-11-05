@@ -170,12 +170,13 @@ def loadicator(data, limits):
             info_["SF"] = v_["shearingForcePersentValue"]
             info_['BM'] = v_["bendingMomentPersentValue"]
             
+            
             info_['errorDetails'] = []
             if u_["errorDetails"] not in [""]:
                 info_['errorDetails'].append(u_["errorDetails"])
             if v_["errorDetails"] not in [""]:
                 info_['errorDetails'].append(v_["errorDetails"])
- 
+            
             
             if info_['deflection'] in [None, ""]:
                 sag_ = 0.
@@ -187,12 +188,13 @@ def loadicator(data, limits):
             
             
             # trim
-            if abs(float(u_["trimValue"])) > 0.1:
+            if (float(u_["trimValue"]) < limits['limits']['trimLimit'][0]) or (float(u_["trimValue"]) > limits['limits']['trimLimit'][1]):
                 info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trimValue"])) +'m)!')
                 # fail_SF_  = True
             # list
-            if u_["heelValue"] not in [None and ""] and abs(float(u_["heelValue"])) > 0.1:
-                info_['judgement'].append('Failed list check ('+ "{:.1f}".format(float(u_["heelValue"])) +')!')
+            if u_["heelValue"] not in [None and ""]:
+                if (float(u_["heelValue"]) < limits['limits']['listLimit'][0]) or (float(u_["heelValue"]) > limits['limits']['listLimit'][1]):
+                    info_['judgement'].append('Failed list check ('+ "{:.1f}".format(float(u_["heelValue"])) +')!')
                 # fail_BM_ = True
             
             # max permissible draft
@@ -208,11 +210,11 @@ def loadicator(data, limits):
                 info_['judgement'].append('Failed airdraft check ('+ "{:.2f}".format(float(info_['airDraft'])) +'m)!')
             
             # SF
-            if abs(float(v_["shearingForcePersentValue"])) > 100:
+            if abs(float(v_["shearingForcePersentValue"])) > limits['limits']['SFLimit']:
                 info_['judgement'].append('Failed SF check ('+ "{:.0f}".format(float(v_["shearingForcePersentValue"])) +')!')
                 # fail_SF_  = True
             # BM
-            if abs(float(v_["bendingMomentPersentValue"])) > 100:
+            if abs(float(v_["bendingMomentPersentValue"])) > limits['limits']['BMLimit']:
                 info_['judgement'].append('Failed BM check ('+ "{:.0f}".format(float(v_["bendingMomentPersentValue"])) +')!')
                 # fail_BM_ = True
             
@@ -257,7 +259,7 @@ def loadicator(data, limits):
                     info_['errorDetails'].append(u_["errorDetails"])
                 if v_["errorDetails"] not in [""]:
                     info_['errorDetails'].append(v_["errorDetails"])
- 
+            
                 
                 if info_['deflection'] in [None, ""]:
                     sag_ = 0.
@@ -269,13 +271,14 @@ def loadicator(data, limits):
                 info_['judgement'] = []
                 
                 # trim
-                if abs(float(u_["trimValue"])) > 0.1:
+                if (float(u_["trimValue"]) < limits['limits']['trimLimit'][0]) or (float(u_["trimValue"]) > limits['limits']['trimLimit'][1]):
                     info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trimValue"])) +'m)!')
                     
                 # list
-                if u_["heelValue"] not in [None and ""] and abs(float(u_["heelValue"])) > 0.1:
-                    info_['judgement'].append('Failed list check ('+ "{:.1f}".format(float(u_["heelValue"])) +')!')
-                
+                if u_["heelValue"] not in [None and ""]:
+                    if (float(u_["heelValue"]) < limits['limits']['listLimit'][0]) or (float(u_["heelValue"]) > limits['limits']['listLimit'][1]):
+                        info_['judgement'].append('Failed list check ('+ "{:.1f}".format(float(u_["heelValue"])) +')!')
+                  
                 # max permissible draft
                 # max_draft_ = max([float(u_["forwardDraft"]), float(u_["afterDraft"]), mid_ship_draft_]) 
                 max_draft_ = max([float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_]) 
@@ -289,11 +292,11 @@ def loadicator(data, limits):
                     info_['judgement'].append('Failed airdraft check ('+ "{:.2f}".format(float(info_['airDraft'])) +'m)!')
                 
                 # SF
-                if abs(float(v_["shearingForcePersentValue"])) > 100:
+                if abs(float(v_["shearingForcePersentValue"])) > limits['limits']['SFLimit']:
                     info_['judgement'].append('Failed SF check ('+ "{:.0f}".format(float(v_["shearingForcePersentValue"])) +')!')
                     fail_SF_ = True
                 # BM
-                if abs(float(v_["bendingMomentPersentValue"])) > 100:
+                if abs(float(v_["bendingMomentPersentValue"])) > limits['limits']['BMLimit']:
                     info_['judgement'].append('Failed BM check ('+ "{:.0f}".format(float(v_["bendingMomentPersentValue"])) +')!')
                     fail_BM_ = True
                 
