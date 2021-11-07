@@ -106,8 +106,10 @@ class Generate_plan:
             
             if result['succeed']:
                 self._process_ampl(result, num_plans=num_plans)
+                # self.commingled_ratio = False
                 if self.commingled_ratio:
                     print('Rerun due to miss temperature in commingle cargo!!')
+                    result1 = deepcopy(result)
                     temp_ = 0.
                     for k_, v_ in self.commingled_temp.items():
                         if v_ > temp_:
@@ -123,6 +125,11 @@ class Generate_plan:
                     else:
                         print('run ORTOOLS ....')
                         result = self._run_ortools()
+                        
+                    if not result['succeed']:
+                        print('Second AMPL for commingle failed!!')
+                        result = result1
+                        
                     self._process_ampl(result, num_plans=num_plans)
                     
                 self._process_checking_plans(result)
@@ -720,7 +727,10 @@ class Generate_plan:
                             
                             # re-run once only
                             # print(self.commingled_ratio)
-                            if (fillingRatio_ > 0.98 or fillingRatio_ < 0.98) and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto'] and len(self.commingled_ratio) == 0:
+                            cargoweight_ = int(float(self.input.cargoweight)*10)/10
+                            obj_ = [round(l_[1],1)  for l_ in result['obj'] if l_[0] == p_+1][0]
+                            
+                            if (fillingRatio_ > 0.98 or obj_ < cargoweight_)  and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto'] and len(self.commingled_ratio) == 0:
                                 print('Need to regenerate commingle plans!!')
                                 self.commingled_ratio = {parcel1_:round(wt1_/(wt1_+wt2_),2), 
                                                          parcel2_:round(wt2_/(wt1_+wt2_),2)}

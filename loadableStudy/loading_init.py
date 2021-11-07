@@ -690,11 +690,16 @@ class Process_input(object):
                     str1 = '[' + tank_ + ', *] := '
                     for k__, v__ in v_.items():
                         if k__ not in ['0']:
-                            str1 += k__ + ' ' + "{:.3f}".format(v__) + ' '
+                            fill_ = v__/self.vessel.info['ballastTanks'][k_]['capacityCubm']/1.025
+                            if fill_ > 0.99 and int(k__) > 1:
+                                print(k_, k__,  fill_, 0.99*self.vessel.info['ballastTanks'][k_]['capacityCubm']*1.025)
+                                vv_ = 0.99*self.vessel.info['ballastTanks'][k_]['capacityCubm']*1.025
+                                str1 += k__ + ' ' + "{:.3f}".format(int(vv_*100)/100) + ' '
+                            else:
+                                str1 += k__ + ' ' + "{:.3f}".format(v__) + ' '
                     print(str1, file=text_file)
                 print(';', file=text_file)  
-                        
-                
+               
                 str1 = 'set fixBallastPort := '
                 for k_ in self.loadable['fixedBallastPort']:
                     if k_ != '0':

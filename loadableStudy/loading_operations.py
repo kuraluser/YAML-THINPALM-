@@ -289,7 +289,10 @@ class LoadingOperations(object):
         print('tankToDeballast: ', cargo_info_['tankToDeballast'])
         print('eduction: ', cargo_info_['eduction'], cargo_info_['numEductionTanks'])
         
-        self.time_eduction = int(60 + 12*cargo_info_['numEductionTanks'])
+        if cargo_info_['numEductionTanks'] > 0:
+            self.time_eduction = int(60 + 12*cargo_info_['numEductionTanks'])
+        else:
+            self.time_eduction = 0
         # self.time_eduction = 0
         print('eduction duration: ', self.time_eduction)
         
