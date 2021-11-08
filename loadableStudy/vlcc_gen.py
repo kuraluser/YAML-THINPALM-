@@ -727,8 +727,12 @@ class Generate_plan:
                             
                             # re-run once only
                             # print(self.commingled_ratio)
-                            cargoweight_ = int(float(self.input.cargoweight)*10)/10
-                            obj_ = [round(l_[1],1)  for l_ in result['obj'] if l_[0] == p_+1][0]
+                            if self.input.module in ['LOADABLE']:
+                                cargoweight_ = int(float(self.input.cargoweight)*10)/10
+                                obj_ = [round(l_[1],1)  for l_ in result['obj'] if l_[0] == p_+1][0]
+                            else:
+                                cargoweight_, obj_ = 1,1
+ 
                             
                             if (fillingRatio_ > 0.98 or obj_ < cargoweight_)  and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto'] and len(self.commingled_ratio) == 0:
                                 print('Need to regenerate commingle plans!!')
