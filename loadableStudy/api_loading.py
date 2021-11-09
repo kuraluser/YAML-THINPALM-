@@ -131,7 +131,7 @@ def loadicator1(data, limits):
             info_["calculatedDraftAftPlanned"] = u_["afterDraft"]
             info_["calculatedTrimPlanned"] = u_["trim"]
             info_["blindSector"] = None
-            info_["list"] = str(u_["heel"])
+            info_["list"] = u_["heel"]
             info_['airDraft'] = u_['airDraft']
             info_['deflection'] = u_.get("deflection", None) 
             info_['freeboard'] = u_.get("freeboard", None) 
