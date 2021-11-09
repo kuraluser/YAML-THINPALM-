@@ -34,6 +34,9 @@
       "ban_ballast": [
         "UFPT"
       ],
+      "ban_ballast_discharge": [
+        "AWBP", "AWBS", "APT"
+      ],
       "deballast_percent": 0.4,
       "diff_cargo_slops": [
         "SLS",
@@ -185,6 +188,9 @@
       "after_loading_trim": 1,
       "ballast_percent": 0.4,
       "ban_ballast": [],
+      "ban_ballast_discharge": [
+        "WB6P", "WB6S"
+      ],
       "deballast_percent": 0.5,
       "diff_cargo_slops": [
         "SLS",
@@ -268,7 +274,7 @@
         "WB5P",
         "WB5S"
       ],
-      "loadable_config":false,
+      "loadable_config": false,
       "min_draft_limit": 10.67,
       "rob_density": {
         "DRWT": 1,

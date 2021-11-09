@@ -735,7 +735,7 @@ class Process_input1(object):
                 # print('# rotating ports ',file=text_file)#
                 str1 = 'set rotatingPort1 := '
                 for k_  in range(0, self.loadable.info['lastVirtualPort']):
-                        str1 += '('+ str(k_)  + ',' + str(k_+1)+ ') '
+                    str1 += '('+ str(k_)  + ',' + str(k_+1)+ ') '
                 print(str1+';', file=text_file)
                 
                 str1 = 'set rotatingPort2 := '
@@ -752,7 +752,9 @@ class Process_input1(object):
                 
                 ##
                 print('# ballastBan ',file=text_file)#
-                str1 = 'set ballastBan := AWBP AWBS APT'
+                str1 = 'set ballastBan := '
+                for k_  in self.config['ban_ballast_discharge']:
+                    str1 +=  str(k_)  + ' ' 
                 print(str1+';', file=text_file)
                 
                 # print('# first loading Port',file=text_file)#

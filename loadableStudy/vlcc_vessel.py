@@ -481,7 +481,7 @@ class Vessel:
                 self.info['initBallast']['wt'][tank_] = v_
             
             ## config for discharging 
-            self.info['initBallast']['inc'] = ['LFPT','WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S']
+            self.info['initBallast']['inc'] = ['WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S']
             
         
             
