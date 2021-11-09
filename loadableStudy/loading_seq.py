@@ -148,7 +148,8 @@ class Loading_seq:
                          }
                 self.stages.append(info_)
             
-            
+            info['simDeballastingRateM3_Hr'] = [{}]
+            info['simBallastingRateM3_Hr'] = [{}]
             
         elif info['stage'] == 'openSingleTank':
             
