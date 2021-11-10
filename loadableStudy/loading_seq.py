@@ -154,6 +154,8 @@ class Loading_seq:
         elif info['stage'] == 'openSingleTank':
             
             info['simCargoLoadingRatePerTankM3_Hr'] = [{}]
+            info['simDeballastingRateM3_Hr'] = [{}]
+            info['simBallastingRateM3_Hr'] = [{}]
             
                 
             # c"deballastingRateM3_Hr"] = {}
@@ -165,6 +167,8 @@ class Loading_seq:
         elif info['stage'] == "initialRate":
             
             info["cargoLoadingRateM3_Hr"] = {0:str(self.plans.input.loading.seq[cargo]['initialRate'])}
+            info['simDeballastingRateM3_Hr'] = [{}]
+            info['simBallastingRateM3_Hr'] = [{}]
             
             
             if self.plans.input.loading.seq[cargo]['firstTank'] in self.plans.input.vessel.info['tankName']:
@@ -199,6 +203,8 @@ class Loading_seq:
             
         elif info['stage'] == "openAllTanks":
             info["cargoLoadingRateM3_Hr"] = {0:str(self.plans.input.loading.seq[cargo]['initialRate'])}
+            info['simDeballastingRateM3_Hr'] = [{}]
+            info['simBallastingRateM3_Hr'] = [{}]
            
             tot_num_ = len(self.plans.input.loadable['toLoadCargoTank'][cargo])
             rate_ = round(self.plans.input.loading.seq[cargo]['initialRate']/tot_num_,2)
@@ -217,6 +223,8 @@ class Loading_seq:
         elif info['stage'] == "increaseToMaxRate":
            
             info["cargoLoadingRateM3_Hr"] = {0:str(self.plans.input.loading.seq[cargo]['initialRate'])}
+            info['simDeballastingRateM3_Hr'] = [{}]
+            info['simBallastingRateM3_Hr'] = [{}]
            
             tot_num_ = len(self.plans.input.loadable['toLoadCargoTank'][cargo])
             rate_ = round(self.plans.input.loading.seq[cargo]['initialRate']/tot_num_,2)
@@ -305,7 +313,7 @@ class Loading_seq:
                         info1_[self.plans.input.vessel.info['tankName'][k_]] = str(round(rate_,2))
                         info2_[self.plans.input.vessel.info['tankName'][k_]] = {'tankShortName': k_,
                                                                                  "rate": str(round(rate_,2)), 
-                                                                                 "timeStart": commingleStart_,
+                                                                                 "timeStart": str(max(int(commingleStart_),int(info["timeStart"]))),
                                                                                  "timeEnd": info["timeEnd"]}
                             
                 info["cargoLoadingRatePerTankM3_Hr"].append(info1_)

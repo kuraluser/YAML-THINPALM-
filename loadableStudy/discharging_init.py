@@ -177,13 +177,14 @@ class Process_input(object):
                 
             last_ = self.discharging.seq[c1_]['lastStage']    
             for e_ in  self.discharging.seq[c1_]['gantt'][last_].iteritems():
-                if e_[0] not in ['Time', 'Weight'] and e_[1][0] == cargo_:
+                # print(e_)
+                if e_[0] not in ['Time', 'Weight'] and e_[1] not in [None] and e_[1][0] == cargo_:
                     self.loadable.info['toLoadCargoTank'][c__+1][cargo_][e_[0]] = round(e_[1][1]*density_[cargo_],1)
                     
                 
             toLoadTank_ = {t_:0.  for t_ in self.vessel.info['cargoTanks']}
             for e_ in  self.discharging.seq[c1_]['gantt']['Initial'].iteritems():
-                if e_[0] not in ['Time', 'Weight'] and e_[1][0] == cargo_:
+                if e_[0] not in ['Time', 'Weight'] and e_[1] not in [None] and e_[1][0] == cargo_:
                     toLoadTank_[e_[0]] = round(e_[1][1]*density_[cargo_],1) 
             
             

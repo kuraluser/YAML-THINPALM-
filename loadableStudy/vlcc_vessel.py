@@ -331,6 +331,9 @@ class Vessel:
                     vessel_info_['pumpTypes']['ballastEductor'] = d_['id']
                  
             vessel_info_['vesselPumps'] = {}
+            vessel_info_['vesselPumps']['ballastEductorId'] = {}
+            vessel_info_['vesselPumps']['ballastPumpId'] = {}
+            
             for d_ in vessel_json.get('vesselPumps', []):
                 if d_['pumpTypeId'] == vessel_info_['pumpTypes']['ballastPump']:
                     
@@ -338,6 +341,7 @@ class Vessel:
                         vessel_info_['vesselPumps']['ballastPump'] = {}
                     
                     vessel_info_['vesselPumps']['ballastPump'][d_['pumpName']] = {k_:v_ for k_, v_ in d_.items() if k_ not in ['pumpName']}
+                    vessel_info_['vesselPumps']['ballastPumpId'][d_['pumpId']] = d_['pumpName']
                     
                 elif d_['pumpTypeId'] == vessel_info_['pumpTypes']['ballastEductor']:
                     
@@ -345,7 +349,7 @@ class Vessel:
                         vessel_info_['vesselPumps']['ballastEductor'] = {}
                     
                     vessel_info_['vesselPumps']['ballastEductor'][d_['pumpName']] = {k_:v_ for k_, v_ in d_.items() if k_ not in ['pumpName']}
-                    
+                    vessel_info_['vesselPumps']['ballastEductorId'][d_['pumpId']] = d_['pumpName']
             
         self.info = vessel_info_     
         

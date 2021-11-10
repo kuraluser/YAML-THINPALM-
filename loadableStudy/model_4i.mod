@@ -675,7 +675,7 @@ subject to Constr13c1 {p in P}: displacement[p] = sum{t in T} wC[t,p] + sum{t in
 subject to Constr13c2 {p in P}: displacement1[p] = displacement[p]*1.025/densitySeaWater[p];
 
 # loading and unloading port
-subject to Constr13 {p in P_stable1}: displacementLowLimit[p]+0.001 <= displacement[p] <= displacementLimit[p]-0.001;
+#subject to Constr13 {p in P_stable1}: displacementLowLimit[p]+0.001 <= displacement[p] <= displacementLimit[p]-0.001;
 
 # deadweight constraint
 subject to Constr13a {p in P_stable}: sum{t in T} wC[t,p] + sum{t in TB} wB[t,p] + sum{t in OtherTanks} weightOtherTank[t,p] + deadweightConst <= deadweight;
@@ -705,7 +705,7 @@ subject to Constr163 {p in P_stable}: LCBp[p] = (<<{s in 1..pwLCB-1} bLCB[s]; {s
 subject to Constr164 {p in P_stable}: MTCp[p] = (<<{s in 1..pwMTC-1} bMTC[s]; {s in 1..pwMTC} mMTC[s]>> displacement1[p])*densitySeaWater[p]/1.025 + adjMTC ;
 
 subject to Constr16a {p in P_stable}: MTCp[p]*trim_lower[p]*100 <= L_mom[p] - LCBp[p] ;
-subject to Constr16b {p in P_stable}: L_mom[p] - LCBp[p] <= MTCp[p]*trim_upper[p]*100;
+#subject to Constr16b {p in P_stable}: L_mom[p] - LCBp[p] <= MTCp[p]*trim_upper[p]*100;
 
 ## SF and BM 
 

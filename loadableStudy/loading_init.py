@@ -699,7 +699,7 @@ class Process_input(object):
                                 str1 += k__ + ' ' + "{:.3f}".format(v__) + ' '
                     print(str1, file=text_file)
                 print(';', file=text_file)  
-               
+
                 str1 = 'set fixBallastPort := '
                 for k_ in self.loadable['fixedBallastPort']:
                     if k_ != '0':

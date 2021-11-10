@@ -106,6 +106,7 @@ class Generate_plan:
             
             if result['succeed']:
                 self._process_ampl(result, num_plans=num_plans)
+                
                 # self.commingled_ratio = False
                 if self.commingled_ratio:
                     print('Rerun due to miss temperature in commingle cargo!!')
@@ -129,6 +130,7 @@ class Generate_plan:
                     if not result['succeed']:
                         print('Second AMPL for commingle failed!!')
                         result = result1
+                        
                         
                     self._process_ampl(result, num_plans=num_plans)
                     
@@ -163,6 +165,10 @@ class Generate_plan:
                         else:
                             model_ = 'model_3i.mod'
                     else:
+                        
+                        #if self.input.accurate:
+                        #    model_ = 'model_1ii.mod' ## model_1ii.mod
+                        #else:
                         model_ = 'model_1i.mod' ## model_1ii.mod
                         
                             
@@ -533,17 +539,24 @@ class Generate_plan:
             
     def _other_AMPL_data(self, ampl):
         
-        sf = ampl.getData('sf').toList()
-        bm = ampl.getData('bm').toList()
+        lcg = ampl.getData('lcg_T').toList()
+        lcg_tb = ampl.getData('lcg_TB').toList()
         
-        SF, BM = [], []
-        for p__, p_ in enumerate(self.input.base_draft):
-            SF.append([round(d_[3],3) for d_ in sf if d_[0] == 1 and d_[2] == p__+1 ]) # sol, frame, port, sf
-            BM.append([round(d_[3],3) for d_ in bm if d_[0] == 1 and d_[2] == p__+1 ]) # sol, frame, port, bm
+        # print(lcg)
+        # print(lcg_tb)
+        
+        
+        # sf = ampl.getData('sf').toList()
+        # bm = ampl.getData('bm').toList()
+        
+        # SF, BM = [], []
+        # for p__, p_ in enumerate(self.input.base_draft):
+        #     SF.append([round(d_[3],3) for d_ in sf if d_[0] == 1 and d_[2] == p__+1 ]) # sol, frame, port, sf
+        #     BM.append([round(d_[3],3) for d_ in bm if d_[0] == 1 and d_[2] == p__+1 ]) # sol, frame, port, bm
                         
         
         with open('ampl_data.json', 'w') as f_:  
-            json.dump({'SF':SF, 'BM':BM}, f_)
+            json.dump({'lcg':lcg, 'lcg_tb':lcg_tb}, f_)
 
         
         
@@ -727,12 +740,12 @@ class Generate_plan:
                             
                             # re-run once only
                             # print(self.commingled_ratio)
+                            
                             if self.input.module in ['LOADABLE']:
                                 cargoweight_ = int(float(self.input.cargoweight)*10)/10
                                 obj_ = [round(l_[1],1)  for l_ in result['obj'] if l_[0] == p_+1][0]
                             else:
                                 cargoweight_, obj_ = 1,1
- 
                             
                             if (fillingRatio_ > 0.98 or obj_ < cargoweight_)  and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto'] and len(self.commingled_ratio) == 0:
                                 print('Need to regenerate commingle plans!!')
@@ -1640,6 +1653,8 @@ class Generate_plan:
                     # print(info1_['stageEndTime'])
                     self._get_eduction(info1_, c_)
                     
+                    self._cleanup(info1_)
+                    
                     # print(info1_.keys())
                     info1_.pop('simIniDeballastingRateM3_Hr')
                     info1_.pop('simIniBallastingRateM3_Hr')
@@ -1663,6 +1678,59 @@ class Generate_plan:
         
         return data
     
+    def _cleanup(self, out):
+        # print(out)
+        zero_rate_ = []
+        pump_ = []
+        end_time_ = {k_:100000 for k_, v_ in out['ballast'].items() if len(v_) > 0}
+        
+        # backward
+        for k_, v_ in out['ballast'].items():
+            for v__ in v_[::-1]:
+                # print(k_,v__)
+                if float(v__['rateM3_Hr']) == 0:
+                    zero_rate_.append((k_, v__))
+                    if k_ not in ['Gravity'] and k_ not in pump_:
+                        pump_.append(k_)
+                        # end_time_[k_] = 10000000
+                        
+                    if int(v__['timeStart']) < end_time_[k_]:
+                        end_time_[k_] = int(v__['timeStart'])
+                        
+                else:
+                    if int(v__['timeEnd']) < end_time_[k_]:
+                        end_time_[k_] = int(v__['timeEnd'])
+                        
+                    break
+        # forward
+        for k_, v_ in out['ballast'].items():
+            for v__ in v_:
+                # print(k_,v__)
+                if float(v__['rateM3_Hr']) == 0:
+                    zero_rate_.append((k_, v__))
+                        
+                else:
+                    break
+            
+        if zero_rate_:
+            
+            # need to close one or two pumps
+            for id_ in pump_:
+                for l_ in zero_rate_:
+                    if l_[0] == id_:
+                        out['ballast'][id_].remove(l_[1])
+                
+        if out['eduction']:
+            id_ = min(pump_)
+            end_time_[id_] = out['eduction']['timeEnd']
+                             
+                        
+                        
+       
+        out['pumpEndTime'] = {k_:str(v_)  for k_, v_ in end_time_.items()}       
+                        
+             
+            
     
     def _get_eduction(self, out, cargo):
         
@@ -1692,7 +1760,15 @@ class Generate_plan:
                 eduction_[id_] = {}
                 eduction_[id_]['pumpName'] = p_
                 
+            if len(eduction_) == 0:
+                id_ = str(self.input.vessel.info['vesselPumps']['ballastEductor']['Ballast Eductor 1']['pumpId'])
+                eduction_[id_] = {}
+                eduction_[id_]['pumpName'] = 'Ballast Eductor 1'
+                
+            pump_ = [p_ for p_ in out['ballast'] if p_ not in ['Gravity']]
             out['eduction']['pumpSelected'] = eduction_ #self.input.loading.eduction_pump
+            out['eduction']['ballastPumpSelected'] = {str(min(pump_)): {'pumpName': self.input.vessel.info['vesselPumps']['ballastPumpId'][min(pump_)]}} #self.input.loading.eduction_pump
+            
             
             # print(out['eduction'])
             

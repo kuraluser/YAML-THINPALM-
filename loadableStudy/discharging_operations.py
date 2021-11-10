@@ -31,7 +31,7 @@ class DischargingOperations(object):
         self.mode = ""
         
         self.time_interval1 = data.discharging_info_json['dischargingStages']['stageDuration']*60 # in 60*4 min
-        self.num_stage_interval = 1 ## data.loading_info_json['loadingStages']['stageOffset']
+        self.num_stage_interval =  data.discharging_info_json['dischargingStages']['stageOffset']
         
         self.config = data.config
         print('time interval:', self.time_interval1)
@@ -81,8 +81,11 @@ class DischargingOperations(object):
             if d_['dsCargoNominationId'] in [0]:
                 pass
             else:
+                ## at cargo level                
+                # self.discharging_rate[order_] = d_.get('maxDischargingRate', 7000)
+                self.discharging_rate[order_] = data.discharging_info_json['dischargingRates'].get('maxDischargingRate', 7000)
                 
-                self.discharging_rate[order_] = d_.get('maxDischargingRate', 7000)
+                # self.discharging_rate[order_] = MAX_RATE[order_]
                 
                 cargo_ = 'P'+str(d_['dsCargoNominationId'])
                 
@@ -146,6 +149,7 @@ class DischargingOperations(object):
                 
         ##        
         # cargo_info_['discharging_order'] = ['P200000178', 'P200000176', 'P200000177']
+        # cargo_info_['discharging_order1'] = {'P200000178': [1], 'P200000176': [2], 'P200000177': [3]}
         # cargo_info_['multiDischarge'] = False
         
         cargo_info_['stripping_tanks'] = {d__+1:[]  for d__,d_ in enumerate(cargo_info_['discharging_order'])}
@@ -194,7 +198,7 @@ class DischargingOperations(object):
             plan_check = Check_plans(self)
             plan_check._check_plans(gen_output.plans.get('ship_status',[]), gen_output.plans.get('cargo_tank',[]))
             
-            # input("Press Enter to continue...")
+            # # input("Press Enter to continue...")
     
             
             plan_ = gen_output.plans.get('ship_status',[])
@@ -258,6 +262,7 @@ class DischargingOperations(object):
             ## 
             # with open("plan1.json", "w") as outfile:
             #     json.dump(plan__, outfile)
+            
             # with open("plan2.json", "r") as outfile:
             #     plan__ = json.load(outfile)
             # cargo_info_['stripping_tanks'] = {1: [], 2: ['1P', '3P', '3S', '1S'], 3: [], 4: ['2C', '4C']}
@@ -558,13 +563,15 @@ class DischargingOperations(object):
    
     def _cal_cow_strip(self, port, cargo_to_discharge, initial, tanks, max_rate):
         
-        STRIP_ORDER = ['1', '1C', '2', '2C', '3', '3C', '4', '4C', '5', '5C']
+        STRIP_ORDER = ['1', '1C', '2', '2C', '3', '3C', '4', '4C', '5', '5C', 'SLP', 'SLS']
         STRIP_LEVEL = {'1C':334.25, '2C':312.03, '3C':312, '4C':311.98, '5C':343.98,
                        '1P':152.44, '1S':152.44, '2P':161.3, '2S':161.3, '3P':161.34, '3S':161.34,
                        '4P':161.3, '4S':161.3, '5P':110.04, '5S':110.04, 'SLP':3.1, 'SLS':3.1}
         
         ##
-        self.info['cow_tanks'] = {1: [], 2: ['1P', '3P', '3S', '1S'], 3: [], 4: []}
+        self.info['cow_tanks'] = {1: [], 2: [], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
+        self.info['sorted_cow'] = {1: [], 2: [], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
+        
         
         df_ = pd.DataFrame(index=INDEX)
         strip_ = self.info['stripping_tanks'][port+1]
@@ -578,6 +585,7 @@ class DischargingOperations(object):
         partial_ = set(tanks) - set(strip_)
         
         if len(strip_) == 0 and len(partial_) > 0:
+            print('partial discharge with no stripping and COW')
             # partial discharge with no stripping and COW
             # reduce 2 stages only
             df_['C1'] = None
@@ -647,6 +655,8 @@ class DischargingOperations(object):
             discharging_rate_ = [REDUCED_RATE+(total_stage_-2 - r_ -1)*reduction_rate_  for r_ in range(0, (total_stage_-2))]   
             ss_ = 3  # starting stage
             sort_strip_num_ = [t_ for t_ in STRIP_ORDER if t_ in strip_num_]
+            # self.info['sorted_cow'][port] = sort_strip_num_
+            
             for t_ in sort_strip_num_:
                 if len(t_) == 1:
                     # wing tanks
@@ -746,6 +756,7 @@ class DischargingOperations(object):
             discharging_rate_ = [REDUCED_RATE+(total_stage_-2 - r_ -1)*reduction_rate_  for r_ in range(0, (total_stage_-2))]   
             ss_ = 1 if  not add_stage_ else 2 # starting stage
             sort_strip_num_ = [t_ for t_ in STRIP_ORDER if t_ in strip_num_]
+            # self.info['sorted_cow'][port] = sort_strip_num_
             for t_ in sort_strip_num_:
                 if len(t_) == 1:
                     # wing tanks
@@ -788,8 +799,8 @@ class DischargingOperations(object):
                                                 df_['C'+str(s2_)][t4_][1]+discharging_rate_per_tank_*add_time_/60)
                 
                     
-                    
-            for s1_, s2_ in enumerate(range(2, 1, -1)):
+            ss_ = s2_ - 1
+            for s1_, s2_ in enumerate(range(ss_, 1, -1)):
                 rate_ = discharging_rate_[s2_-2]
                 # print(s2_, rate_)
                 tanks_ = [t4_ for t4_ in tanks if df_['C'+str(s2_)][t4_][1] > 0.]
@@ -2196,14 +2207,20 @@ class DischargingOperations(object):
     def _get_plan(self, stowageDetails, cargo_info_, cargoDetails, commingleDetails = [], initial = True, not_cargo = [], strip_info = False):
         
         arr_plan_ =  cargo_info_['cargo_plans'][0] if len(cargo_info_['cargo_plans']) > 0 else []
+        if not initial:
+            init_tanks_ = [k_ for k_, v_ in arr_plan_.items() if v_[0]['quantityMT'] > 0]
+        else:
+            init_tanks_ = []
         
         if strip_info:
             cur_cargo_ = cargo_info_['discharging_order'][len(cargo_info_['cargo_plans'])-1]
             cur_cargo_ = cargo_info_['dsCargoNominationId'][cur_cargo_] 
         
-        plan_ = {}
+        plan_, tanks_ = {}, []
         wt_ = 0.0
         for d_ in stowageDetails:
+            tank_ = self.vessel.info['tankId'][d_['tankId']]
+            tanks_.append(tank_)
             
             cargo_ = d_.get('cargoNominationId', None)
             if cargo_ not in [None]:
@@ -2220,11 +2237,11 @@ class DischargingOperations(object):
                 wt_ += float(d_["quantityMT"])
                 
                 if strip_info and float(d_["quantityMT"]) == 0 and cargo_ == cur_cargo_:
-                    cargo_info_['stripping_tanks'][len(cargo_info_['cargo_plans'])].append(d_['tankName'])
+                    cargo_info_['stripping_tanks'][len(cargo_info_['cargo_plans'])].append(tank_)
                     
             else:
                 # print('Get from arr_plan_')
-                plan_[d_['tankName']] = arr_plan_[d_['tankName']]
+                plan_[tank_] = arr_plan_[tank_]
                 
             
         # for d_ in commingleDetails:
@@ -2236,6 +2253,19 @@ class DischargingOperations(object):
             
         #     self._get_plan2(d_, plan_, cargo_info_, cargoDetails, initial, not_cargo)
             
+        # print(set(init_tanks_)-set(tanks_))
+        
+        if not initial:
+            for t_ in set(init_tanks_)-set(tanks_):
+                
+                if strip_info and arr_plan_[t_][0]['cargo'] == cur_cargo_:
+                    cargo_info_['stripping_tanks'][len(cargo_info_['cargo_plans'])].append(t_)
+                    
+                plan_[t_] = deepcopy(arr_plan_[t_])
+                plan_[t_][0]['quantityMT'] = 0.
+                plan_[t_][0]['quantityM3'] = 0.
+                
+                
                 
         cargo_info_['cargo_plans'].append(plan_)    
         if initial:

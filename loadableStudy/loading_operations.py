@@ -18,6 +18,8 @@ from copy import deepcopy
 # INDEX1 = ['LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S', 'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S', 'AWBP', 'AWBS', 'APT']
 # OPEN_TANKS = ['3C', '2C', '4C', '5C', '1C', '3W', '4W', '2W', '5W', '1W' ]
 OPEN_TANKS = ['1C', '1W', '2C', '2W', '3C','3W', '4C', '4W', '5C', '5W' ]
+
+#1C, 1W, 2C, 2W, 3C, 3W, 4C, 4W, 5C and 5W
 DEC_PLACE = 10
 
 # TIME_EDUCTING = 60*3
@@ -39,7 +41,9 @@ class LoadingOperations(object):
         self.time_interval = {}
         
         self.config = data.config
-        self.eduction_pump = []
+        self.eduction_pump, self.ballast_pump = [], []
+        self.manifold_port = True
+        
         print('time interval:', self.time_interval1)
         
         
@@ -47,22 +51,25 @@ class LoadingOperations(object):
         for d__, d_ in enumerate(data.loading_info_json['loadingMachinesInUses']):
             if d_['machineName'][:3] in ['Man']:
                 manifolds_.append(int(d_['machineName'][-1]))
+                if d_['tankTypeName'] not in ['Port']:
+                    self.manifold_port = True
+        
             elif d_['machineName'][:3] in ['Bot']:
                 bottomLines_.append(int(d_['machineName'][-1]))
             elif d_['machineName'][:15] in ['Ballast Eductor']:
                 self.eduction_pump.append(d_['machineName'])
+            elif d_['machineName'][:2] in ['BP']:
+                self.ballast_pump.append(d_['machineName'])
                 
             
             
                 
-            # pump in use
-
+        # pump in use
         if len(manifolds_) == 0:
             manifolds_ = [2,3]
             
         if len(bottomLines_) == 0:
             bottomLines_ = [2,3]
-            
         
         self.load_param = {'Manifolds':manifolds_,
                      'centreTank':[],
@@ -75,7 +82,7 @@ class LoadingOperations(object):
         shoreLoadingRate_ = shoreLoadingRate_ if shoreLoadingRate_ not in [None] else 1e6
         
         loading_rate_ = min(data.loading_info_json['loadingRates'].get('maxLoadingRate', 7000), shoreLoadingRate_)
-        # loading_rate_ = 8000
+        # loading_rate_ = 4000
         self.max_loading_rate = loading_rate_
         print('loading rate (max):', loading_rate_)
         min_loading_rate_ = data.loading_info_json['loadingRates']['minLoadingRate']
