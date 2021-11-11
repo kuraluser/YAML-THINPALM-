@@ -139,14 +139,19 @@ class Vessel:
         
         ## linear approx ullage
         self._get_ullage_func(vessel_info_, {k_:v_ for k_,v_ in vessel_json.items() if k_ in ['ullageDetails','ullageTrimCorrections']})    
+        
+        ##
         vessel_info_['ullage30cm'] = {}
         for k_,v_ in vessel_info_['ballastTanks'].items():
             k1_ = str(vessel_info_['tankName'][k_])
             if k_ not in vessel_info_['banBallast']:
                 vessel_info_['ullage30cm'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](0.3))*1.025,3)
                 
-        
-        
+        vessel_info_['ullage16mVol'] = {}
+        for k_ in ['SLP', 'SLS']:
+            k1_ = str(vessel_info_['tankName'][k_])
+            vessel_info_['ullage16mVol'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](16)),3)
+
         # self._get_ullage_corr(vessel_info_, vessel_json['ullageTrimCorrections'])
         
         ## 
