@@ -778,6 +778,7 @@ class DischargingOperations(object):
             # discharging_rate_per_tank_ = {}
             tank_strip_ = 0
             tank__ = []
+            s2_ = 3
             for s1_, s2_ in enumerate(range(total_stage_-1, 3, -1)):
                 strip_tank_ = sort_strip_num_[len(sort_strip_num_) - s1_ - 1] if len(sort_strip_num_) - s1_ - 1 >= 0 else ""
                 # print(s2_, strip_tank_)
