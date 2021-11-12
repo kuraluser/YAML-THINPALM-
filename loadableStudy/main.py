@@ -173,7 +173,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
                                                                     voyageId=data['discharge']['voyageId'],
                                                                     dischargeStudyId=data['discharge']['id'])
         
-        await post_response(status_url_, {"processId" : uid, "dischargeStudyStatusId" : 4}, uid)
+        await post_response(status_url_, {"processId" : uid, "loadableStudyStatusId" : 5}, uid)
         
         
     elif data['module'] in ['DISCHARGING']:
@@ -186,7 +186,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
                                                                     voyageId=data['discharging']['voyageId'],
                                                                     infoId=data['discharging']['infoId'])
         
-        await post_response(status_url_, {"processId" : uid, "loadingInfoStatusId" : 4}, uid)
+        await post_response(status_url_, {"processId" : uid, "dischargingInfoStatusId" : 4}, uid)
         
         
     # print(result_url_)
