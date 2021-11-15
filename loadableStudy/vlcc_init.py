@@ -26,6 +26,7 @@ class Process_input(object):
     def __init__(self, data):
 
         # gather info
+        self.data = data
         self.vessel_json = {'vessel': data['vessel'],
                             'onBoard': data['loadable']['onBoardQuantity'],
                             'onHand': data['loadable']['onHandQuantity'],
@@ -345,16 +346,17 @@ class Process_input(object):
         min_draft_limit_  = self.config['min_draft_limit']
         loadline_ = self.vessel.info['draftCondition']['draftExtreme']
         self.limits['draft']['loadline'] = loadline_
-        self.limits['draft'] = {**self.limits['draft'], **self.port.info['maxDraft']}
-        self.limits['operationId'] = self.port.info['operationId'] 
-        self.limits['seawaterDensity'] = self.port.info['seawaterDensity'] 
-        self.limits['tide'] = self.port.info['tide'] 
+        self.limits['draft'] = {**self.limits['draft'], **{k_[:-1]:v_  for k_, v_ in self.port.info['maxDraft'].items()}}
+        self.limits['operationId'] = {k_:str(v_)[-1] for k_, v_ in self.port.info['portRotationId'].items()}
+        self.limits['seawaterDensity'] = {k_[:-1]:v_  for k_, v_ in self.port.info['seawaterDensity'].items()} 
+        self.limits['tide'] = {k_[:-1]:v_  for k_, v_ in self.port.info['tide'].items()}  
         self.limits['id'] = self.loadable_id
         self.limits['vesselId'] = self.vessel_id
         self.limits['voyageId'] = self.voyage_id
-        self.limits['airDraft'] = self.port.info['maxAirDraft']
+        self.limits['airDraft'] = {k_[:-1]:v_  for k_, v_ in self.port.info['maxAirDraft'].items()} 
         self.limits['sfbm'] = self.sf_bm_frac
         self.limits['feedback'] = {'feedbackLoop': self.feedbackLoop,'feedbackLoopCount':self.feedbackLoopCount}
+        self.limits['portOrderId'] = self.port.info['portOrderId']
         
         if self.config['loadableConfig'].get('trimLimit', []):
             self.limits['trimLimit'] = self.config['loadableConfig']['trimLimit']
@@ -388,7 +390,11 @@ class Process_input(object):
         
         # print(self.limits)
         # set deballast_percent 
-        first_cargo_ = self.loadable.info['toLoadPort1'][1]
+        if self.loadable.info['toLoadPort1'].get(1, None):
+            first_cargo_ = self.loadable.info['toLoadPort1'][1]
+        elif self.loadable.info['toLoadPort1'].get(3, None):
+            first_cargo_ = self.loadable.info['toLoadPort1'][3]
+ 
         if first_cargo_ >= 60000:
             self.deballast_percent = max(1.,self.deballast_percent)
             print('Change deballast_percent:', self.deballast_percent)
@@ -628,7 +634,7 @@ class Process_input(object):
                     
         
         
-    def write_dat_file(self, file = 'input.dat', IIS = True):
+    def write_dat_file(self, file = 'input.dat', IIS = True, lcg_port = None, weight = None):
         
         if not self.error and self.solver in ['AMPL']: #and self.mode not in ['FullManual']:
         
@@ -718,6 +724,33 @@ class Process_input(object):
                     
                 print(';', file=text_file)
                 
+                if lcg_port and weight:
+                    print('# QW')
+                    str1 = 'param QW := '
+                    print(str1, file=text_file)
+                    for k_ in self.loadable.info['parcel']:
+                        str1 = '[' + k_ + ', *] := '
+                        for k1_, v1_ in weight.items():
+                            if v1_[0]['parcel'] == k_:
+                                str1 += k1_ + ' ' + str(v1_[0]['wt']) + ' '
+                            elif len(v1_[0]['parcel']) == 2:
+                                if v1_[0]['parcel'][0] == k_:
+                                    str1 += k1_ + ' ' + str(v1_[0]['wt1']) + ' '
+                                elif v1_[0]['parcel'][1] == k_:
+                                    str1 += k1_ + ' ' + str(v1_[0]['wt2']) + ' ' 
+                                
+                            else:
+                                str1 += k1_ + ' ' + str(0.0) + ' '
+                        print(str1, file=text_file)
+                    print(';', file=text_file)
+                    
+                    print('# QWT')
+                    for i_,j_ in self.loadable.info['parcel'].items():
+                        str1 = 'set QWT[' + str(i_) + '] := '
+                        for j_ in cargo_tanks_:
+                            str1 += j_ + ' '
+                        print(str1+';', file=text_file)
+   
                 
     #            print('# cargo priority',file=text_file)
     #            str1 = 'set P1cargos := '
@@ -1171,6 +1204,11 @@ class Process_input(object):
                     str1 += str(k_) + ' ' 
                 print(str1+';', file=text_file)
                 
+                print('# zero list ports (ignore trim for these ports) ',file=text_file) # ignore trim for these ports
+                str1 = 'set zeroListPort := '
+                for k__, k_  in enumerate(self.loadable.info['zeroListPorts']):
+                    str1 += k_  + ' '
+                print(str1+';', file=text_file)
                 
                 print('# loading ports ',file=text_file)#
                 str1 = 'set loadingPort := '
@@ -1322,6 +1360,22 @@ class Process_input(object):
                     if i_ not in  self.vessel.info['banBallast']:
                         str1 += i_ + ' ' +  "{:.4f}".format(j_['lcg']) + ' '
                 print(str1+';', file=text_file)   
+                print('# LCGs for cargo tanks', file=text_file)
+                str1 = 'param LCGtport := '
+                print(str1, file=text_file)
+                for i_, j_ in self.vessel.info['cargoTanks'].items():
+                    str1 = '['+ i_ + ',*] = '
+                    for k1_,v1_ in self.loadable.info['virtualArrDepPort'].items():
+                        if v1_ != '1A':
+                            if lcg_port in [None]:
+                                lcg_ = j_['lcg']
+                            else:
+                                lcg_ = lcg_port.get(k1_, {}).get(i_, j_['lcg'])
+                            str1 += str(k1_) + ' ' + "{:.4f}".format(lcg_) + ' '
+                                    
+                    print(str1, file=text_file)
+                print(';', file=text_file)
+   
                 
                 
                 self.vessel.info['TCGt'] = {}
@@ -1665,7 +1719,7 @@ class Process_input(object):
                 if self.config['loadableConfig']:
                     str1 = 'param runtimeLimit := ' + str(self.config['loadableConfig']['timeLimit'])
                 else:
-                    str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 60))
+                    str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 25))
                 print(str1+';', file=text_file)
                 
                 

@@ -167,9 +167,9 @@ class Generate_plan:
                             model_ = 'model_3i.mod'
                     else:
                         
-                        #if self.input.accurate:
-                        #    model_ = 'model_1ii.mod' ## model_1ii.mod
-                        #else:
+                        # if self.input.accurate:
+                        #     model_ = 'model_1ii.mod' ## model_1ii.mod
+                        # else:
                         model_ = 'model_1i.mod' ## model_1ii.mod
                         
                             
@@ -209,6 +209,9 @@ class Generate_plan:
                 if self.input.mode in ['Manual']:
                     c3_ = ampl.getConstraint('Constr5b') # commingle 98%
                     c3_.drop()
+                    
+                    c4_ = ampl.getConstraint('Condition112d1') # equal weight
+                    c4_.drop()
                     
                 if self.input.vessel.info['onboard']:
                     if 'SLP' in self.input.vessel.info.get('notOnTop', []):
@@ -1655,7 +1658,6 @@ class Generate_plan:
                     self._get_eduction(info1_, c_)
                     
                     self._cleanup(info1_)
-                    
                     # print(info1_.keys())
                     info1_.pop('simIniDeballastingRateM3_Hr')
                     info1_.pop('simIniBallastingRateM3_Hr')
@@ -1769,8 +1771,7 @@ class Generate_plan:
             pump_ = [p_ for p_ in out['ballast'] if p_ not in ['Gravity']]
             out['eduction']['pumpSelected'] = eduction_ #self.input.loading.eduction_pump
             out['eduction']['ballastPumpSelected'] = {str(min(pump_)): {'pumpName': self.input.vessel.info['vesselPumps']['ballastPumpId'][min(pump_)]}} #self.input.loading.eduction_pump
-            
-            
+               
             # print(out['eduction'])
             
         
@@ -2076,8 +2077,8 @@ class Generate_plan:
             
             for p__,p_ in enumerate(path_):
                 plan_ = {}
-                plan_['portId'] = int(self.input.port.info['portRotation'][p_]['portId'])
-                plan_['portCode'] = p_
+                plan_['portId'] = int(str(self.input.port.info['portRotation'][p_]['portId'])[:-1])
+                plan_['portCode'] = p_[:-1]
                 plan_['portRotationId'] = int(self.input.port.info['portRotation'][p_]['portRotationId'])
                 
                 # arrival
@@ -2173,8 +2174,8 @@ class Generate_plan:
             
             for p__,p_ in enumerate(path_):
                 plan_ = {}
-                plan_['portId'] = int(self.input.port.info['portRotation'][p_]['portId'])
-                plan_['portCode'] = p_
+                plan_['portId'] = int(str(self.input.port.info['portRotation'][p_]['portId'])[:-1])
+                plan_['portCode'] = p_[:-1]
                 plan_['portRotationId'] = int(self.input.port.info['portRotation'][p_]['portRotationId'])
                 plan_['seaWaterTemperature'] = str(self.input.port.info['portRotation'][p_]['seaWaterTemperature'])
                 plan_['ambientTemperature'] = str(self.input.port.info['portRotation'][p_]['ambientTemperature'])

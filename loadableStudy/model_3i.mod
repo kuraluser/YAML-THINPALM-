@@ -189,6 +189,9 @@ param Q1{c in C, t in T, p in fixCargoPort} = W1[c,t,p]/densityCargo_Low[c]; # v
 param W_loaded{C_loaded,T_loaded,P} default 0; # the weight of preloaded cargo to be moved from tank t at port p
 param V_loaded{c in C_loaded, t in T_loaded, p in P} = W_loaded[c,t,p]/densityCargo_Low[c]; # the volume of preloaded cargo to be moved from tank t at port p
 
+# for fixed qw
+param QW{c in C, t in T} >=0 default 0;
+set QWT{c in C} default {};
 # loading ports
 set loadPort;
 param loadingPortAmt{p in loadPort} default 0;
@@ -281,7 +284,7 @@ param diffSlop default 1;
 set Cm_1 within C;
 set Cm_2 within C;
 set Tm within T;
-param density_Cm{c in C} default 1;
+param density_Cm{c in C} default 1; # density at commingle temperature
 param Qm_1 default 0; # manual fix cargo1 wt
 param Qm_2 default 0; # manual fix cargo2 wt
 param Mm default 1e5;
@@ -335,6 +338,7 @@ param bTankTCG{p in 1..pwTCG-1, t in T union TB} default 0; # need update input 
 
 # stability - trim
 param LCGt{t in AllTanks}; #tank LCG
+param LCGtport{t in T, p in P} default 0; # more accurate LCG
 param LCGship;
 param LCGdw default 0;
 param LCGtp{t in OtherTanks, p in P} default 0;
@@ -609,7 +613,9 @@ subject to Condition112i4 {c in C_max}: x[c,'4P'] + x[c,'4C'] + x[c,'4S'] + x[c,
 # first discharge cargo
 subject to Condition112j {c in firstDisCargo}: x[c,'SLS'] + x[c,'SLP'] >= 1;
 
-
+##
+#subject to Condition117 {c in C, t in QWT[c], p in P_last_loading}:  0.98*QW[c,t] <= qw[c,t,p] <= QW[c,t]*1.02;
+subject to Condition117 {c in C, t in QWT[c], p in P_last_loading}:  0.98*QW[c,t] <= qw[c,t,p] <= QW[c,t]*1.02;
 ## 
 subject to Condition112b1 {t in T, c in C diff C_loaded diff C_locked, p in P_last_loading}: qw[c,t,p] >= minCargoAmt*x[c,t]; # link xB and wB
 subject to Condition112b2 {t in T, c in C diff C_loaded diff C_locked, p in P_last_loading}: qw[c,t,p] <= 1e5*x[c,t]; # link xB and wB
@@ -670,7 +676,7 @@ subject to Constr13c1 {p in P}: displacement[p] = sum{t in T} wC[t,p] + sum{t in
 subject to Constr13c2 {p in P}: displacement1[p] = displacement[p]*1.025/densitySeaWater[p];
 
 # loading and unloading port
-subject to Constr13 {p in P_stable1}: displacementLowLimit[p]+0.001 <= displacement[p] <= displacementLimit[p]-0.001;
+subject to Constr13 {p in P_stable1 diff zeroListPort}: displacementLowLimit[p]+0.001 <= displacement[p] <= displacementLimit[p]-0.001;
 
 # deadweight constraint
 subject to Constr13a {p in P_stable}: sum{t in T} wC[t,p] + sum{t in TB} wB[t,p] + sum{t in OtherTanks} weightOtherTank[t,p] + deadweightConst <= deadweight;
@@ -693,14 +699,15 @@ subject to Constr154 {p in P_stable}: -ListMOM <= T_mom[p] <= ListMOM;
 subject to Constr16b1 {t in TB diff TB2, p in P_stable}: TB_lmom[t,p] = 1000 * (<<{s in 1..pwLCG-1} bTankLCG[s,t]; {s in 1..pwLCG} mTankLCG[s,t]>> wB[t,p]);
 subject to Constr16b2 {t in TB2, p in P_stable}: TB_lmom[t,p] = wB[t,p]*LCGt[t];
 
-subject to Constr161 {p in P_stable}: L_mom[p] = sum{t in T} wC[t,p]*LCGt[t] + sum{t in TB} TB_lmom[t,p] + sum{t in OtherTanks} weightOtherTank[t,p]*LCGtp[t,p] + lightWeight*LCGship + deadweightConst*LCGdw;
+#subject to Constr161 {p in P_stable}: L_mom[p] = sum{t in T} wC[t,p]*LCGt[t] + sum{t in TB} TB_lmom[t,p] + sum{t in OtherTanks} weightOtherTank[t,p]*LCGtp[t,p] + lightWeight*LCGship + deadweightConst*LCGdw;
+subject to Constr161 {p in P_stable}: L_mom[p] = sum{t in T} wC[t,p]*LCGtport[t,p] + sum{t in TB} TB_lmom[t,p] + sum{t in OtherTanks} weightOtherTank[t,p]*LCGtp[t,p] + lightWeight*LCGship + deadweightConst*LCGdw;
 
 subject to Constr163 {p in P_stable}: LCBp[p] = (<<{s in 1..pwLCB-1} bLCB[s]; {s in 1..pwLCB} mLCB[s]>> displacement1[p])*densitySeaWater[p]/1.025  + adjLCB;
 
 subject to Constr164 {p in P_stable}: MTCp[p] = (<<{s in 1..pwMTC-1} bMTC[s]; {s in 1..pwMTC} mMTC[s]>> displacement1[p])*densitySeaWater[p]/1.025 + adjMTC ;
 
-subject to Constr16a {p in P_stable}: MTCp[p]*trim_lower[p]*100 <= L_mom[p] - LCBp[p] ;
-subject to Constr16b {p in P_stable}: L_mom[p] - LCBp[p] <= MTCp[p]*trim_upper[p]*100;
+subject to Constr16a {p in P_stable diff zeroListPort}: MTCp[p]*trim_lower[p]*100 <= L_mom[p] - LCBp[p] ;
+subject to Constr16b {p in P_stable diff zeroListPort}: L_mom[p] - LCBp[p] <= MTCp[p]*trim_upper[p]*100;
 
 ## SF and BM 
 

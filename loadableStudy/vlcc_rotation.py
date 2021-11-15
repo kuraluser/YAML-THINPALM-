@@ -73,9 +73,9 @@ class Check_rotations:
         for k_, v_ in new_port_.items():
             loading_plan_[k_] = loading_plan[v_]
         
-        print(cur_rotation)
-        print(new_rotation)
-        print(new_port_)
+        # print(cur_rotation)
+        # print(new_rotation)
+        # print(new_port_)
             
         empty_ballast_port_ = []
         for  p_ in self.input.loadable.info['rotationVirtual']:
@@ -125,8 +125,8 @@ class Check_rotations:
         
         # new_output.plan['ship_status'] = []
         if new_output.plans['ship_status']:
-            plan_check = Check_plans(new_input)
-            plan_check._check_plans(new_output.plans.get('ship_status',[]), new_output.plans.get('cargo_tank',[]))
+            plan_check = Check_plans(new_input, reballast = False)
+            plan_check._check_plans(new_output)
             
             error_ = []
             for k_, v_ in plan_check.stability_values[0].items():
@@ -156,8 +156,8 @@ class Check_rotations:
             
                         
             if new_output.plans['ship_status']:
-                plan_check = Check_plans(new_input)
-                plan_check._check_plans(new_output.plans.get('ship_status',[]), new_output.plans.get('cargo_tank',[]))
+                plan_check = Check_plans(new_input, reballast = False)
+                plan_check._check_plans(new_output)
                 
                 
                 error_ = []

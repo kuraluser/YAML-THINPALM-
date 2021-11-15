@@ -7,18 +7,26 @@ Created on Mon Nov 16 14:50:33 2020
 import numpy as np
 import json
 import pandas as pd
+from vlcc_gen import Generate_plan
+# from api_vlcc import manual_mode
+# from vlcc_init import Process_input
 # from vlcc_ullage import get_correction
 
 DEC_PLACE = 3
 
 
 class Check_plans:
-    def __init__(self, input_param):
+    def __init__(self, inputs, reballast = True, indx = None):
 #        self.outfile   = 'resmsg.json'
-        self.input = input_param
+        self.input = inputs
         self.stability_values = []
+        # self.outputs = outputs
+        self.reballast = reballast
+        self.index = indx # index plan
     
-    def _check_plans(self, plans, cargo_tank):
+    def _check_plans(self, outputs):
+        
+        plans, cargo_tank = outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[])
         
         if not self.input.error:
             
@@ -32,7 +40,11 @@ class Check_plans:
             if hasattr(self.input, 'base_draft'):
                 print(self.input.base_draft)
                 
-                        
+            if self.index not in [None]:
+                print('Check only:', self.index)
+                plans = [plans[self.index]]
+                cargo_tank = [cargo_tank[self.index]]
+                
             for p__, p_ in enumerate(plans):
                 print('plan:', p__, '---------------------------------------------------------------------------------------------')            
                 stability_ = {}
@@ -101,7 +113,57 @@ class Check_plans:
                             plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = ""
                             plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = ""
                                                 
-                                     
+                # check trim
+                if self.input.module in ['LOADABLE'] and self.reballast:
+                    for q_ in  self.input.vessel.info['loading'] + [self.input.loadable.info['lastVirtualPort']-1]:
+                        trim__  = round(float(stability_[str(q_)]['trim']),2)
+                        if trim__ > 0.01 or trim__ < -0.01:
+                            print('Rebalancing needed:', q_, trim__)
+                            # input("Press Enter to continue...")
+                            
+                            cur_plan_ = {'constraint':[], "message":[], "rotation":[[]]}
+                            for kk_ in ['ship_status', 'obj', 'operation', 'cargo_status', 'slop_qty', 'cargo_order', 'loading_hrs', 'topping', 'loading_rate', 'cargo_tank']:
+                                cur_plan_[kk_] = [outputs.plans[kk_][p__]]
+                                
+                            # get lcg
+                            lcg_port_, qw_ = {}, {}
+                            for i_, j_ in cur_plan_['ship_status'][0].items():
+                                # print(i_, j_)
+                                lcg_port_[i_] = {}
+                                for i1_, j1_ in j_['cargo'].items():
+                                    lcg_port_[i_][i1_] = j1_[0]['lcg']
+                                    
+                            qw_ =  cur_plan_['ship_status'][0][str(self.input.loadable.info['lastVirtualPort']-1)]['cargo']
+                            
+                            self.input.write_dat_file(lcg_port = lcg_port_, weight = qw_)
+                            
+                            # collect plan from AMPL
+                            gen_output_ = Generate_plan(self.input)
+                            gen_output_.run(num_plans=1)
+                            
+                            replan_, restability_ = self._check_reballast_plans(gen_output_)
+                            if replan_:
+                                print('Replaced plan:', p__)
+                                
+                                stability_ = restability_[0]
+                                
+                                if self.index not in [None]:
+                                    
+                                    for name_ in ['cargo_status', 'operation', 'cargo_tank', 'slop_qty', 'topping', 'loading_rate', 'loading_hrs']:
+                                        outputs.plans[name_][self.index] = gen_output_.plans[name_][0]
+                                        
+                                    outputs.plans['ship_status'][self.index] = replan_[0]
+                                    
+                                else:
+                                   for name_ in ['cargo_status', 'operation', 'cargo_tank', 'slop_qty', 'topping', 'loading_rate', 'loading_hrs']:
+                                        outputs.plans[name_][p__] = gen_output_.plans[name_][0]
+                                   
+                                   outputs.plans['ship_status'][p__] = replan_[0]
+                                
+                                
+                            # input("Press Enter to continue...")
+                            break
+                        
                 self.stability_values.append(stability_)
                 
             with open('ship_status.json', 'w') as fp:
@@ -147,7 +209,92 @@ class Check_plans:
     
                 
                 
+    def _check_reballast_plans(self, outputs):
+        
+        # self.reballast_input = inputs
+        self.reballast_output = outputs
+        
+        plans, cargo_tank = outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[])
+        stability = []
+        
+        for p__, p_ in enumerate(plans):
+            print('plan:', p__, '---------------------------------------------------------------------------------------------')            
+            stability_ = {}
+            if len(cargo_tank) > 0:
+                for a_, b_ in cargo_tank[p__].items():
+                    print(a_,b_)
+            for k_, v_ in p_.items(): # each port
+                plan_ = {**v_['cargo'], **v_['ballast'], **v_['other']}
                 
+                
+                if self.input.module in ['LOADABLE', 'DISCHARGE', "ULLAGE"]: #hasattr(self.input.loadable, "info"):
+                    seawater_density_ = self.input.loadable.info['seawaterDensity'][k_]
+                else:
+                    seawater_density_ = self.input.seawater_density
+                
+                
+                result = self._check_plan(plan_, k_, seawater_density=seawater_density_)
+                
+                print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],5))
+                print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
+                
+                stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
+                                  'meanDraft': "{:.2f}".format(result['dm']),
+                                  'afterDraft': "{:.2f}".format(result['da']),
+                                  'trim': "{:.2f}".format(0.00 if round(result['trim'],2) == 0 else result['trim']),
+                                  'heel': None,
+                                  'gom': None,
+                                  'airDraft': "{:.2f}".format(result['airDraft']),
+                                  'freeboard':"{:.2f}".format(result['freeboard']),
+                                  'manifoldHeight':"{:.2f}".format(result['manifoldHeight']),
+                                  'bendinMoment': "{:.2f}".format(result.get('maxBM',[None, 10000])[1]),
+                                  'shearForce':  "{:.2f}".format(result.get('maxSF',[None, 10000])[1])
+                                  }
+                
+                # update correction ullage
+                trim_ = round(result['trim'],2)
+                
+                for a_, b_ in plans[p__][k_]['cargo'].items():
+                    tankId_ = self.input.vessel.info['tankName'][a_]
+                    if str(tankId_) in self.input.vessel.info['ullageCorr'].keys():
+                        cf_ = self._get_correction(str(tankId_), b_[0]['corrUllage'], trim_)
+                        rdgUllage_ = b_[0]['corrUllage'] - cf_/100 if cf_ not in [None] else ""
+                        plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else ""
+                        plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(rdgUllage_,6) if cf_ not in [None] else ""
+                        
+                    else:
+                        # print(str(tankId_), a_, 'Missing correction data!!')
+                        plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = ""
+                        plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = ""
+                        
+                    
+                for a_, b_ in plans[p__][k_]['ballast'].items():
+                    tankId_ = self.input.vessel.info['tankName'][a_]
+                    if str(tankId_) in self.input.vessel.info['ullageCorr'].keys():
+                        # print(b_[0].keys())
+                        cf_ = self._get_correction(str(tankId_), b_[0]['corrLevel'], trim_)
+                        rdgLevel_ = b_[0]['corrLevel'] - cf_/100 if cf_ not in [None] else ""
+                        
+                        plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else ""
+                        plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = round(rdgLevel_,6) if cf_ not in [None] else ""
+                        
+                        # print(tankId_, cf_, rdgLevel_)
+                        
+                    else:
+                        # print(str(tankId_), a_, 'Missing correction data!!')
+                        plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = ""
+                        plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = ""
+                        
+                        
+            stability.append(stability_) 
+                        
+        return plans, stability
+        
+        
+        
+        
+        
+        
     def _check_plan(self, plan, virtual_port, seawater_density = 1.025):
 #        print(plan)
         # print('seawater_density', seawater_density)
@@ -180,10 +327,13 @@ class Check_plans:
             v_mom_ += v_[0]['wt']*self.input.vessel.info[type_][k_]['vcg']
             t_mom_ += v_[0]['wt']*v_[0]['tcg']
             
-            # if type_ in ['cargoTanks', 'ballastTanks'] and abs(self.input.vessel.info[type_][k_]['lcg'] - v_[0]['lcg']) > 0.01:
-            #     print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'], v_[0].get('wt',0), v_[0]['fillRatio'])
-            #print(k_, v_[0]['wt'], v_[0]['tcg'], v_[0]['wt']*v_[0]['tcg'])
+            
+#            if type_ in ['cargoTanks', 'ballastTanks'] and abs(self.input.vessel.info[type_][k_]['lcg'] - v_[0]['lcg']) > 0.01:
+#                print(k_, self.input.vessel.info[type_][k_]['lcg'], v_[0]['lcg'], v_[0].get('wt',0), v_[0]['fillRatio'])
+            # print(k_, v_[0]['wt'], v_[0]['tcg'], v_[0]['wt']*v_[0]['tcg'])
             # print(k_, v_[0]['wt'], v_[0]['lcg'], v_[0]['wt']*v_[0]['lcg'])
+            
+            # print(k_, v_[0]['wt'], v_[0]['lcg'], v_[0]['tcg'])
             
             # print(k_, v_[0]['wt'], self.input.vessel.info[type_][k_]['lcg'], v_[0]['wt']*self.input.vessel.info[type_][k_]['lcg'])
             

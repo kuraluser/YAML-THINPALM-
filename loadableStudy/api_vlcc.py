@@ -55,8 +55,8 @@ def discharge_mode(data):
     #     gen_output = pickle.load(fp_)
     
     ## check and modify plans    
-    plan_check = Check_plans(input_param)
-    plan_check._check_plans(gen_output.plans.get('ship_status',[]), gen_output.plans.get('cargo_tank',[]))
+    plan_check = Check_plans(input_param, reballast = False)
+    plan_check._check_plans(gen_output)
     
       
     ## gen json  
@@ -83,9 +83,9 @@ def manual_mode(data):
     gen_output.run(num_plans=1)
     
     ## check and modify plans    
-    plan_check = Check_plans(input_param)
-    plan_check._check_plans(gen_output.plans.get('ship_status',[]), gen_output.plans.get('cargo_tank',[]))
-    
+    plan_check = Check_plans(input_param, reballast = True)
+    plan_check._check_plans(gen_output)
+     
     # gen json  
     out = gen_output.gen_json({}, plan_check.stability_values)
     
@@ -113,8 +113,8 @@ def auto_mode(data):
     #    json.dump(outputs.plans, f_)
     
     ## check and modify plans    
-    plan_check = Check_plans(input_param)
-    plan_check._check_plans(outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[]))
+#    plan_check = Check_plans(input_param)
+#    plan_check._check_plans(outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[]))
     
     # with open('result.pickle', 'wb') as handle:
     #     pickle.dump((data, input_param, outputs.plans), handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -128,7 +128,7 @@ def auto_mode(data):
     cargo_rotate._check_plans(outputs.plans, outputs.permute_list, outputs.permute_list1)
     
     # # # ## gen json  
-    out = outputs.gen_json(cargo_rotate.constraints, plan_check.stability_values)
+    out = outputs.gen_json(cargo_rotate.constraints, outputs.plans['stability'])
     ## out = outputs.gen_json({str(k_):[] for k_ in range(0,len(outputs.plans.get('ship_status',[])))}, plan_check.stability_values)
     
         

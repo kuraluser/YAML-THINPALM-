@@ -48,6 +48,7 @@ class Vessel:
         ##***
         if vessel_json['vessel']['name'] == 'KAZUSA':
             vessel_info_['loadingRate6']['SlopTankBranchLine'] = 1292
+            vessel_info_['constLCGTanks'] = ['2C', '2P',  '2S',  '4P',  '4S',  '1C',  '3C',  '4C',  '3P', '3S']
         elif vessel_json['vessel']['name'] == 'ATLANTIC PIONEER':
             vessel_info_['loadingRate6']['SlopTankBranchLine'] = 2372
             
@@ -139,8 +140,6 @@ class Vessel:
         
         ## linear approx ullage
         self._get_ullage_func(vessel_info_, {k_:v_ for k_,v_ in vessel_json.items() if k_ in ['ullageDetails','ullageTrimCorrections']})    
-        
-        ##
         vessel_info_['ullage30cm'] = {}
         for k_,v_ in vessel_info_['ballastTanks'].items():
             k1_ = str(vessel_info_['tankName'][k_])
@@ -151,7 +150,8 @@ class Vessel:
         for k_ in ['SLP', 'SLS']:
             k1_ = str(vessel_info_['tankName'][k_])
             vessel_info_['ullage16mVol'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](16)),3)
-
+         
+        
         # self._get_ullage_corr(vessel_info_, vessel_json['ullageTrimCorrections'])
         
         ## 
@@ -338,7 +338,6 @@ class Vessel:
             vessel_info_['vesselPumps'] = {}
             vessel_info_['vesselPumps']['ballastEductorId'] = {}
             vessel_info_['vesselPumps']['ballastPumpId'] = {}
-            
             for d_ in vessel_json.get('vesselPumps', []):
                 if d_['pumpTypeId'] == vessel_info_['pumpTypes']['ballastPump']:
                     
@@ -473,8 +472,8 @@ class Vessel:
                         self.info['maxCargo'].append(k_)
             
             ## config
-            # self.info['notSym'] = [('SLS','SLP')]
-            self.info['notSym'] = [inputs.config['diff_cargo_slops']]
+            self.info['notSym'] = [('SLS','SLP')]
+            # self.info['notSym'] = [] #[inputs.config['diff_cargo_slops']]
             if asym_ and inputs.mode in ['Auto']:
                 #self.info['notSym'] += [('1P','1C'), ('2P','2C'), ('3P','3C'), ('4P','4C'), ('5P','5C')]
                 self.info['notSym'] += inputs.config['diff_cargo_tanks']
@@ -517,27 +516,42 @@ class Vessel:
         
         DENSITY = inputs.config['rob_density'] # default density of ROB
         ROB_CHANGE = inputs.config['rob_change'] # change in ROB which required adjusting ballast b/w departure and arrival
-        
+        portId_ = []
+        for p_ in range(len(inputs.port.info['portOrderId'])):
+            id_ = inputs.port.info['portOrderId'][str(p_+1)]
+            rot_id_ = inputs.port.info['portRotationId1'][id_]
+            portId_.append(str(rot_id_))
+            
+            
         onhand_json = inputs.vessel_json['onHand']
         self.info['onhand'] = {} # ROB
         self.info['onhand1'] = {} # ROB
         for o__, o_ in enumerate(onhand_json):
             tank_ = self.info['tankId'].get(o_['tankId'],None)
             # print(tank_, o_['portId'])
-            if tank_ and str(o_['portId']) in inputs.port.info['idPortOrder'].keys():
-                port_order_  = inputs.port.info['idPortOrder'][str(o_['portId'])]
+            if o_.get('portRotationId', None) in [None]:
+                if inputs.port.info['portRotationId1'].get(str(o_['portId']) + '1', None) not in [None]:
+                    o_['portRotationId'] = inputs.port.info['portRotationId1'][str(o_['portId']) + '1']
+                elif inputs.port.info['portRotationId1'].get(str(o_['portId']) + '2', None) not in [None]:
+                    o_['portRotationId'] = inputs.port.info['portRotationId1'][str(o_['portId']) + '2']
+                else:
+                    o_['portRotationId'] = inputs.port.info['portRotationId1'][str(o_['portId']) + '3']
+                    
+            
+            if tank_ and str(o_['portRotationId']) in portId_:
+                port_order_  = [q__ +1 for q__, q_ in enumerate(portId_) if q_ == str(o_['portRotationId'])]
                 tcg_data_ = self.info['tankTCG']['tcg'][tank_] # tcg_data
                 lcg_data_ = self.info['tankLCG']['lcg'][tank_] # lcg_data
                 
                 if tank_ not in self.info['onhand'].keys():
                     self.info['onhand'][tank_] = {}
                     
+                for port_order__ in port_order_:    
+                    if str(port_order__)+'A' not in self.info['onhand1'].keys():
+                        self.info['onhand1'][str(port_order__)+'A'] = {}
                     
-                if port_order_+'A' not in self.info['onhand1'].keys():
-                    self.info['onhand1'][port_order_+'A'] = {}
-                
-                if port_order_+'D' not in self.info['onhand1'].keys():
-                    self.info['onhand1'][port_order_+'D'] = {}
+                    if str(port_order__)+'D' not in self.info['onhand1'].keys():
+                        self.info['onhand1'][str(port_order__)+'D'] = {}
                     
                 # print(o_)
                 wt_ = float(o_['arrivalQuantity']) if o_['arrivalQuantity'] not in [None] else 0.
@@ -545,22 +559,25 @@ class Vessel:
                 # vol_ = float(o_['arrivalVolume']) if o_['arrivalVolume'] not in [None] else 0.
                 
                 # print(vol_)
-                if vol_ > 0:
+                if wt_ > 0:
                     tcg_ = np.interp(vol_, tcg_data_['vol'], tcg_data_['tcg'])
                     lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
-                    self.info['onhand'][tank_][port_order_+'A'] = {'wt': wt_, 'vol': vol_, 'tcg':tcg_, 'lcg':lcg_}
-                    self.info['onhand1'][port_order_+'A'][tank_] = wt_
+                    
+                    for port_order__ in port_order_:    
+                        self.info['onhand'][tank_][str(port_order__)+'A'] = {'wt': wt_, 'vol': vol_, 'tcg':tcg_, 'lcg':lcg_}
+                        self.info['onhand1'][str(port_order__)+'A'][tank_] = wt_
                     
                 wt_ = float(o_['departureQuantity']) if o_['departureQuantity'] not in [None] else 0.
                 vol_ = wt_/DENSITY[tank_]
                 # vol_ = float(o_['departureVolume']) if o_['arrivalVolume'] not in [None] else 0.
                 # print(vol_)
-                if vol_ > 0:
+                if wt_ > 0:
                     tcg_ = np.interp(vol_, tcg_data_['vol'], tcg_data_['tcg'])
                     lcg_ = np.interp(vol_, lcg_data_['vol'], lcg_data_['lcg'])
                     
-                    self.info['onhand'][tank_][port_order_+'D'] = {'wt': wt_, 'vol': vol_,'tcg':tcg_, 'lcg':lcg_}
-                    self.info['onhand1'][port_order_+'D'][tank_] = wt_
+                    for port_order__ in port_order_:    
+                        self.info['onhand'][tank_][str(port_order__)+'D'] = {'wt': wt_, 'vol': vol_,'tcg':tcg_, 'lcg':lcg_}
+                        self.info['onhand1'][str(port_order__)+'D'][tank_] = wt_
                 
           
         self.info['sameROB'] = []

@@ -9,6 +9,8 @@ from copy import deepcopy
 from vlcc_gen import Generate_plan
 import numpy as np
 from itertools import permutations
+from vlcc_check import Check_plans
+# import json
 
 DEC_PLACE = 3
 
@@ -25,10 +27,11 @@ class Multiple_plans(object):
         
     def run(self):
         
-        self.plans = {'ship_status':[], 'cargo_status':[], 'slop_qty':[], 'cargo_order':[],
+        self.plans = {'ship_status':[], 'cargo_status':[], 'slop_qty':[], 'cargo_order':[], 'stability':[],
                               'constraint':[], 'obj':[], 'cargo_tank':[], 'base_draft':[],
                               'loading_hrs':[], 'topping':[], 'loading_rate':[],
                               'operation':[], 'rotation':[], 'message':{}}
+        self.tanks = []
         
         if not self.input.error:
             
@@ -91,6 +94,12 @@ class Multiple_plans(object):
                         
                         if gen_output.plans.get('obj',[]):
                             ind_ = gen_output.plans['obj'].index(max(gen_output.plans['obj']))
+                            
+                            plan_check = Check_plans(self.input, indx = ind_)
+                            # plan_check._check_plans(outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[]))
+                            plan_check._check_plans(gen_output)
+                            
+                            
                             self.plans['ship_status'].append(gen_output.plans['ship_status'][ind_])
                             self.plans['cargo_status'].append(gen_output.plans['cargo_status'][ind_])
                             self.plans['obj'].append(gen_output.plans['obj'][ind_])
@@ -103,6 +112,11 @@ class Multiple_plans(object):
                             self.plans['topping'].append(gen_output.plans['topping'][ind_])
                             self.plans['loading_rate'].append(gen_output.plans['loading_rate'][ind_])
                             self.plans['loading_hrs'].append(gen_output.plans['loading_hrs'][ind_])
+                            self.plans['stability'].append(plan_check.stability_values[0])
+                            
+                            
+                            # with open('plan_status.json', 'w') as f_:  
+                            #     json.dump(gen_output.plans['ship_status'][ind_], f_)
                             
                             
                         else:
@@ -117,6 +131,11 @@ class Multiple_plans(object):
                 # input("Press Enter to continue...")
                 if gen_output.plans.get('obj',[]):
                     ind_ = gen_output.plans['obj'].index(max(gen_output.plans['obj']))
+                    
+                    plan_check = Check_plans(self.input, indx = ind_)
+                    # plan_check._check_plans(outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[]))
+                    plan_check._check_plans(gen_output)
+                    
                     self.plans['ship_status'].append(gen_output.plans['ship_status'][ind_])
                     self.plans['cargo_status'].append(gen_output.plans['cargo_status'][ind_])
                     self.plans['obj'].append(gen_output.plans['obj'][ind_])
@@ -128,6 +147,7 @@ class Multiple_plans(object):
                     self.plans['topping'].append(gen_output.plans['topping'][ind_])
                     self.plans['loading_rate'].append(gen_output.plans['loading_rate'][ind_])
                     self.plans['loading_hrs'].append(gen_output.plans['loading_hrs'][ind_])
+                    self.plans['stability'].append(plan_check.stability_values[0])
                             
                     
                     max_cargo_ = gen_output.max_tank_parcel
@@ -160,17 +180,31 @@ class Multiple_plans(object):
                             
                             if gen_output.plans.get('obj',[]):
                                 ind_ = gen_output.plans['obj'].index(max(gen_output.plans['obj']))
-                                self.plans['ship_status'].append(gen_output.plans['ship_status'][ind_])
-                                self.plans['cargo_status'].append(gen_output.plans['cargo_status'][ind_])
-                                self.plans['obj'].append(gen_output.plans['obj'][ind_])
-                                self.plans['operation'].append(gen_output.plans['operation'][ind_])
-                                self.plans['rotation'].append([])
-                                self.plans['cargo_tank'].append(dict(gen_output.plans['cargo_tank'][ind_]))
-                                self.plans['slop_qty'].append(gen_output.plans['slop_qty'][ind_])
-                                self.plans['cargo_order'].append(gen_output.plans['cargo_order'][ind_])
-                                self.plans['topping'].append(gen_output.plans['topping'][ind_])
-                                self.plans['loading_rate'].append(gen_output.plans['loading_rate'][ind_])
-                                self.plans['loading_hrs'].append(gen_output.plans['loading_hrs'][ind_])
+                                
+                                plan_check = Check_plans(self.input, indx = ind_)
+                                # plan_check._check_plans(outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[]))
+                                plan_check._check_plans(gen_output)
+                                
+                                
+                                # 
+                                tanks_ = [sorted(b_)  for a_, b_ in gen_output.cargo_in_tank[ind_].items()]
+                                
+                                if tanks_ not in self.tanks:
+                                    
+                                    self.tanks.append(tanks_)
+                                
+                                    self.plans['ship_status'].append(gen_output.plans['ship_status'][ind_])
+                                    self.plans['cargo_status'].append(gen_output.plans['cargo_status'][ind_])
+                                    self.plans['obj'].append(gen_output.plans['obj'][ind_])
+                                    self.plans['operation'].append(gen_output.plans['operation'][ind_])
+                                    self.plans['rotation'].append([])
+                                    self.plans['cargo_tank'].append(dict(gen_output.plans['cargo_tank'][ind_]))
+                                    self.plans['slop_qty'].append(gen_output.plans['slop_qty'][ind_])
+                                    self.plans['cargo_order'].append(gen_output.plans['cargo_order'][ind_])
+                                    self.plans['topping'].append(gen_output.plans['topping'][ind_])
+                                    self.plans['loading_rate'].append(gen_output.plans['loading_rate'][ind_])
+                                    self.plans['loading_hrs'].append(gen_output.plans['loading_hrs'][ind_])
+                                    self.plans['stability'].append(plan_check.stability_values[0])
                             
                     
                 else:
@@ -183,8 +217,15 @@ class Multiple_plans(object):
                 gen_output.run(num_plans=num_plans)
                 
                 if gen_output.plans.get('obj',[]):
+                    
+                    plan_check = Check_plans(self.input, reballast = True)
+                    # plan_check._check_plans(outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[]))
+                    plan_check._check_plans(gen_output)
+                    
                     self.plans = gen_output.plans
                     self.plans['rotation'] = [[] for p_ in range(len(gen_output.plans['ship_status']))]
+                    
+                    self.plans['stability'] = plan_check.stability_values
                 
                 else:
                     self.plans['message'] = {**self.plans['message'], **gen_output.plans['message']}

@@ -64,10 +64,10 @@ class Loadable:
             if inputs.module == 'LOADABLE':
             
                 ## temperature, correction factor
-                first_loading_port_ = 1
+                first_loading_port_ = 100
                 for o__, o_ in enumerate(inputs.loadable_json['cargoOperation']):
                     if c_['id'] == o_['cargoNominationId']:
-                        port_order_ = int(inputs.port.info['idPortOrder'][str(o_['portId'])])
+                        port_order_ = int(inputs.port.info['idPortOrder'][str(o_['portId'])+'1'])
                         first_loading_port_ = min(first_loading_port_, port_order_)
                         
                 ambient_ = []
@@ -120,12 +120,15 @@ class Loadable:
         cargos_info_['rotationCheck'] = []
         
         for o__, o_ in enumerate(inputs.loadable_json['cargoOperation']):
-            cargos_info_['cargoPort'][str(o_['portId'])].append('P'+str(o_['cargoNominationId']))
-            if len(cargos_info_['cargoPort'][str(o_['portId'])]) > 1:
+            
+            portId_ = str(o_['portId'])+'1' if inputs.module in ['LOADABLE'] else str(o_['portId'])+'2'
+            
+            cargos_info_['cargoPort'][portId_].append('P'+str(o_['cargoNominationId']))
+            if len(cargos_info_['cargoPort'][portId_]) > 1:
                 if not inputs.cargo_rotation:
                 #     cargos_info_['cargoRotation'][str(o_['portId'])] = inputs.cargo_rotation
                 # else:
-                    cargos_info_['cargoRotation'][str(o_['portId'])] = cargos_info_['cargoPort'][str(o_['portId'])]
+                    cargos_info_['cargoRotation'][portId_] = cargos_info_['cargoPort'][portId_]
                     
         if inputs.cargo_rotation:
             cargos_info_['cargoRotation'] = inputs.cargo_rotation
@@ -247,7 +250,9 @@ class Loadable:
         for o__, o_ in enumerate(inputs.loadable_json['cargoOperation']):
             parcel_ = 'P'+str(o_['cargoNominationId'])
             qty__ = round(float(o_['quantity']),1) #if o_['operationId'] == 1 else -o_['quantity'] 
-            order_ = inputs.port.info['idPortOrder'][str(o_['portId'])]
+            
+            portId_ = str(o_['portId'])+'1' if inputs.module in ['LOADABLE'] else str(o_['portId'])+'2' 
+            order_ = inputs.port.info['idPortOrder'][portId_]
             # max qty
             qty_ = qty__ * (1+ 0.01*self.info['parcel'][parcel_]['minMaxTol'][1])
             # min qty
@@ -341,34 +346,49 @@ class Loadable:
                     else:
                         cargos_info_['ballastOperation'][tank_].append({'qty':qty_, 'order':order_})
                         
-            
+            cargos_info_['zeroListPorts'] = []
             if inputs.port.info['firstPortBunker']:
+                cargos_info_['zeroListPorts'] = ['1', '2']
                 # initial_ballast_ = {'LFPT':4800, 'WB1P':9000, 'WB1S':9000, 'WB2P':9000, 'WB2S':9000,
                 #  'WB3P':9000, 'WB3S':9000, 'WB4P':8900, 'WB4S':8900, 'WB5P':7600, 'WB5S':7600} ## config
                 
-                initial_ballast_ = inputs.config['initial_ballast']
-                
-                for k_ in ['1', '2']:
-                    if k_ not in cargos_info_['fixedBallastPort']:
-                        order_ = k_
-                        cargos_info_['fixedBallastPort'].append(order_)
-                        for k__, v__ in initial_ballast_.items():
-                            tank_ = k__
-                            qty_ = v__ 
+                # if inputs.config['loadableConfig'].get('initBallastTanksAmt',[]):
+                #     ratio_ = inputs.config['loadableConfig']['initBallastTanksAmt']['amt']
+                #     initial_ballast_ = {}
+                #     for t_ in inputs.config['loadableConfig']['initBallastTanksAmt']['tanks']:
+                #         if t_[-1] in ["W"]:
+                #             t1_, t2_ = 'WB'+t_[0]+'P', 'WB'+t_[0]+'S'
+                #             initial_ballast_[t1_] = round(self.info['ballastTanks'][t1_]['capacityCubm']*ratio_*1.025,2)
+                #             initial_ballast_[t2_] = round(self.info['ballastTanks'][t2_]['capacityCubm']*ratio_*1.025,2)
                             
-                            if tank_ not in cargos_info_['ballastOperation'].keys():
-                                cargos_info_['ballastOperation'][tank_] = [{'qty':qty_, 'order':order_}]
-                            else:
-                                cargos_info_['ballastOperation'][tank_].append({'qty':qty_, 'order':order_})
+                #         else:
+                #             initial_ballast_[t_] = round(self.info['ballastTanks'][t_]['capacityCubm']*ratio_*1.025,2)
+                # else:
+                #     initial_ballast_ = inputs.config['initial_ballast']
+                
+                # initial_ballast_ = inputs.config['initial_ballast']
+                
+                # for k_ in ['1', '2']:
+                #     if k_ not in cargos_info_['fixedBallastPort']:
+                #         order_ = k_
+                #         cargos_info_['fixedBallastPort'].append(order_)
+                #         for k__, v__ in initial_ballast_.items():
+                #             tank_ = k__
+                #             qty_ = v__ 
+                            
+                #             if tank_ not in cargos_info_['ballastOperation'].keys():
+                #                 cargos_info_['ballastOperation'][tank_] = [{'qty':qty_, 'order':order_}]
+                #             else:
+                #                 cargos_info_['ballastOperation'][tank_].append({'qty':qty_, 'order':order_})
                         
                     
                     
                 
                 
             
-        if len(cargos_info_['fixedBallastPort']) > 0:
-            # fixed ballast:
-            cargos_info_['stablePorts'] = [str(i_)  for i_ in range(1,cargos_info_['lastVirtualPort']) if str(i_) not in  cargos_info_['fixedBallastPort']]    
+        # if len(cargos_info_['fixedBallastPort']) > 0:
+        #     # fixed ballast:
+        #     cargos_info_['stablePorts'] = [str(i_)  for i_ in range(1,cargos_info_['lastVirtualPort']) if str(i_) not in  cargos_info_['fixedBallastPort']]    
         
         self.info = {**self.info, **cargos_info_}     
         
@@ -450,8 +470,11 @@ class Loadable:
         # cargos_info_['rotationCheck'] = []
         
         for o__, o_ in enumerate(inputs.loadable_json['cargoOperation']):
-            cargos_info_['cargoLastLoad']['P'+str(o_['cargoNominationId'])].append(inputs.port.info['idPortOrder'][str(o_['portId'])])
-            cargos_info_['cargoPort'][str(o_['portId'])].append('P'+str(o_['cargoNominationId']))
+            
+            port_ = str(o_['portId']) + '1'
+            
+            cargos_info_['cargoLastLoad']['P'+str(o_['cargoNominationId'])].append(inputs.port.info['idPortOrder'][port_])
+            cargos_info_['cargoPort'][port_].append('P'+str(o_['cargoNominationId']))
             
             # if len(cargos_info_['cargoPort'][str(o_['portId'])]) > 1:
             #     if inputs.cargo_rotation:
@@ -536,7 +559,9 @@ class Loadable:
         for o__, o_ in enumerate(inputs.loadable_json['cargoOperation']):
             parcel_ = 'P'+str(o_['cargoNominationId'])
             qty__ = float(o_['quantity']) #if o_['operationId'] == 1 else -o_['quantity'] 
-            order_ = inputs.port.info['idPortOrder'][str(o_['portId'])]
+            
+            port_ = str(o_['portId']) + '1'
+            order_ = inputs.port.info['idPortOrder'][port_]
             # max qty
             qty_ = qty__ * (1+ 0.01*self.info['parcel'][parcel_]['minMaxTol'][1])
             # min qty
@@ -633,7 +658,9 @@ class Loadable:
         #         else:
         #             cargos_info_['ballastOperation'][tank_].append({'qty':qty_, 'order':order_})
             
-                
+        cargos_info_['zeroListPorts'] = []
+        if inputs.port.info['firstPortBunker']:
+            cargos_info_['zeroListPorts'] = ['1', '2']
             
         if len(cargos_info_['fixedBallastPort']) > 0:
             # fixed ballast:
@@ -650,7 +677,8 @@ class Loadable:
         
         for o__, o_ in enumerate(inputs.discharge_json['cargoOperation']):
             # cargos_info_['cargoLastLoad']['P'+str(o_['cargoNominationId'])].append(inputs.port.info['idPortOrder'][str(o_['portId'])])
-            cargos_info_['cargoPort'][str(o_['portId'])].append('P'+str(o_['dscargoNominationId']))
+            port_ = str(o_['portId']) + '2'
+            cargos_info_['cargoPort'][port_].append('P'+str(o_['dscargoNominationId']))
             
         len_virtual_ports_ = len(inputs.port.info['portOrder'])*2 # without cargo rotation
         cargos_info_['virtualArrDepPort'], cargos_info_['arrDepVirtualPort']  = {},{}
@@ -683,7 +711,8 @@ class Loadable:
         for o__, o_ in enumerate(inputs.discharge_json['cargoOperation']):
             parcel_ = 'P'+str(o_['dscargoNominationId'])
             qty_ = float(o_['quantity']) #if o_['operationId'] == 1 else -o_['quantity'] 
-            order_ = inputs.port.info['idPortOrder'][str(o_['portId'])]
+            port_ = str(o_['portId']) + '2'
+            order_ = inputs.port.info['idPortOrder'][port_]
            
             cargos_info_['toDischarge'][parcel_] += qty_
             
@@ -801,8 +830,14 @@ class Loadable:
         
         plan_ = []
         
-        for k_, v_ in inputs.port.info['portOrder'].items():
-            plan_.append([q_ for q__, q_ in enumerate(inputs.loadable_json['planDetails']) if v_ == q_['portCode']][0])
+        for k_, v_ in inputs.port.info['portRotationId'].items():
+            
+            info_ = []
+            for q__, q_ in enumerate(inputs.loadable_json['planDetails']):
+                if k_ == str(q_['portRotationId']):
+                    info_.append(q_)
+                    
+            plan_.append(info_[0])
         
         tank_cargo_ = {}
         for p__, p_ in enumerate(plan_):

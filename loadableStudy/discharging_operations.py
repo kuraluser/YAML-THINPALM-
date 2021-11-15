@@ -280,6 +280,36 @@ class DischargingOperations(object):
         ## discharging_order1 and discharging_order dsCargoNomination 
         
         
+    def _get_cow(self, cargo_info):
+        
+        NUM_COW = 5
+        cargo_info['cow_tanks'] = {}
+        cargo_info['drive_tanks'] = {}
+        n_cows_ = 0
+            
+        for k_, v_ in cargo_info['stripping_tanks'].items():
+            cargo_info['cow_tanks'][k_] = []
+            
+            if 'SLS' in v_ and 'SLP' in v_:
+                cargo_info['drive_tanks'][k_] = 'SLP'
+            elif 'SLS' in v_:
+                cargo_info['drive_tanks'][k_] = 'SLS'
+            elif 'SLP' in v_:
+                cargo_info['drive_tanks'][k_] = 'SLP'
+            else:
+                cargo_info['drive_tanks'][k_] = None
+                
+                
+                
+            # print(k_, v_)
+            for t_ in v_:
+                if t_[-1] not in ['C'] and t_ not in ['SLS', 'SLP']:
+                    if n_cows_ <= NUM_COW:
+                        cargo_info['cow_tanks'][k_] += [t_[0]+'P', t_[0]+'S']
+                else:
+                    if n_cows_ <= NUM_COW and t_ not in cargo_info['cow_tanks'][k_]:
+                        cargo_info['cow_tanks'][k_] += [t_]
+  
     def _gen_stripping(self):
         # INDEX = self.config["gantt_chart_index"]
         
@@ -339,10 +369,11 @@ class DischargingOperations(object):
                     next_ = v_[0]['quantityMT']
                     cur_ = p_[k_][0]['quantityMT']
                     
-                    if cur_ > next_:
+                    if cur_ > next_ +1:
                         tanks_.append(k_)
                         
             total_tank_ = len(tanks_)
+            print(tanks_)
             
             # initial rate ---------------------------------
             # 20 min
@@ -2293,7 +2324,7 @@ class DischargingOperations(object):
     
         
         vol_ = float(wt_)/cargo_info_['density'][cargo_]
-        
+       
         tcg_ = 0.
         if tankName_ in self.vessel.info['tankTCG']['tcg']:
             tcg_ = np.interp(vol_, self.vessel.info['tankTCG']['tcg'][tankName_]['vol'],

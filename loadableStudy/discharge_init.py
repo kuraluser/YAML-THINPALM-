@@ -102,15 +102,16 @@ class Process_input1(object):
         
         self.limits = {'draft':{}}
         self.limits['draft']['loadline'] = loadline_
-        self.limits['draft'] = {**self.limits['draft'], **self.port.info['maxDraft']}
-        self.limits['operationId'] = self.port.info['operationId'] 
-        self.limits['seawaterDensity'] = self.port.info['seawaterDensity'] 
-        self.limits['tide'] = self.port.info['tide'] 
+        self.limits['draft'] = {**self.limits['draft'], **{k_[:-1]:v_  for k_, v_ in self.port.info['maxDraft'].items()}}
+        self.limits['operationId'] = {k_:str(v_)[-1] for k_, v_ in self.port.info['portRotationId'].items()}
+        self.limits['seawaterDensity'] = {k_[:-1]:v_  for k_, v_ in self.port.info['seawaterDensity'].items()} 
+        self.limits['tide'] = {k_[:-1]:v_  for k_, v_ in self.port.info['tide'].items()}  
         self.limits['id'] = self.loadable_id
         self.limits['vesselId'] = self.vessel_id
         self.limits['voyageId'] = self.voyage_id
-        self.limits['airDraft'] = self.port.info['maxAirDraft']
-        self.limits['sfbm'] = self.sf_bm_frac
+        self.limits['airDraft'] = {k_[:-1]:v_  for k_, v_ in self.port.info['maxAirDraft'].items()} 
+        self.limits['portOrderId'] = self.port.info['portOrderId']
+
         
         self.full_discharge = True
         
