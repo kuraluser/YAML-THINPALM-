@@ -112,6 +112,8 @@ class LoadingOperations(object):
          
         cargo_info_ = {}
         
+        # get CargoId
+        cargo_info_['cargoId'] = {'P'+str(l_['cargoNominationId']): l_['cargoId']  for l_ in data.loading_info_json["loadableQuantityCargoDetails"]}
         # initial and final ROB
         self._get_rob(data.vessel_json['onHand'], cargo_info_)
                 
@@ -163,7 +165,7 @@ class LoadingOperations(object):
         cargo_info_['cargo_plans'] = []
         cargo_info_['cargo_tank'] = {}
         cargo_info_['density'], cargo_info_['api'], cargo_info_['temperature'] = {}, {}, {}
-        cargo_info_['cargoId'], cargo_info_['colorCode'], cargo_info_['abbreviation'] = {}, {}, {}
+        cargo_info_['colorCode'], cargo_info_['abbreviation'] = {}, {}
         cargo_info_['commingle'] = {}
         
         # initial plan
@@ -383,7 +385,7 @@ class LoadingOperations(object):
             cargo_info_['density'][cargo_] = self._cal_density(float(i_['estimatedAPI']),float(i_['estimatedTemp']))
             cargo_info_['api'][cargo_] = float(i_['estimatedAPI'])
             cargo_info_['temperature'][cargo_] = float(i_['estimatedTemp'])
-            cargo_info_['cargoId'][cargo_] = cargoId
+            # cargo_info_['cargoId'][cargo_] = cargoId
             cargo_info_['colorCode'][cargo_] = color
             cargo_info_['abbreviation'][cargo_] = abbrev
             
@@ -452,16 +454,18 @@ class LoadingOperations(object):
         
         if cargo1_ not in not_cargo:
             # load cargo 1
+            cargoId_ = cargo_info_['cargoId'][cargo1_]
             self._get_plan1(d_["cargo1NominationId"], d_["tankId"], d_["cargo1QuantityMT"],
-                            d_.get('cargoId',None), d_.get('colorCode',None), d_.get('abbreviation',None),
+                            cargoId_, d_.get('colorCode',None), d_.get('abbreviation',None),
                             plan_, cargo_info_, cargoDetails, initial)
         
         if cargo2_ not in not_cargo:
             # load cargo 2
+            cargoId_ = cargo_info_['cargoId'][cargo2_]
             self._get_plan1(d_["cargo2NominationId"], d_["tankId"], d_["cargo2QuantityMT"],
-                            d_.get('cargoId',None), d_.get('colorCode',None), d_.get('abbreviation',None),
+                            cargoId_, d_.get('colorCode',None), d_.get('abbreviation',None),
                             plan_, cargo_info_, cargoDetails, initial)
-            
+           
             
         if cargo1_ not in not_cargo and cargo2_ not in not_cargo:
             # update commingle
