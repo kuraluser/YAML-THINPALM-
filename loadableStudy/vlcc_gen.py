@@ -1693,7 +1693,7 @@ class Generate_plan:
                 # print(k_,v__)
                 if float(v__['rateM3_Hr']) == 0:
                     zero_rate_.append((k_, v__))
-                    if k_ not in ['Gravity'] and k_ not in pump_:
+                    if k_ not in pump_:
                         pump_.append(k_)
                         # end_time_[k_] = 10000000
                         
@@ -1711,6 +1711,8 @@ class Generate_plan:
                 # print(k_,v__)
                 if float(v__['rateM3_Hr']) == 0:
                     zero_rate_.append((k_, v__))
+                    if k_ not in pump_:
+                        pump_.append(k_)
                         
                 else:
                     break
@@ -1723,12 +1725,12 @@ class Generate_plan:
                     if l_[0] == id_:
                         out['ballast'][id_].remove(l_[1])
                 
-        if out['eduction']:
+        if 'Gravity' in pump_:
+            pump_.remove('Gravity')
+        
+        if out['eduction'] and pump_:
             id_ = min(pump_)
             end_time_[id_] = out['eduction']['timeEnd']
-                             
-                        
-                        
        
         out['pumpEndTime'] = {k_:str(v_)  for k_, v_ in end_time_.items()}       
                         

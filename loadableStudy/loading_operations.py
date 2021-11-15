@@ -1039,7 +1039,7 @@ class LoadingOperations(object):
                 # if interval < 2hrs more time might be needed
                 time_ = df_[self.seq[c_]['justBeforeTopping']]['Time'] - df_[self.seq[c_]['beforeTopping']]['Time']
                 print('Duration of last max loading interval:', time_ )
-                if self.info['eduction']:
+                if self.info['numEductionTanks']: #self.info['eduction']:
                     if time_ > 0:
                         if time_ < self.time_eduction:
                             
