@@ -195,8 +195,8 @@ class DischargingOperations(object):
             gen_output = Generate_plan(self)
             gen_output.run(num_plans=1)
             
-            plan_check = Check_plans(self)
-            plan_check._check_plans(gen_output.plans.get('ship_status',[]), gen_output.plans.get('cargo_tank',[]))
+            plan_check = Check_plans(self, reballast=False)
+            plan_check._check_plans(gen_output)
             
             # # input("Press Enter to continue...")
     

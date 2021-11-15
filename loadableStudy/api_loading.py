@@ -64,9 +64,9 @@ def loading(data: dict) -> dict:
     #     gen_output = pickle.load(fp_)
     
     ## check and modify plans    
-    plan_check = Check_plans(params)
-    plan_check._check_plans(gen_output.plans.get('ship_status',[]), gen_output.plans.get('cargo_tank',[]))
-    
+    plan_check = Check_plans(params, reballast = False)
+    plan_check._check_plans(gen_output)
+   
       
     # gen json  
     out = gen_output.gen_json1({}, plan_check.stability_values)
