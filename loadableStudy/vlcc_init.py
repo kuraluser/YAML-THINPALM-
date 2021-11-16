@@ -1277,7 +1277,7 @@ class Process_input(object):
                 str1 = 'set lastLoadingPortBallastBan := '
                 if self.config['loadableConfig']:
                     for k__, k_  in enumerate(self.vessel.info['ballastTanks'].keys()):
-                        if k_ not in self.vessel.info['banBallast'] + self.config['loadableConfig']['lastLoadingPortBallast']:
+                        if k_ not in self.vessel.info['banBallast'] + self.config['loadableConfig'].get('lastLoadingPortBallast',[]):
                             str1 += k_ + ' '
                 else:
                         
