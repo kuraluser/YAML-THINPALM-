@@ -219,7 +219,9 @@ fname = 'all_rules_updated.json'
 
 # fname = 'loadableStudy_100000351.json'
 
-# fname = 'loadable_study_request_100000411.json'
+fname = 'loadable_study_request_100000411.json'
+
+#fname = 'error_request_json.json'
 
 ## load configuration --------------------------------------------------------
 with open('config.json', "r") as f_:

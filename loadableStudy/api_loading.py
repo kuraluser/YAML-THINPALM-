@@ -215,6 +215,8 @@ def loadicator1(data, limits):
             info_["SFFrameNumber"] = v_.get("sfFrameNumber", None)
             info_['BMFrameNumber'] = v_.get("bendingMomentPersentFrameNumber", None)
             
+            # print('SFFN:', info_["SFFrameNumber"], 'BMFN:', info_['BMFrameNumber'])
+            
             info_['errorDetails'] = []
             if u_["errorDetails"] not in [""]:
                 info_['errorDetails'].append(u_["errorDetails"])

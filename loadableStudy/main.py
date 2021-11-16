@@ -5,7 +5,7 @@ Created on Fri Nov 27 16:33:14 2020
 @author: I2R
 """
 
-# import uvicorn
+import uvicorn
 #from typing import Dict, List
 import asyncio
 from concurrent.futures.process import ProcessPoolExecutor
@@ -25,6 +25,9 @@ import pickle
 import numpy as np
 import httpx
 from loguru import logger
+from fastapi import Request
+from fastapi.responses import JSONResponse
+import sys, traceback
 
 ## load configuration --------------------------------------------------------
 with open('config.json', "r") as f_:
@@ -52,6 +55,16 @@ users = sqlalchemy.Table(
     sqlalchemy.Column("timestamp"   ,sqlalchemy.String),
     )
 
+
+accesLogs = sqlalchemy.Table(
+    "pyaccesslog",
+    metadata,
+    sqlalchemy.Column("id"          ,sqlalchemy.String,primary_key=True),
+    sqlalchemy.Column("ip_address"      ,sqlalchemy.String),
+    sqlalchemy.Column("path"      ,sqlalchemy.String),
+    sqlalchemy.Column("timestamp"   ,sqlalchemy.String),
+    )
+
 engine = sqlalchemy.create_engine(DATABASE_URL)
 metadata.create_all(engine)
 
@@ -67,6 +80,32 @@ class DbList(BaseModel):
 
 class DbDelete(BaseModel):
     id: str = Field(..., example="Enter the id")
+
+
+
+@app.middleware("http")
+async def log_request(request: Request, call_next):
+    client_host = request.client.host
+    path = request.url.path
+    gID = str(uuid4())
+    gDate = str(datetime.datetime.now())
+    query = accesLogs.insert().values(
+        id = gID,
+        ip_address = client_host,
+        path = path,
+        timestamp = gDate
+        )
+    await database.execute(query)
+
+    return await call_next(request)
+
+@app.middleware("http")
+async def errors_handling(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={'error': str(exc)})
+
 
 async def get_vessel_details(url, gID, vesselId):
     try:
@@ -105,97 +144,111 @@ async def run_in_process(fn, *args):
 
 
 async def start_cpu_bound_task(uid: str, data: dict) -> None:
-#    print(uid,type(uid))    
-    if data['module'] in ['LOADABLE', 'DISCHARGE']:
-        result = await run_in_process(gen_allocation, data)
-    elif data['module'] in ['LOADING']:
-        result = await run_in_process(gen_sequence, data)
-    elif data['module'] in ['DISCHARGING']:
-        result = await run_in_process(gen_sequence1, data)
+    try:
+#    print(uid,type(uid))
+        if data['module'] in ['LOADABLE', 'DISCHARGE']:
+            result = await run_in_process(gen_allocation, data)
+        elif data['module'] in ['LOADING']:
+            result = await run_in_process(gen_sequence, data)
+        elif data['module'] in ['DISCHARGING']:
+            result = await run_in_process(gen_sequence1, data)
+            
+            
+        gDate = str(datetime.datetime.now())
+        query = users.update().\
+            where(users.c.id == uid).\
+            values(
+                message = result,
+                status = '5',
+                timestamp = gDate
+                )
+        await database.execute(query)
         
         
-    gDate = str(datetime.datetime.now())
-    query = users.update().\
-        where(users.c.id == uid).\
-        values(
-            message = result,
-            status = '5',
-            timestamp = gDate
-            )
-    await database.execute(query)
-    
-    
-    ## send feedback
-    # print('>>>> Update feedback to Thinkpalm')
-    
-    # print(result.get('validated', None))
-    
-    if data['module'] in ['LOADABLE']:
-        logger.info(uid + ": Loadable study completed")
-    
-        if result.get('validated', None) in [None]:
-            logger.info(uid + ": Update status")
-            status_url_ = config['url']['LOADABLE']['loadable-study-status'].format(vesselId=data['loadable']['vesselId'],
-                                                                    voyageId=data['loadable']['voyageId'],
-                                                                    loadableStudyId=data['loadable']['id'])
+        ## send feedback
+        # print('>>>> Update feedback to Thinkpalm')
+        
+        # print(result.get('validated', None))
+        
+        if data['module'] in ['LOADABLE']:
+            logger.info(uid + ": Loadable study completed")
+        
+            if result.get('validated', None) in [None]:
+                logger.info(uid + ": Update status")
+                status_url_ = config['url']['LOADABLE']['loadable-study-status'].format(vesselId=data['loadable']['vesselId'],
+                                                                        voyageId=data['loadable']['voyageId'],
+                                                                        loadableStudyId=data['loadable']['id'])
+                # print(status_url_)
+                await post_response(status_url_, {"processId" : uid, "loadableStudyStatusId" : 5}, uid)
+            
+                result_url_ = config['url']['LOADABLE']['loadable-patterns'].format(vesselId=data['loadable']['vesselId'],
+                                                                        voyageId=data['loadable']['voyageId'],
+                                                                        loadableStudyId=data['loadable']['id'])
+            else:
+                result_url_ = config['url']['LOADABLE']['validate-patterns'].format(vesselId=data['loadable']['vesselId'],
+                                                                        voyageId=data['loadable']['voyageId'],
+                                                                        loadableStudyId=data['loadable']['id'],
+                                                                        loadablePatternId=data['loadable']['loadablePatternId'])
+        elif data['module'] in ['LOADING']:
+            logger.info(uid + ": Loading sequence completed")
+            
+            status_url_ = config['url']['LOADING']['loading-status'].format(vesselId=data['loading']['vesselId'],
+                                                                        voyageId=data['loading']['voyageId'],
+                                                                        infoId=data['loading']['infoId'])
+            result_url_ = config['url']['LOADING']['loading-patterns'].format(vesselId=data['loading']['vesselId'],
+                                                                        voyageId=data['loading']['voyageId'],
+                                                                        infoId=data['loading']['infoId'])
+            
+            await post_response(status_url_, {"processId" : uid, "loadingInfoStatusId" : 4}, uid)
             # print(status_url_)
+            # print(result_url_)
+            
+        elif data['module'] in ['DISCHARGE']:
+            logger.info(uid + ": Discharge study completed")
+            
+            status_url_ = config['url']['DISCHARGE']['discharge-status'].format(vesselId=data['discharge']['vesselId'],
+                                                                        voyageId=data['discharge']['voyageId'],
+                                                                        dischargeStudyId=data['discharge']['id'])
+            result_url_ = config['url']['DISCHARGE']['discharge-patterns'].format(vesselId=data['discharge']['vesselId'],
+                                                                        voyageId=data['discharge']['voyageId'],
+                                                                        dischargeStudyId=data['discharge']['id'])
+            
             await post_response(status_url_, {"processId" : uid, "loadableStudyStatusId" : 5}, uid)
-        
-            result_url_ = config['url']['LOADABLE']['loadable-patterns'].format(vesselId=data['loadable']['vesselId'],
-                                                                    voyageId=data['loadable']['voyageId'],
-                                                                    loadableStudyId=data['loadable']['id'])
-        else:
-            result_url_ = config['url']['LOADABLE']['validate-patterns'].format(vesselId=data['loadable']['vesselId'],
-                                                                    voyageId=data['loadable']['voyageId'],
-                                                                    loadableStudyId=data['loadable']['id'],
-                                                                    loadablePatternId=data['loadable']['loadablePatternId'])
-    elif data['module'] in ['LOADING']:
-        logger.info(uid + ": Loading sequence completed")
-        
-        status_url_ = config['url']['LOADING']['loading-status'].format(vesselId=data['loading']['vesselId'],
-                                                                    voyageId=data['loading']['voyageId'],
-                                                                    infoId=data['loading']['infoId'])
-        result_url_ = config['url']['LOADING']['loading-patterns'].format(vesselId=data['loading']['vesselId'],
-                                                                    voyageId=data['loading']['voyageId'],
-                                                                    infoId=data['loading']['infoId'])
-        
-        await post_response(status_url_, {"processId" : uid, "loadingInfoStatusId" : 4}, uid)
-        # print(status_url_)
+            
+            
+        elif data['module'] in ['DISCHARGING']:
+            logger.info(uid + ": Discharging sequence completed")
+            
+            status_url_ = config['url']['DISCHARGING']['discharging-status'].format(vesselId=data['discharging']['vesselId'],
+                                                                        voyageId=data['discharging']['voyageId'],
+                                                                        infoId=data['discharging']['infoId'])
+            result_url_ = config['url']['DISCHARGING']['discharging-patterns'].format(vesselId=data['discharging']['vesselId'],
+                                                                        voyageId=data['discharging']['voyageId'],
+                                                                        infoId=data['discharging']['infoId'])
+            
+            await post_response(status_url_, {"processId" : uid, "dischargingInfoStatusId" : 4}, uid)
+            
+            
         # print(result_url_)
+        logger.info(uid + ": Upload result")
         
-    elif data['module'] in ['DISCHARGE']:
-        logger.info(uid + ": Discharge study completed")
+        # if data['module'] in ['LOADABLE', 'LOADING']:
+            # print(result)
+        await post_response(result_url_, result, uid)
+    except Exception as err:
+        print(err)
+        result = traceback.format_exc()
+        gDate = str(datetime.datetime.now())
+        query = users.update().\
+            where(users.c.id == uid).\
+            values(
+                message = result,
+                status = '5',
+                timestamp = gDate
+                )
+        await database.execute(query)
+
         
-        status_url_ = config['url']['DISCHARGE']['discharge-status'].format(vesselId=data['discharge']['vesselId'],
-                                                                    voyageId=data['discharge']['voyageId'],
-                                                                    dischargeStudyId=data['discharge']['id'])
-        result_url_ = config['url']['DISCHARGE']['discharge-patterns'].format(vesselId=data['discharge']['vesselId'],
-                                                                    voyageId=data['discharge']['voyageId'],
-                                                                    dischargeStudyId=data['discharge']['id'])
-        
-        await post_response(status_url_, {"processId" : uid, "loadableStudyStatusId" : 5}, uid)
-        
-        
-    elif data['module'] in ['DISCHARGING']:
-        logger.info(uid + ": Discharging sequence completed")
-        
-        status_url_ = config['url']['DISCHARGING']['discharging-status'].format(vesselId=data['discharging']['vesselId'],
-                                                                    voyageId=data['discharging']['voyageId'],
-                                                                    infoId=data['discharging']['infoId'])
-        result_url_ = config['url']['DISCHARGING']['discharging-patterns'].format(vesselId=data['discharging']['vesselId'],
-                                                                    voyageId=data['discharging']['voyageId'],
-                                                                    infoId=data['discharging']['infoId'])
-        
-        await post_response(status_url_, {"processId" : uid, "dischargingInfoStatusId" : 4}, uid)
-        
-        
-    # print(result_url_)
-    logger.info(uid + ": Upload result")
-    
-    # if data['module'] in ['LOADABLE', 'LOADING']:
-        # print(result)
-    await post_response(result_url_, result, uid)
-    
 def get_data(data, gID):
     
     data_ = {}
@@ -311,6 +364,14 @@ async def status_handler(userId: dict):
     # out = {'processId': userId['processId'], 'status':None, 'result': None}
     # out['status'] = await database.fetch_val(query,column=3)
     out = await database.fetch_val(query,column=2)
+    
+#    print(isinstance(out, str) )
+    if isinstance(out, str):
+        out_ = {'processId': userId['processId'], 'message':None}
+        err_ = {'errorHeading': 'Python Error',
+                 'errorDetails': [out]}
+        out_['errors'] = [err_]
+        out = out_
     
     return out
 
@@ -457,7 +518,7 @@ async def find_all_db_list():
 
 
 
-# if __name__ == '__main__':
-#     uvicorn.run(app, host='127.0.0.1', port=8000)
+if __name__ == '__main__':
+     uvicorn.run(app, host='0.0.0.0', port=8000)
     
 # uvicorn main:app --reload --host 0.0.0.0 --port:8000

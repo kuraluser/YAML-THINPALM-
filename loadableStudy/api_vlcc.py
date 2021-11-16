@@ -157,7 +157,7 @@ def loadicator(data, limits):
             info_ = {}
             info_['portId'] = int(u_['portId'])
             info_['synopticalId'] = int(u_['synopticalId'])
-            info_['operationId'] = int(limits['limits']['operationId'][str(info_['portId'])])
+            info_['operationId'] = int(limits['limits']['operationId'][str(u_['portRotationId'])])
             info_["calculatedDraftFwdPlanned"] = u_["foreDraftValue"]
             info_["calculatedDraftMidPlanned"] = u_["meanDraftValue"]
             info_["calculatedDraftAftPlanned"] = u_["aftDraftValue"]
@@ -263,7 +263,7 @@ def loadicator(data, limits):
                 info_ = {}
                 info_['portId'] = int(u_['portId'])
                 info_['synopticalId'] = int(u_.get('synopticalId',""))
-                info_['operationId'] = int(limits['limits']['operationId'][str(info_['portId'])])
+                info_['operationId'] = int(limits['limits']['operationId'][str(u_['portRotationId'])])
                 
                 info_["calculatedDraftFwdPlanned"] = u_["foreDraftValue"]
                 info_["calculatedDraftMidPlanned"] = u_["meanDraftValue"]
