@@ -964,9 +964,25 @@ class Loadable:
                         add_wt_ = info_['wt'] -  total_wt_ - onboard_
                         if add_wt_ > 0:
                             # print('add wt', tankId_)
-                            info_['wt'] = round(add_wt_,3)
-                            tank_cargo_[tankId_].append(info_)
-                            loading_plan_[dep_port_].append(info_)
+                            # info_['wt'] = round(add_wt_,3)
+                            # tank_cargo_[tankId_].append(info_)
+                            # loading_plan_[dep_port_].append(info_)
+                            
+                            ## one loading port only
+                            last_port_ = str(int(info_['port'][:-1])-1)
+                            pre_wt_ = [i_['wt']  for i_ in tank_cargo_[tankId_] if i_['parcel'] == parcel_ and i_['port'] == last_port_ +'D']
+                            new_load_ = pre_wt_[0] + add_wt_
+                            if new_load_ > 0:
+                                info1_ = {'parcel':parcel_, 'wt':pre_wt_[0], 'tankId':tankId_, 'port':last_port_ +'D'}
+                                loading_plan_[last_port_+'D'].remove(info1_)
+                                tank_cargo_[tankId_].remove(info1_)
+                                
+                                info1_['wt'] = new_load_
+                                loading_plan_[last_port_+'D'].append(info1_)
+                                tank_cargo_[tankId_].append(info1_)
+                            else:
+                                inputs.error.append('Error in adjusting manual allocation!!')
+                            
                             
                         elif add_wt_ < 0:
                             # print('reduce wt', tankId_)

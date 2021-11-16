@@ -308,8 +308,8 @@ class Process_input(object):
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_
                     
-        
-        
+       
+            
         self.vessel.info['incInitBallast'] = []
         self.vessel.info['decInitBallast'] = []
         
@@ -375,6 +375,7 @@ class Process_input(object):
             # base draft for BM and SF
             trim_ = 0.5*(self.trim_lower.get(str(p_),0.) + self.trim_upper.get(str(p_),0.))
             base_draft__ = int(np.floor(est_draft_+trim_/2))
+            # base_draft__ = int(np.floor(est_draft_))
             base_draft_ = base_draft__ if p_  == 1 else max(base_draft__, self.base_draft[str(p_-1)])
             self.base_draft[str(p_)] = base_draft_
             # print(p_,trim_,base_draft_)
@@ -699,7 +700,7 @@ class Process_input(object):
                                 str1 += k__ + ' ' + "{:.3f}".format(v__) + ' '
                     print(str1, file=text_file)
                 print(';', file=text_file)  
-
+                
                 str1 = 'set fixBallastPort := '
                 for k_ in self.loadable['fixedBallastPort']:
                     if k_ != '0':
@@ -973,6 +974,19 @@ class Process_input(object):
                     if i_ not in  self.vessel.info['banBallast']:
                         str1 += i_ + ' ' +  "{:.4f}".format(j_['lcg']) + ' '
                 print(str1+';', file=text_file)   
+                
+                
+                print('# LCGs for cargo tanks', file=text_file)
+                str1 = 'param LCGtport := '
+                print(str1, file=text_file)
+                for i_, j_ in self.vessel.info['cargoTanks'].items():
+                    str1 = '['+ i_ + ',*] = '
+                    for k1_ in range(1, self.loadable['lastVirtualPort']):
+                        lcg_ = j_['lcg']
+                        str1 += str(k1_) + ' ' + "{:.4f}".format(lcg_) + ' '
+                                    
+                    print(str1, file=text_file)
+                print(';', file=text_file)
                 
                 
                 self.vessel.info['TCGt'] = {}

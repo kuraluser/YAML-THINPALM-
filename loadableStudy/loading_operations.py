@@ -43,7 +43,6 @@ class LoadingOperations(object):
         self.config = data.config
         self.eduction_pump, self.ballast_pump = [], []
         self.manifold_port = True
-        
         print('time interval:', self.time_interval1)
         
         
@@ -65,11 +64,13 @@ class LoadingOperations(object):
             
                 
         # pump in use
+
         if len(manifolds_) == 0:
             manifolds_ = [2,3]
             
         if len(bottomLines_) == 0:
             bottomLines_ = [2,3]
+            
         
         self.load_param = {'Manifolds':manifolds_,
                      'centreTank':[],
@@ -114,6 +115,7 @@ class LoadingOperations(object):
         
         # get CargoId
         cargo_info_['cargoId'] = {'P'+str(l_['cargoNominationId']): l_['cargoId']  for l_ in data.loading_info_json["loadableQuantityCargoDetails"]}
+        
         # initial and final ROB
         self._get_rob(data.vessel_json['onHand'], cargo_info_)
                 
@@ -465,7 +467,7 @@ class LoadingOperations(object):
             self._get_plan1(d_["cargo2NominationId"], d_["tankId"], d_["cargo2QuantityMT"],
                             cargoId_, d_.get('colorCode',None), d_.get('abbreviation',None),
                             plan_, cargo_info_, cargoDetails, initial)
-           
+            
             
         if cargo1_ not in not_cargo and cargo2_ not in not_cargo:
             # update commingle
@@ -655,7 +657,25 @@ class LoadingOperations(object):
             df_['IncMax'] =  df_['Initial']
             df_['IncMax']['Time'] = 30 # end time
             
-            cargo_loaded_ = loading_rate_*15/60 + self.staggering_param['maxShoreRate']*10/60
+            
+            
+            load_param = deepcopy(self.load_param)
+            for t_ in self.info['cargo_tank'][cargo_to_load_]:
+                
+                if t_[-1] in ['C']:
+                    load_param['centreTank'].append(t_)
+                elif t_ in ['SLS','SLP']:
+                    load_param['slopTank'].append(t_)
+                else:
+                    load_param['wingTank'].append(t_)
+                    
+            loading_rate__ = self._cal_max_rate(load_param, required_rate = 6)
+            
+            
+            max_loading_rate_ = min(loading_rate__, self.staggering_param['maxShoreRate'])
+            
+            print('max loading rate:', max_loading_rate_)
+            cargo_loaded_ = loading_rate_*15/60 + max_loading_rate_*10/60
             cargo_loaded_per_tank_ = cargo_loaded_/total_tank_
             
             stages_['increaseToMaxRate'] = (df_['OpenAll']['Time'], df_['IncMax']['Time'])
@@ -691,8 +711,9 @@ class LoadingOperations(object):
             #          'toppingSeq':[]}
             
             param_ = deepcopy(self.staggering_param)
+            param_['maxShoreRate'] = max_loading_rate_
             
-            self.seq[cargo_to_load_]['maxShoreRate'] = param_['maxShoreRate']
+            self.seq[cargo_to_load_]['maxShoreRate'] = max_loading_rate_ #param_['maxShoreRate']
             
             for t_ in INDEX:
                 if t_ in self.info['cargo_tank'][cargo_to_load_]:

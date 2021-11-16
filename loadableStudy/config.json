@@ -122,7 +122,7 @@
         "WB5P",
         "WB5S"
       ],
-      "loadable_config": true,
+      "loadable_config": false,
       "min_draft_limit": 10.425,
       "rob_density": {
         "DSWP": 1,
