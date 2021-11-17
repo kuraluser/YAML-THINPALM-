@@ -272,8 +272,8 @@ class Generate_plan:
                 
             ## vessel dependent constraints    
             if int(self.input.vessel_id) in [1] and self.input.mode not in ['FullManual']:
-                
-                # drop mean draft in BF and SF
+                # pass
+                ##drop mean draft in BF and SF
                 c4_ = ampl.getConstraint('Condition20a2')
                 c5_ = ampl.getConstraint('Condition21a2')
                 c4_.drop()
@@ -281,6 +281,7 @@ class Generate_plan:
                 
             elif int(self.input.vessel_id) in [2]:
                 # drop aft draft in BF and SF
+                # pass
                 c4_ = ampl.getConstraint('Condition20a1')
                 c5_ = ampl.getConstraint('Condition21a1')
                 c4_.drop()
@@ -1718,20 +1719,20 @@ class Generate_plan:
                     break
             
         if zero_rate_:
-            
             # need to close one or two pumps
             for id_ in pump_:
                 for l_ in zero_rate_:
                     if l_[0] == id_:
                         out['ballast'][id_].remove(l_[1])
-                
+                        
         if 'Gravity' in pump_:
             pump_.remove('Gravity')
         
         if out['eduction'] and pump_:
             id_ = min(pump_)
             end_time_[id_] = out['eduction']['timeEnd']
-       
+                             
+                        
         out['pumpEndTime'] = {k_:str(v_)  for k_, v_ in end_time_.items()}       
                         
              
@@ -2372,7 +2373,7 @@ class Generate_plan:
                 # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                 # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
                 
-                info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
+                info_['correctedUllage'] = str(round(v_[0]['corrUllage'],7))
                 info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                 info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                 info_['maxTankVolume'] = str(self.input.vessel.info['cargoTanks'][k_]['capacityCubm'])
@@ -2411,7 +2412,7 @@ class Generate_plan:
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
                     
-                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
+                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],7))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                     info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
@@ -2439,7 +2440,7 @@ class Generate_plan:
                     
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     # info_['rdgUllage'] = str(round(self.input.vessel.info['ullage_func'][str(info_['tankId'])](vol_).tolist(), 2))
-                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
+                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],7))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                                         
@@ -2485,7 +2486,7 @@ class Generate_plan:
                     info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
                     # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
                     
-                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],6))
+                    info_['correctedUllage'] = str(round(v_[0]['corrUllage'],7))
                     info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                    
@@ -2531,7 +2532,7 @@ class Generate_plan:
                 # except:
                 #     print(k_, vol_)
                 #     ul_ = 0.
-                info_['correctedUllage'] = str(round(v_[0]['corrLevel'],6))
+                info_['correctedUllage'] = str(round(v_[0]['corrLevel'],7))
                 info_['correctionFactor'] = str(0.00 if v_[0]['correctionFactor'] == 0 else v_[0]['correctionFactor'])
                 info_['rdgLevel'] = str(v_[0]['rdgLevel'])
                 
