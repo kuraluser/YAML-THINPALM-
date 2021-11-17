@@ -99,20 +99,25 @@ class Multiple_plans(object):
                             # plan_check._check_plans(outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[]))
                             plan_check._check_plans(gen_output)
                             
+                            tanks_ = [sorted(b_)  for a_, b_ in gen_output.cargo_in_tank[ind_].items()]
                             
-                            self.plans['ship_status'].append(gen_output.plans['ship_status'][ind_])
-                            self.plans['cargo_status'].append(gen_output.plans['cargo_status'][ind_])
-                            self.plans['obj'].append(gen_output.plans['obj'][ind_])
-                            self.plans['operation'].append(gen_output.plans['operation'][ind_])
-                            self.plans['rotation'].append(dict(r_))
-                            self.plans['cargo_tank'].append(dict(gen_output.plans['cargo_tank'][ind_]))
-                            self.plans['slop_qty'].append(gen_output.plans['slop_qty'][ind_])
-                            self.plans['cargo_order'].append(gen_output.plans['cargo_order'][ind_])
-                            self.plans['base_draft'].append(base_draft_)
-                            self.plans['topping'].append(gen_output.plans['topping'][ind_])
-                            self.plans['loading_rate'].append(gen_output.plans['loading_rate'][ind_])
-                            self.plans['loading_hrs'].append(gen_output.plans['loading_hrs'][ind_])
-                            self.plans['stability'].append(plan_check.stability_values[0])
+                            if tanks_ not in self.tanks:
+                                self.tanks.append(tanks_)
+                            
+                                self.plans['ship_status'].append(gen_output.plans['ship_status'][ind_])
+                                self.plans['cargo_status'].append(gen_output.plans['cargo_status'][ind_])
+                                self.plans['obj'].append(gen_output.plans['obj'][ind_])
+                                self.plans['operation'].append(gen_output.plans['operation'][ind_])
+                                self.plans['rotation'].append(dict(r_))
+                                self.plans['cargo_tank'].append(dict(gen_output.plans['cargo_tank'][ind_]))
+                                self.plans['slop_qty'].append(gen_output.plans['slop_qty'][ind_])
+                                self.plans['cargo_order'].append(gen_output.plans['cargo_order'][ind_])
+                                self.plans['base_draft'].append(base_draft_)
+                                self.plans['topping'].append(gen_output.plans['topping'][ind_])
+                                self.plans['loading_rate'].append(gen_output.plans['loading_rate'][ind_])
+                                self.plans['loading_hrs'].append(gen_output.plans['loading_hrs'][ind_])
+                                self.plans['stability'].append(plan_check.stability_values[0])
+
                             
                             
                             # with open('plan_status.json', 'w') as f_:  
@@ -136,6 +141,8 @@ class Multiple_plans(object):
                     # plan_check._check_plans(outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[]))
                     plan_check._check_plans(gen_output)
                     
+                    tanks_ = [sorted(b_)  for a_, b_ in gen_output.cargo_in_tank[ind_].items()]
+                    self.tanks.append(tanks_)
                     self.plans['ship_status'].append(gen_output.plans['ship_status'][ind_])
                     self.plans['cargo_status'].append(gen_output.plans['cargo_status'][ind_])
                     self.plans['obj'].append(gen_output.plans['obj'][ind_])
@@ -184,9 +191,6 @@ class Multiple_plans(object):
                                 plan_check = Check_plans(self.input, indx = ind_)
                                 # plan_check._check_plans(outputs.plans.get('ship_status',[]), outputs.plans.get('cargo_tank',[]))
                                 plan_check._check_plans(gen_output)
-                                
-                                
-                                # 
                                 tanks_ = [sorted(b_)  for a_, b_ in gen_output.cargo_in_tank[ind_].items()]
                                 
                                 if tanks_ not in self.tanks:
