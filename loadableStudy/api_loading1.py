@@ -117,8 +117,14 @@ def loadicator1(data, limits):
         params = Get_info(data, limits)
         ship_status, cargo_tank = params._get_status()
         
-        plan_check = Check_plans(params)
-        plan_check._check_plans(ship_status, cargo_tank)
+        output = lambda: None
+        setattr(output, 'plans', {})
+        output.plans['ship_status'] = ship_status
+        output.plans['cargo_tank'] = cargo_tank
+                
+        plan_check = Check_plans(params, reballast = False)
+        plan_check._check_plans(output)
+
         
         for s__, s_ in enumerate(plan_check.stability_values): 
             u_ = s_['0']
