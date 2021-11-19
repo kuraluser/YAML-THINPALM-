@@ -1444,6 +1444,7 @@ class Generate_plan:
             
             for e__, e_ in enumerate(EVENTS):
                 info1_ = {"stage": e_}
+                # print(e_)
                 discharging_seq._stage(info1_, cargo_+str(c__), c__+1)
                 
                 if e_ == 'initialCondition' and first_cargo_:
@@ -1497,18 +1498,27 @@ class Generate_plan:
                     info1_.pop('iniDeballastingRateM3_Hr')
                     info1_.pop('iniBallastingRateM3_Hr')
                         
-                if info1_['stage'] == 'COWStripping':
+                if info1_['stage'] == 'COWStripping' or self.input.discharging.seq[cargo_+str(c__)]['stripTanks']:
                     self._get_COW(info1_, cargo_+str(c__), c__+1)
                     
                 
                 info_["sequence"].append(info1_)
                 
             if c__+1 == len(self.input.discharging.info['discharging_order']):
+                e1_ = 0
                 for e__, e_ in enumerate(FINAL_EVENTS):
-                    info1_ = {"stage": e_}
-                    discharging_seq._stage(info1_, cargo_+str(c__), c__+1)
                     
-                    info_["sequence"].append(info1_)
+                    if e_ not in ['slopDischarge']:
+                        e1_ += 1
+                        info1_ = {"stage": e_}
+                        discharging_seq._stage(info1_, cargo_+str(c__), c__+1, final_event = e1_)
+                        info_["sequence"].append(info1_)
+                        
+                    elif self.input.discharging.seq[cargo_+str(c__)]['driveTank']:
+                        e1_ += 1
+                        info1_ = {"stage": e_}
+                        discharging_seq._stage(info1_, cargo_+str(c__), c__+1, final_event = e1_)
+                        info_["sequence"].append(info1_)
                     
                 
                 
@@ -1530,36 +1540,38 @@ class Generate_plan:
     def _get_COW(self, out, cargo, cargo_order):
         
         tank_ = self.input.discharging.info['stripping_tanks'][cargo_order]
-        
-        time_ = {}
+        cow_tanks_ = []
+        for k_, v_ in self.input.discharging.info['cow_tanks'].items():
+            cow_tanks_ += v_
+            
+        drive_tank_ = self.input.discharging.seq[cargo]['driveTank'].get('tank', None)
+        # time_ = {}
         
         for t_ in tank_:
             info_ = {'tankShortName':t_, 'tankId':self.input.vessel.info['tankName'][t_]}
             
-            if t_ not in time_:
-                
-                for h_, (i_,j_) in enumerate(self.input.discharging.seq[cargo]['reduceRate'].iteritems()): 
-                    k_ = j_[t_]
-                    if k_[1] == 0:
-                        time__ = self.input.discharging.seq[cargo]['reduceRate']['C'+str(h_)]['Time']
+            for h_, (i_,j_) in enumerate(self.input.discharging.seq[cargo]['reduceRate'].iteritems()): 
+                k_ = j_[t_]
+                if round(k_[1]) == 0:
+                    time__ = self.input.discharging.seq[cargo]['reduceRate']['C'+str(h_)]['Time']
+                    break
                         
-                        if t_ not in ['SLS','SLP']:
-                            time_[t_[0]+'P'] = time__
-                            time_[t_[0]+'S'] = time__
-                            
-                        break
-                        # print(i_, j_)
-            else:
-                time__ = time_[t_]
-                        
-            print(t_, time__)
+            # print(t_, time__)
             start_ = int(out["timeStart"]) + time__
-            end_ = start_ + 60
+            if t_ in cow_tanks_:
+                end_ = start_ + 60
+            else:
+                end_ = start_ + 20
+            
+            # print(t_, time__, start_, end_)
             
             info_["timeStart"] = str(start_)
             info_["timeEnd"] = str(end_)
             
-            out['Cleaning']['FullClean'].append(info_)
+            if t_ in cow_tanks_:
+                out['Cleaning']['FullClean'].append(info_)
+            elif t_ not in [drive_tank_]:
+                out['stripping'].append(info_)
     
     ## for LOADING ------------------------------------------------------------------------------------------
     def gen_json1(self, constraints, stability_values):

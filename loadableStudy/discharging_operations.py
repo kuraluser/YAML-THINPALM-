@@ -153,6 +153,24 @@ class DischargingOperations(object):
         # cargo_info_['multiDischarge'] = False
         
         cargo_info_['stripping_tanks'] = {d__+1:[]  for d__,d_ in enumerate(cargo_info_['discharging_order'])}
+        dep_plan_ = []
+        dep_tanks_, arr_tanks_ = [], []
+        for l_ in data.discharge_json['planDetails']['departureCondition']['dischargePlanStowageDetails']:
+            dep_plan_.append(l_)
+            dep_tanks_.append(self.vessel.info['tankId'][l_['tankId']])
+            
+        all_tanks_ = []
+        for k_, v_ in cargo_info_['cargo_tank'].items():
+            all_tanks_ += v_
+            
+        empty_tanks_ = set(all_tanks_) - set(dep_tanks_)
+        for i_ in data.discharge_json['planDetails']['arrivalCondition']['dischargePlanStowageDetails']:
+            tank_ = self.vessel.info['tankId'][i_['tankId']]
+            if tank_ in empty_tanks_:
+                info_ = dict(i_)
+                info_['quantityMT'] = '0.0'
+                dep_plan_.append(info_)
+                
         if not cargo_info_['multiDischarge']:
             print('No multiple discharge for each cargo')
             # cargo_info_['loading_order'] = ['A','B','C','D']
@@ -160,7 +178,7 @@ class DischargingOperations(object):
                 
                 not_cargo_ = cargo_info_['discharging_order'][o__+1:]
                 # print(not_cargo_)
-                self._get_plan(data.discharge_json['planDetails']['departureCondition']['dischargePlanStowageDetails'],
+                self._get_plan(dep_plan_,
                             cargo_info_, cargoDetails_, 
                             commingleDetails = data.discharge_json['planDetails']['departureCondition']['dischargePlanCommingleDetails'],
                             initial = False, not_cargo = not_cargo_, strip_info=True)
@@ -195,10 +213,10 @@ class DischargingOperations(object):
             gen_output = Generate_plan(self)
             gen_output.run(num_plans=1)
             
-            plan_check = Check_plans(self, reballast=False)
+            plan_check = Check_plans(self, reballast = False)
             plan_check._check_plans(gen_output)
             
-            # # input("Press Enter to continue...")
+            # # # input("Press Enter to continue...")
     
             
             plan_ = gen_output.plans.get('ship_status',[])
@@ -212,7 +230,7 @@ class DischargingOperations(object):
                 for k_, v_ in plan_[0].items():
                     if k_ not in ['0']:
                         info_ = {}
-                        
+                      
                         cargo_to_discharge1_ = cargo_info_['discharging_order'][int(k_)-1]
                         cargo_to_discharge_ = cargo_info_['dsCargoNominationId'][cargo_to_discharge1_] 
                         
@@ -236,14 +254,14 @@ class DischargingOperations(object):
                                           }]
                             
                             fill_tank_.append(k1_)
-                            
+                           
                         empty_ = set(self.vessel.info['cargoTankNames']) - set(fill_tank_)
                         for t__, t_ in enumerate(empty_):
                             # print(t__, t_)
                             info_[t_] =  deepcopy(cargo_info_['cargo_plans'][0][t_])
                             info_[t_][0]['quantityMT'] = 0.
                             info_[t_][0]['quantityM3'] = 0.
-                            
+                           
                             if cargo_to_discharge_ == info_[t_][0]['cargo']:
                                 if cargo_to_discharge1_ in cargo_info_['multiDischarge']:
                                     ports_ = cargo_info_['discharging_order1'][cargo_to_discharge1_]
@@ -252,7 +270,7 @@ class DischargingOperations(object):
                                         pass
                                     else:
                                         cargo_info_['stripping_tanks'][int(k_)].append(t_)
-                                        
+                                      
                                 else:
                                     cargo_info_['stripping_tanks'][int(k_)].append(t_)
                             
@@ -264,7 +282,7 @@ class DischargingOperations(object):
             #     json.dump(plan__, outfile)
             
             # with open("plan2.json", "r") as outfile:
-            #     plan__ = json.load(outfile)
+            #    plan__ = json.load(outfile)
             # cargo_info_['stripping_tanks'] = {1: [], 2: ['1P', '3P', '3S', '1S'], 3: [], 4: ['2C', '4C']}
             
             # plan_check = Check_plans(self)
@@ -313,7 +331,7 @@ class DischargingOperations(object):
     def _gen_stripping(self):
         # INDEX = self.config["gantt_chart_index"]
         
-        #MAX_RATE = {1: 12000, 2:11129, 3:11553, 4:5829}
+        # MAX_RATE = {1: 12000, 2:11129, 3:11553, 4:5829}
         
         TIME_SEP = 2
         TIME_PUMP_WARM = 30
@@ -365,6 +383,7 @@ class DischargingOperations(object):
             
             tanks_ = []
             for k_, v_ in self.info['cargo_plans'][p__+1].items():
+                # print(v_[0]['cargo'], cargo_to_discharge_)
                 if v_[0]['cargo'] == cargo_to_discharge_:
                     next_ = v_[0]['quantityMT']
                     cur_ = p_[k_][0]['quantityMT']
@@ -404,7 +423,7 @@ class DischargingOperations(object):
             
             max_rate_ = self.discharging_rate[p__+1]
             # max_rate_ = MAX_RATE[p__+1]
-            
+            # max_rate_ = 10000
             print('max rate:', max_rate_ )
             
             discharging_rate_ = (INITIAL_RATE + max_rate_)/2
@@ -429,7 +448,7 @@ class DischargingOperations(object):
                 
                 
             ## backward calculation ------------------------------------------------------------------------
-            cow_strip_ = self._cal_cow_strip(p__, cargo_to_discharge_, df_['Initial'], tanks_, max_rate_)
+            cow_strip_, drive_tank_, strip_, partial_ = self._cal_cow_strip(p__, cargo_to_discharge_, df_['Initial'], tanks_, max_rate_)
             
             #self.seq[cargo_to_load_]['staggerRate'] = deepcopy(staggering_rate_) 
             
@@ -444,6 +463,14 @@ class DischargingOperations(object):
             cow_strip_['AmtBefStrip'] =  df_init_ -  cow_strip_['AmtRemoved'] - cow_strip_['TotalVol']
             
             time_taken_ =  float(cow_strip_['AmtBefStrip'].sum() - df_inc_max_.sum())/ max_rate_*60 # min
+            
+            if drive_tank_:
+                # print(self.drive_tank)
+                tank_ = drive_tank_['tank']
+                vol_ = cow_strip_['C1'][tank_][1]
+                cow_strip_['AmtBefStrip'][tank_] = df_init_[tank_]  - vol_
+                
+                
             cow_strip_['LoadingRateM3Min'] = (cow_strip_['AmtBefStrip']- df_inc_max_['VolRemoved'])/time_taken_
             
             # max discharging
@@ -583,6 +610,11 @@ class DischargingOperations(object):
             self.seq[cargo_to_discharge_+str(p__)]['singleMaxStage'] = single_max_stage_
             # self.seq[cargo_to_discharge_]['commingleStart'] = commingle_start_
             self.seq[cargo_to_discharge_+str(p__)]['ballastLimit'] = ballast_limit_
+            self.seq[cargo_to_discharge_+str(p__)]['driveTank'] = drive_tank_
+            self.seq[cargo_to_discharge_+str(p__)]['stripTanks'] = strip_
+            self.seq[cargo_to_discharge_+str(p__)]['partialTanks'] = partial_
+            
+            
             
                        
             start_time_ += df_[ss_]['Time']
@@ -600,6 +632,7 @@ class DischargingOperations(object):
                        '4P':161.3, '4S':161.3, '5P':110.04, '5S':110.04, 'SLP':3.1, 'SLS':3.1}
         
         ##
+        #self.info['cow_tanks'] = {1: [], 2: ['1P', '3P', '3S', '1S'], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
         self.info['cow_tanks'] = {1: [], 2: [], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
         self.info['sorted_cow'] = {1: [], 2: [], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
         
@@ -614,6 +647,31 @@ class DischargingOperations(object):
                 strip_num_.append(t_[:-1])
                 
         partial_ = set(tanks) - set(strip_)
+        
+        
+        drive_tank_ = {}
+        if self.info['cow_tanks'][port+1]:
+            print('Drive tank needed!!')
+            tank_in_ = self.info['cargo_tank'][cargo_to_discharge]
+            
+            
+            if 'SLS' in tank_in_:
+                drive_tank_['tank'] = 'SLS'
+                drive_tank_['ullage16mVol'] = self.vessel.info['ullage16mVol']['SLS']
+                
+            elif 'SLP' in tank_in_:
+                drive_tank_['tank'] = 'SLP'
+                drive_tank_['ullage16mVol'] = self.vessel.info['ullage16mVol']['SLP']
+                
+            else:
+                print('Not supported yet!!')
+                exit()
+            
+            drive_tank_['departVol'] = self.info['cargo_plans'][port+1][drive_tank_['tank']][0]['quantityMT']
+            
+        ##
+                
+        
         
         if len(strip_) == 0 and len(partial_) > 0:
             print('partial discharge with no stripping and COW')
@@ -664,6 +722,13 @@ class DischargingOperations(object):
         elif len(strip_) > 0 and len(partial_) > 0:
             # reduce 2 stages for partial 
             # strip - 1 additional stage
+            if 'SLP' in [drive_tank_.get('tank', None)] and 'SLP' in strip_:
+                exit()
+            if 'SLS' in [drive_tank_.get('tank', None)] and 'SLS' in strip_:
+                exit()
+                
+                
+                
             total_stage_ = 2 + len(strip_num_) + 1
             for ss_ in range(1, total_stage_+1):
                 df_['C'+str(ss_)] = None
@@ -699,7 +764,7 @@ class DischargingOperations(object):
                 else:
                     df_['C'+str(ss_)][t_] = (cargo_to_discharge, STRIP_LEVEL[t_])
                     add_time_ = 60 if t_ in self.info['cow_tanks'][port+1] else 20
-                    
+                
                 ss_ += 1
                 df_['C'+str(ss_)]['Time'] = df_['C'+str(ss_-1)]['Time'] + add_time_
                     
@@ -753,14 +818,17 @@ class DischargingOperations(object):
                  
                 
                 
-            
-            
             # print(df_)
             
         elif len(strip_) > 0 and len(partial_) == 0:
             
             add_stage_ = False
             total_stage_ = len(strip_num_) + 1
+            
+            # subtract drive tank
+            if drive_tank_.get('tank', None) in strip_num_:
+                total_stage_ -= 1
+                
             if total_stage_ == 2:
                 total_stage_ = 3
                 add_stage_ = True
@@ -782,14 +850,19 @@ class DischargingOperations(object):
                 if ss_ not in [1]:
                     df_['C'+str(ss_)].iloc[1:] = df_['C1'].iloc[1:] 
                     
-                    
+            
+            # get ending stage before COW/STRIPPING
             reduction_rate_ = (max_rate - REDUCED_RATE)/(total_stage_-2)
             discharging_rate_ = [REDUCED_RATE+(total_stage_-2 - r_ -1)*reduction_rate_  for r_ in range(0, (total_stage_-2))]   
             ss_ = 1 if  not add_stage_ else 2 # starting stage
             sort_strip_num_ = [t_ for t_ in STRIP_ORDER if t_ in strip_num_]
             # self.info['sorted_cow'][port] = sort_strip_num_
             for t_ in sort_strip_num_:
-                if len(t_) == 1:
+                
+                if t_ in [drive_tank_.get('tank', None)]:
+                    # print('Drive tank:', t_)
+                    pass
+                elif len(t_) == 1:
                     # wing tanks
                     t1_, t2_ = t_+'P', t_+'S'
                     
@@ -801,19 +874,27 @@ class DischargingOperations(object):
                     df_['C'+str(ss_)][t_] = (cargo_to_discharge, STRIP_LEVEL[t_])
                     add_time_ = 60 if t_ in self.info['cow_tanks'][port+1] else 20
                     
-                    
-                ss_ += 1
-                df_['C'+str(ss_)]['Time'] = df_['C'+str(ss_-1)]['Time'] + add_time_
+                if t_ in [drive_tank_.get('tank', None)]:
+                    print('Drive tank:', t_)
+                    vol_ = drive_tank_['ullage16mVol'] if  drive_tank_['departVol'] == 0. else drive_tank_['departVol']
+                    df_.loc['SLS'] = [(cargo_to_discharge, vol_)]*len(df_.loc['SLS'])
+                else:
+                    ss_ += 1
+                    df_['C'+str(ss_)]['Time'] = df_['C'+str(ss_-1)]['Time'] + add_time_
                 
             
             # discharging_rate_per_tank_ = {}
             tank_strip_ = 0
             tank__ = []
             s2_ = 3
+            s4_ = 0
             for s1_, s2_ in enumerate(range(total_stage_-1, 3, -1)):
                 strip_tank_ = sort_strip_num_[len(sort_strip_num_) - s1_ - 1] if len(sort_strip_num_) - s1_ - 1 >= 0 else ""
                 # print(s2_, strip_tank_)
-                if len(strip_tank_) == 1:
+                if strip_tank_ in [drive_tank_.get('tank', None)]:
+                    # print('Drive tank:', t_)
+                    s4_ = 1
+                elif len(strip_tank_) == 1:
                     tank__ += [strip_tank_+'P', strip_tank_+'S']
                     tank_strip_ += 2
                     
@@ -821,21 +902,26 @@ class DischargingOperations(object):
                     tank__ += [strip_tank_]
                     tank_strip_ += 1
                     
-                rate_ = discharging_rate_[s2_-2]
-                discharging_rate_per_tank_ = rate_/tank_strip_
-                # print(s2_, tank_strip_, rate_, discharging_rate_per_tank_)
-                
-                add_time_ = df_['C'+str(s2_)]['Time'] - df_['C'+str(s2_-1)]['Time']
-                for t4_ in tank__:
-                    df_['C'+str(s2_-1)][t4_] = (df_['C'+str(s2_)][t4_][0], 
-                                                df_['C'+str(s2_)][t4_][1]+discharging_rate_per_tank_*add_time_/60)
-                
+                if strip_tank_ in [drive_tank_.get('tank', None)]:
+                    # print('Drive tank:', t_)
+                    pass
+                else:
                     
-            ss_ = s2_ - 1
+                    rate_ = discharging_rate_[s2_-2+s4_]
+                    discharging_rate_per_tank_ = rate_/tank_strip_
+                    # print(s2_, tank_strip_, rate_, discharging_rate_per_tank_)
+                    
+                    add_time_ = df_['C'+str(s2_+s4_)]['Time'] - df_['C'+str(s2_-1+s4_)]['Time']
+                    for t4_ in tank__:
+                        df_['C'+str(s2_-1+s4_)][t4_] = (df_['C'+str(s2_+s4_)][t4_][0], 
+                                                    df_['C'+str(s2_+s4_)][t4_][1]+discharging_rate_per_tank_*add_time_/60)
+                    
+                    
+            ss_ = s2_ - 1+s4_
             for s1_, s2_ in enumerate(range(ss_, 1, -1)):
                 rate_ = discharging_rate_[s2_-2]
                 # print(s2_, rate_)
-                tanks_ = [t4_ for t4_ in tanks if df_['C'+str(s2_)][t4_][1] > 0.]
+                tanks_ = [t4_ for t4_ in tanks if df_['C'+str(s2_)][t4_][1] > 0. and t4_ not in  [drive_tank_.get('tank', None)]]
                 discharging_rate_per_tank_ = rate_/len(tanks_)
                 add_time_ = df_['C'+str(s2_)]['Time'] - df_['C'+str(s2_-1)]['Time']
                 
@@ -850,7 +936,20 @@ class DischargingOperations(object):
             df_['TotalVol'][k_] = v_[0]['quantityM3']
         
         
-        return df_
+        # # # check
+        # c1_, c2_ = 'C1', 'C2'
+        # vol_ = 0.
+        # for k_, (i_, j_) in enumerate(df_.iterrows()):
+        #     print(k_, i_, j_[c1_], j_[c2_])
+        #     if k_ == 0:
+        #         time_ = j_[c2_] - j_[c1_]
+        #     elif j_[c2_] not in [None]:
+        #         # print(j_[c2_][1], j_[c1_][1])
+        #         vol_ += (j_[c1_][1] - j_[c2_][1])
+        # print(vol_/time_*60)
+        # self.drive_tank = drive_tank_
+        
+        return df_, drive_tank_, strip_, partial_
         
 
              
@@ -2250,6 +2349,9 @@ class DischargingOperations(object):
         
         plan_, tanks_ = {}, []
         wt_ = 0.0
+        
+        
+            
         for d_ in stowageDetails:
             tank_ = self.vessel.info['tankId'][d_['tankId']]
             tanks_.append(tank_)

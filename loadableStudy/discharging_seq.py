@@ -23,7 +23,7 @@ class Discharging_seq:
         self.last_plan = None
    
     
-    def _stage(self, info, cargo, cargo_order):
+    def _stage(self, info, cargo, cargo_order, final_event = 0):
         ##print(info['stage'])
         
         # EVENTS = ["initialCondition", "floodSeparator", "warmPumps",
@@ -60,7 +60,7 @@ class Discharging_seq:
         info["simDeballatingRatePerTankM3_Hr"] = [{}]
         
         info["Cleaning"] = {"TopClean":[], "BtmClean":[], "FullClean":[]}
-        # info["eduction"] = {}
+        info["stripping"] = []
         
         if info['stage'] == 'initialCondition':
             # print('----', info['stage'])
@@ -372,6 +372,9 @@ class Discharging_seq:
             if len(self.plans.input.discharging.info['cow_tanks'][cargo_order]) > 0:
                 info['stage'] = 'COWStripping'
             
+            if len(self.plans.input.discharging.seq[cargo]['stripTanks']) > 0:
+                info['stage'] = 'COWStripping'
+            
             start_ = int(self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][0] + start_time_ + self.delay)
             end_   = int(self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
             info["timeStart"] = str(start_)
@@ -398,7 +401,10 @@ class Discharging_seq:
                 time_ = self.plans.input.discharging.seq[cargo]['reduceRate']['C'+str(l_)]['Time']
                 # print(k_, time_, np.diff(vol_))
                 
-                rate_ = (vol_[0]-vol_[-1])/time_*60
+                if time_ > 0:
+                    rate_ = (vol_[0]-vol_[-1])/time_*60
+                else:
+                    rate_ = 0.
                 
                 end_time_ = int(float(info['timeStart'])) + time_
                     
@@ -485,14 +491,20 @@ class Discharging_seq:
             end_   = int(60*2 + self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
             info["timeStart"] = str(start_)
             info["timeEnd"] = str(end_)
+            
+            if self.plans.input.discharging.drive_tank:
+                print('slopDischarge')
+                tank_ = self.plans.input.discharging.drive_tank['tank']
+                info['stripping'].append({'tankShortName':tank_, 
+                                          'tankId':self.plans.input.vessel.info['tankName'][tank_],
+                                          "timeStart":str(start_),
+                                          "timeEnd":str(end_)})
         
         elif info['stage'] == 'finalStripping':
-            start_ = int(60*2 + self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
-            end_   = int(60*3 + self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
+            start_ = int(60*(final_event-1) + self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
+            end_   = int(60*final_event + self.plans.input.discharging.seq[cargo]['stageInterval']['stripping'][1] + start_time_ + self.delay)
             info["timeStart"] = str(start_)
             info["timeEnd"] = str(end_)
-        
-        
         
         else:
             print(info['stage'])
