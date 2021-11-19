@@ -1498,7 +1498,7 @@ class Generate_plan:
                     info1_.pop('iniDeballastingRateM3_Hr')
                     info1_.pop('iniBallastingRateM3_Hr')
                         
-                if info1_['stage'] == 'COWStripping' or self.input.discharging.seq[cargo_+str(c__)]['stripTanks']:
+                if info1_['stage'] == 'COWStripping' and self.input.discharging.seq[cargo_+str(c__)]['stripTanks']:
                     self._get_COW(info1_, cargo_+str(c__), c__+1)
                     
                 
