@@ -339,7 +339,7 @@ class Process_input(object):
         self.base_draft = {}
         self.sf_base_value, self.sf_draft_corr, self.sf_trim_corr = {}, {}, {}
         self.bm_base_value, self.bm_draft_corr, self.bm_trim_corr = {}, {}, {}
-        self.sf_bm_frac = 0.95 ##
+        self.sf_bm_frac = self.config.get('sf_bm_frac',0.95)  ##
         
         for p_ in range(1, self.loadable['lastVirtualPort']+1):  # exact to virtual
             # print(p_)

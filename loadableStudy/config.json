@@ -143,6 +143,7 @@
       },
       "rob_change": 200,
       "solver": "AMPL",
+      "sf_bm_frac": 0.95,
       "sym_vol_tanks": [
         [
           "1P",
@@ -293,6 +294,7 @@
       },
       "rob_change": 200,
       "solver": "AMPL",
+      "sf_bm_frac": 0.95,
       "sym_vol_tanks": [
         [
           "1P",
