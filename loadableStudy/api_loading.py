@@ -169,13 +169,21 @@ def loadicator1(data, limits):
             
             # max permissible draft
             max_draft_ = max([float(u_["forwardDraft"]), float(u_["afterDraft"]), mid_ship_draft_]) 
-            if limits['limits']['draft']['maxDraft'] < max_draft_:
+            
+            if data['module'] == 'LOADING':
+                limit_draft_ = limits['limits']['draft']['maxDraft']
+                limit_air_draft_ = limits['limits']['maxAirDraft']
+            elif data['module'] == 'DISCHARGING': 
+                limit_draft_ = limits['limits']['draft'][str(data['portId'])]
+                limit_air_draft_ = limits['limits']['airDraft'][str(data['portId'])]
+                
+            if limit_draft_ < max_draft_:
                 info_['judgement'].append('Failed max permissible draft check ('+ "{:.2f}".format(max_draft_) +'m)!')
             # loadline 
             if limits['limits']['draft']['loadline'] < max_draft_:
                 info_['judgement'].append('Failed loadline check ('+ "{:.2f}".format(max_draft_) +'m)!')
             # airDraft
-            if limits['limits']['maxAirDraft'] < float(info_['airDraft']) :
+            if limit_air_draft_ < float(info_['airDraft']) :
                 info_['judgement'].append('Failed airdraft check ('+ "{:.2f}".format(float(info_['airDraft'])) +'m)!')
             
             
@@ -252,13 +260,22 @@ def loadicator1(data, limits):
             # max permissible draft
             # max_draft_ = max([float(u_["forwardDraft"]), float(u_["afterDraft"]), mid_ship_draft_]) 
             max_draft_ = max([float(u_["foreDraftValue"]), float(u_["aftDraftValue"]), mid_ship_draft_]) 
-            if limits['limits']['draft']['maxDraft'] < max_draft_:
+            if data['module'] == 'LOADING':
+                limit_draft_ = limits['limits']['draft']['maxDraft']
+                limit_air_draft_ = limits['limits']['maxAirDraft']
+            elif data['module'] == 'DISCHARGING': 
+                limit_draft_ = limits['limits']['draft'][str(data['portId'])]
+                limit_air_draft_ = limits['limits']['airDraft'][str(data['portId'])]
+                
+            
+            
+            if limit_draft_ < max_draft_:
                 info_['judgement'].append('Failed max permissible draft check ('+ "{:.2f}".format(max_draft_) +'m)!')
             # loadline 
             if limits['limits']['draft']['loadline'] < max_draft_:
                 info_['judgement'].append('Failed loadline check ('+ "{:.2f}".format(max_draft_) +'m)!')
             # airDraft
-            if limits['limits']['maxAirDraft'] < float(info_['airDraft']) :
+            if limit_air_draft_ < float(info_['airDraft']) :
                 info_['judgement'].append('Failed airdraft check ('+ "{:.2f}".format(float(info_['airDraft'])) +'m)!')
             
             # SF
