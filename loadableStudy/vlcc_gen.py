@@ -1536,7 +1536,7 @@ class Generate_plan:
         
         data["plans"] = {'arrival':discharging_seq.initial_plan, 'departure':discharging_seq.final_plan}
         data["stages"] = discharging_seq.stages
-        data["dischargingInformation"] = None #self.input.loading_information
+        data["dischargingInformation"] = self.input.discharging_information
         
         data['message'] = {'limits':self.input.limits}
         
