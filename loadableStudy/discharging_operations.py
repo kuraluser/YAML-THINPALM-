@@ -10,6 +10,7 @@ from vlcc_gen import Generate_plan
 from vlcc_check import Check_plans
 from copy import deepcopy
 import pandas as pd
+from scipy.interpolate import interp1d
 # from discharge_init import Process_input1
 
 INITIAL_RATE = 1000
@@ -71,6 +72,12 @@ class DischargingOperations(object):
         cargo_info_['ballast'] = []
         self._get_ballast(data.discharge_json['planDetails']['arrivalCondition']['dischargePlanBallastDetails'], cargo_info_)
         self._get_ballast(data.discharge_json['planDetails']['departureCondition']['dischargePlanBallastDetails'], cargo_info_)
+        self._get_eduction(cargo_info_)
+        
+        tank_ = [t_ for t_ in cargo_info_['tankToBallast'] if t_[0] == 'W' ]
+        # self.num_pump = 1 if (len(cargo_info_['tankToBallast']) + len(cargo_info_['tankToDeballast']) <= 4) else 2
+        self.num_pump = 1 if (len(tank_) <= 4) else 2
+        print('num ballast pump:', self.num_pump)
         
         self.discharging_rate = {}
         
@@ -123,6 +130,7 @@ class DischargingOperations(object):
         cargo_info_['density'], cargo_info_['api'], cargo_info_['temperature'] = {}, {}, {}
         cargo_info_['cargoId'], cargo_info_['colorCode'], cargo_info_['abbreviation'] = {}, {}, {}
         cargo_info_['commingle'] = {}
+        cargo_info_['cargo_pump'] = {}
         
         cargoDetails_ = data.discharging_info_json['dischargeQuantityCargoDetails']
         
@@ -294,39 +302,87 @@ class DischargingOperations(object):
         
         
         print('strip_tanks:', cargo_info_['stripping_tanks'])
+        self._get_COW_tanks(cargo_info_)
+        print('collect cow_tanks:', cargo_info_['cow_tanks'])
         self.info = cargo_info_
         ## discharging_order1 and discharging_order dsCargoNomination 
         
         
-    def _get_cow(self, cargo_info):
+    def _get_COW_tanks(self, cargo_info):
+        TANKS_TO_COW = ['3C','1C','2C','4C','5C']
+        cargo_info['cow_tanks'] = {1: [], 2: [], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[], 9:[]}
         
-        NUM_COW = 5
-        cargo_info['cow_tanks'] = {}
-        cargo_info['drive_tanks'] = {}
-        n_cows_ = 0
+        for t_ in TANKS_TO_COW:
+            for k_, v_ in cargo_info['stripping_tanks'].items():
+                if t_ in v_:
+                    cargo_info['cow_tanks'][k_].append(t_)
+                    
+                    
             
-        for k_, v_ in cargo_info['stripping_tanks'].items():
-            cargo_info['cow_tanks'][k_] = []
             
-            if 'SLS' in v_ and 'SLP' in v_:
-                cargo_info['drive_tanks'][k_] = 'SLP'
-            elif 'SLS' in v_:
-                cargo_info['drive_tanks'][k_] = 'SLS'
-            elif 'SLP' in v_:
-                cargo_info['drive_tanks'][k_] = 'SLP'
-            else:
-                cargo_info['drive_tanks'][k_] = None
+            
+        
+    def _get_eduction(self, cargo_info_):
+
+        cargo_info_['tankToBallast'] = []
+        cargo_info_['tankToDeballast'] = []
+        cargo_info_['eduction'] = []
+        
+        for k_, v_ in cargo_info_['ballast'][0].items():
+            initial_ = v_[0]['quantityMT']
+            final_ = cargo_info_['ballast'][1].get(k_, [{'quantityMT':0.}])[0]['quantityMT']
+            # print(initial_,  final_, k_)
+            if initial_ - final_ > 0. and k_ not in cargo_info_['tankToDeballast']:
+                # print('tankToDeballast', initial_,  final_, k_)
+                cargo_info_['tankToDeballast'].append(k_)
+                if final_ == 0.:
+                    cargo_info_['eduction'].append(k_)
+                    
+            elif initial_ - final_ < 0. and k_ not in cargo_info_['tankToBallast']:
+                # print('tankToBallast', initial_,  final_, k_)
+                cargo_info_['tankToBallast'].append(k_)
+                
+        for k_, v_ in cargo_info_['ballast'][1].items():
+            final_ = v_[0]['quantityMT']
+            initial_ = cargo_info_['ballast'][0].get(k_, [{'quantityMT':0.}])[0]['quantityMT']
+            # print(initial_,  final_, k_)
+            if initial_ - final_ > 0. and k_ not in cargo_info_['tankToDeballast']:
+                # print('tankToDeballast', initial_,  final_, k_)
+                cargo_info_['tankToDeballast'].append(k_)
+            elif initial_ - final_ < 0. and k_ not in cargo_info_['tankToBallast']:
+                # print('tankToBallast', initial_,  final_, k_)
+                cargo_info_['tankToBallast'].append(k_)
+                
+                
+    # def _get_cow(self, cargo_info):
+        
+    #     NUM_COW = 5
+    #     cargo_info['cow_tanks'] = {}
+    #     cargo_info['drive_tanks'] = {}
+    #     n_cows_ = 0
+            
+    #     for k_, v_ in cargo_info['stripping_tanks'].items():
+    #         cargo_info['cow_tanks'][k_] = []
+            
+    #         if 'SLS' in v_ and 'SLP' in v_:
+    #             cargo_info['drive_tanks'][k_] = 'SLP'
+    #         elif 'SLS' in v_:
+    #             cargo_info['drive_tanks'][k_] = 'SLS'
+    #         elif 'SLP' in v_:
+    #             cargo_info['drive_tanks'][k_] = 'SLP'
+    #         else:
+    #             cargo_info['drive_tanks'][k_] = None
                 
                 
                 
-            # print(k_, v_)
-            for t_ in v_:
-                if t_[-1] not in ['C'] and t_ not in ['SLS', 'SLP']:
-                    if n_cows_ <= NUM_COW:
-                        cargo_info['cow_tanks'][k_] += [t_[0]+'P', t_[0]+'S']
-                else:
-                    if n_cows_ <= NUM_COW and t_ not in cargo_info['cow_tanks'][k_]:
-                        cargo_info['cow_tanks'][k_] += [t_]
+    #         # print(k_, v_)
+    #         for t_ in v_:
+    #             if t_[-1] not in ['C'] and t_ not in ['SLS', 'SLP']:
+    #                 if n_cows_ <= NUM_COW:
+    #                     cargo_info['cow_tanks'][k_] += [t_[0]+'P', t_[0]+'S']
+    #             else:
+    #                 if n_cows_ <= NUM_COW and t_ not in cargo_info['cow_tanks'][k_]:
+    #                     cargo_info['cow_tanks'][k_] += [t_]
   
     def _gen_stripping(self):
         # INDEX = self.config["gantt_chart_index"]
@@ -341,7 +397,9 @@ class DischargingOperations(object):
         TIME_INC_RATE = 15# 15000m3/hr: 45mins 10000-15000m3/hr: 30mins 5000-10000m3/hr: 15mins
 
         
-        
+        ## manually set which tanks to COW at each stage
+#        self.info['cow_tanks'] = {1: [], 2: ['1P','3P','1S','3S'], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
+        print('cow tanks', self.info['cow_tanks'])
         self.seq = {}
         
         start_time_ = 0 # 
@@ -394,6 +452,14 @@ class DischargingOperations(object):
             total_tank_ = len(tanks_)
             print(tanks_)
             
+            # ----------------------------------------------------
+            direct_cargo_pump_ = []
+            for t_ in tanks_:
+                cp_ = self.vessel.info['tankCargoPump'][t_]
+                if cp_ not in direct_cargo_pump_:
+                    direct_cargo_pump_.append(cp_)
+                    
+            
             # initial rate ---------------------------------
             # 20 min
             df_['InitialRate'] =  df_['Initial']
@@ -426,6 +492,27 @@ class DischargingOperations(object):
             # max_rate_ = 10000
             print('max rate:', max_rate_ )
             
+            # direct_rate_ = 5500*len(direct_cargo_pump_)
+            # if direct_rate_
+            num_pump_ = np.ceil(max_rate_/5500)
+            add_pump_ = []
+            if len(direct_cargo_pump_) > num_pump_:
+                # need to remove pump
+                exit()
+            elif len(direct_cargo_pump_) < num_pump_:
+                # need to add
+                add_pump_ = set(['COP1', 'COP2', 'COP3']) - set(direct_cargo_pump_)
+                cargo_pump_ = list(direct_cargo_pump_)
+                for pp_ in ['COP1', 'COP2', 'COP3']:
+                    if pp_ in add_pump_ and len(cargo_pump_) < num_pump_:
+                        cargo_pump_.append(pp_)
+                        
+            else:
+                cargo_pump_ = direct_cargo_pump_
+                
+            print('direct cargo pump:', direct_cargo_pump_)    
+            print('cargo pump:', cargo_pump_)    
+   
             discharging_rate_ = (INITIAL_RATE + max_rate_)/2
             
             discharging_rate_per_tank_ = discharging_rate_/total_tank_
@@ -469,6 +556,7 @@ class DischargingOperations(object):
                 tank_ = drive_tank_['tank']
                 vol_ = cow_strip_['C1'][tank_][1]
                 cow_strip_['AmtBefStrip'][tank_] = df_init_[tank_]  - vol_
+                drive_tank_['driveVol'] = vol_
                 
                 
             cow_strip_['LoadingRateM3Min'] = (cow_strip_['AmtBefStrip']- df_inc_max_['VolRemoved'])/time_taken_
@@ -613,14 +701,65 @@ class DischargingOperations(object):
             self.seq[cargo_to_discharge_+str(p__)]['driveTank'] = drive_tank_
             self.seq[cargo_to_discharge_+str(p__)]['stripTanks'] = strip_
             self.seq[cargo_to_discharge_+str(p__)]['partialTanks'] = partial_
+            self.seq[cargo_to_discharge_+str(p__)]['reduceRate1'] = REDUCED_RATE
+            
+            self.seq[cargo_to_discharge_+str(p__)]['directCargoPump'] = direct_cargo_pump_
+            self.seq[cargo_to_discharge_+str(p__)]['cargoPump'] = cargo_pump_
+            self.seq[cargo_to_discharge_+str(p__)]['indirectPump'] = list(add_pump_)
             
             
-            
-                       
+            # get end of COP
+            self._end_COP(cargo_to_discharge_+str(p__))
+            print(self.seq[cargo_to_discharge_+str(p__)]['COPendTime1'])
+          
             start_time_ += df_[ss_]['Time']
             
             print(df_.columns.to_list()[3:]) # 'MaxLoading1', 'MaxLoading2', ...
             print(start_time_-df_[ss_]['Time'], start_time_)
+            
+            
+    
+            
+    
+    
+    def _end_COP(self, cargo):
+        
+        self.seq[cargo]['COPendTime'] = {}
+        self.seq[cargo]['COPendTime1'] = {'COP1':0, 'COP2':0, 'COP3':0}
+        type_ = []
+        
+        time_ = self.seq[cargo]['gantt'].loc['Time'].to_list()
+        end_time_   = {cp_: [] for cp_ in self.seq[cargo]['cargoPump']}
+        # indir_time_ = {cp_: self.seq[cargo]['timeNeeded'] for cp_ in self.seq[cargo]['indirectPump']}
+        
+        for t_ in self.seq[cargo]['tanks']:
+            vol_ = [l_[1] for l_ in self.seq[cargo]['gantt'].loc[t_].to_list()]
+            min_vol_ = self.vessel.info['ullage2mVol'][t_]  # to shut indirect pump
+            pump_ = self.vessel.info['tankCargoPump'][t_]
+            
+            if min_vol_ < vol_[-1]:
+                ## partial with above 2m
+                end_time_[pump_].append(self.seq[cargo]['timeNeeded'])
+                indir_pump_ = set(self.seq[cargo]['cargoPump']) - set([pump_])
+                for pp_ in indir_pump_:
+                    if pp_ in end_time_:
+                        end_time_[pp_].append(self.seq[cargo]['timeNeeded'])
+                
+            else:
+                ifunc_ = interp1d(vol_, time_)
+                time1_ = int(ifunc_(self.vessel.info['ullage2mVol'][t_]).round())
+                
+                end_time_[pump_].append(self.seq[cargo]['timeNeeded'])
+                
+                indir_pump_ = set(self.seq[cargo]['cargoPump']) - set([pump_])
+                for pp_ in indir_pump_:
+                    if pp_ in end_time_:
+                        end_time_[pp_].append(time1_)
+                        
+                    
+                
+        for k_, v_ in   end_time_.items():
+            self.seq[cargo]['COPendTime1'][k_] = int(max(v_))
             
             
    
@@ -632,8 +771,10 @@ class DischargingOperations(object):
                        '4P':161.3, '4S':161.3, '5P':110.04, '5S':110.04, 'SLP':3.1, 'SLS':3.1}
         
         ##
-        #self.info['cow_tanks'] = {1: [], 2: ['1P', '3P', '3S', '1S'], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
-        self.info['cow_tanks'] = {1: [], 2: [], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
+        ####self.info['cow_tanks'] = {1: [], 2: ['1P', '3P', '3S', '1S'], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
+        ### self.info['cow_tanks'] = {1: [], 2: [], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
+        # change on line 403
+
         self.info['sorted_cow'] = {1: [], 2: [], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
         
         
@@ -894,6 +1035,9 @@ class DischargingOperations(object):
                 if strip_tank_ in [drive_tank_.get('tank', None)]:
                     # print('Drive tank:', t_)
                     s4_ = 1
+                elif strip_tank_ in ['SLS', 'SLP']:
+                    # finish discharging before reducing rate
+                    pass
                 elif len(strip_tank_) == 1:
                     tank__ += [strip_tank_+'P', strip_tank_+'S']
                     tank_strip_ += 2
@@ -905,6 +1049,14 @@ class DischargingOperations(object):
                 if strip_tank_ in [drive_tank_.get('tank', None)]:
                     # print('Drive tank:', t_)
                     pass
+                
+                elif strip_tank_ in ['SLS', 'SLP']:
+                    t4_ = strip_tank_
+                    # no discharging for strip tank
+                    parcel_ = df_['C'+str(s2_+s4_)][t4_][0]
+                    vol_ = df_['C'+str(s2_+s4_)][t4_][1]
+                    for s_ in range(s2_-1+s4_,0,-1):
+                        df_['C'+str(s_)][t4_] = (parcel_,vol_)
                 else:
                     
                     rate_ = discharging_rate_[s2_-2+s4_]
@@ -917,11 +1069,10 @@ class DischargingOperations(object):
                                                     df_['C'+str(s2_+s4_)][t4_][1]+discharging_rate_per_tank_*add_time_/60)
                     
                     
-            ss_ = s2_ - 1+s4_
+            ss_ = s2_ - 1 + s4_
             for s1_, s2_ in enumerate(range(ss_, 1, -1)):
                 rate_ = discharging_rate_[s2_-2]
-                # print(s2_, rate_)
-                tanks_ = [t4_ for t4_ in tanks if df_['C'+str(s2_)][t4_][1] > 0. and t4_ not in  [drive_tank_.get('tank', None)]]
+                tanks_ = [t4_ for t4_ in tanks if df_['C'+str(s2_)][t4_][1] > 0. and t4_ not in  [drive_tank_.get('tank', None), 'SLS', 'SLP']]
                 discharging_rate_per_tank_ = rate_/len(tanks_)
                 add_time_ = df_['C'+str(s2_)]['Time'] - df_['C'+str(s2_-1)]['Time']
                 
@@ -936,19 +1087,7 @@ class DischargingOperations(object):
             df_['TotalVol'][k_] = v_[0]['quantityM3']
         
         
-        # # # check
-        # c1_, c2_ = 'C1', 'C2'
-        # vol_ = 0.
-        # for k_, (i_, j_) in enumerate(df_.iterrows()):
-        #     print(k_, i_, j_[c1_], j_[c2_])
-        #     if k_ == 0:
-        #         time_ = j_[c2_] - j_[c1_]
-        #     elif j_[c2_] not in [None]:
-        #         # print(j_[c2_][1], j_[c1_][1])
-        #         vol_ += (j_[c1_][1] - j_[c2_][1])
-        # print(vol_/time_*60)
-        # self.drive_tank = drive_tank_
-        
+       
         return df_, drive_tank_, strip_, partial_
         
 

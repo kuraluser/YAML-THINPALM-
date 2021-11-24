@@ -1440,6 +1440,10 @@ class Generate_plan:
             info_["sequence"] = []
             first_cargo_ = c__ == 0
             
+            info_ ["driveTank"] = self.input.discharging.seq[cargo_+str(c__)]['driveTank'].get('tank', "")
+            gravity_ = self.input.first_discharge_port and first_cargo_ 
+            print('gravity:', gravity_)
+            
             
             
             for e__, e_ in enumerate(EVENTS):
@@ -1449,8 +1453,9 @@ class Generate_plan:
                 
                 if e_ == 'initialCondition' and first_cargo_:
                     self.gTimeStart = int(info1_['timeStart'])
-                else:
+                elif e_ == 'initialCondition' and (not gravity_):
                     self.gTimeStart = -1
+                    
                 
                 
                 if e_ in ['dischargingAtMaxRate']:
@@ -1483,11 +1488,11 @@ class Generate_plan:
                         info_['sequence'][d__+1]['simBallastingRateM3_Hr'] = [info2_['simIniBallastingRateM3_Hr']]
                         
                         
-                        # self._get_ballast(info_['sequence'][d__+1], info1_, first_cargo_)
+                        self._get_ballast(info_['sequence'][d__+1], info1_, first_cargo_, deballast = False)
                         
                         
                     
-                    # self._get_ballast1(info1_, first_cargo_, c_)
+                    self._get_ballast2(info1_, first_cargo_, c_)
                     
                     # print(info1_['stageEndTime'])
                     # self._get_eduction(info1_, c_)
@@ -1498,8 +1503,11 @@ class Generate_plan:
                     info1_.pop('iniDeballastingRateM3_Hr')
                     info1_.pop('iniBallastingRateM3_Hr')
                         
-                if info1_['stage'] == 'COWStripping' and self.input.discharging.seq[cargo_+str(c__)]['stripTanks']:
+                if info1_['stage'] == 'COWStripping' :
                     self._get_COW(info1_, cargo_+str(c__), c__+1)
+                    
+                if info1_['stage'] in ['COWStripping', 'reducedRate' ]:
+                    self._get_ballast2(info1_, first_cargo_, c_)
                     
                 
                 info_["sequence"].append(info1_)
@@ -1541,11 +1549,17 @@ class Generate_plan:
         
         tank_ = self.input.discharging.info['stripping_tanks'][cargo_order]
         cow_tanks_ = []
-        for k_, v_ in self.input.discharging.info['cow_tanks'].items():
-            cow_tanks_ += v_
+        for k_ in self.input.discharging.info['cow_tanks'][cargo_order]:
+            if k_ in tank_:
+                cow_tanks_.append(k_)
+            
+        # print('cow:', cow_tanks_)     
+        # print('strip:', tank_)
             
         drive_tank_ = self.input.discharging.seq[cargo]['driveTank'].get('tank', None)
         # time_ = {}
+        
+        min_start_, max_end_ = 100000, 0
         
         for t_ in tank_:
             info_ = {'tankShortName':t_, 'tankId':self.input.vessel.info['tankName'][t_]}
@@ -1564,6 +1578,8 @@ class Generate_plan:
                 end_ = start_ + 20
             
             # print(t_, time__, start_, end_)
+            min_start_ = min(min_start_, start_)
+            max_end_ = max(max_end_, end_)
             
             info_["timeStart"] = str(start_)
             info_["timeEnd"] = str(end_)
@@ -1572,6 +1588,17 @@ class Generate_plan:
                 out['Cleaning']['FullClean'].append(info_)
             elif t_ not in [drive_tank_]:
                 out['stripping'].append(info_)
+                
+        if len(cow_tanks_) > 0:
+            print('open TCP')
+            id_ = self.input.vessel.info['cargoPumpId']['TCP']['id']
+            out["cargo"][id_] = [{"rateM3_Hr": "",
+                                     "quantityM3": "",
+                                     "timeStart": str(min_start_-30),
+                                      "timeEnd": str(max_end_)}]
+        
+                
+            
     
     ## for LOADING ------------------------------------------------------------------------------------------
     def gen_json1(self, constraints, stability_values):
@@ -1960,13 +1987,240 @@ class Generate_plan:
             
         # print(out['ballast']['Gravity'])        
 
-
+    def _get_ballast2(self, out, gravity, cargo):
+        # pass
+        if self.gTimeStart > 0:
+            timeStart_ = max(int(out['timeStart']), self.gTimeStart)
+        else:
+            timeStart_ = int(out['timeStart'])
+        
+        # educt_ = self.input.loading.seq[cargo].get('eduction', (None,None))
+        
+        # if educt_ not in [(None, None)]:
+        #     ballast_time_ = educt_[0]
+        #     eduction_stage_ = int(educt_[1][10:])
+        # else:
+        #     eduction_stage_ = 10000
+        
+        for d__, d_ in enumerate(out['totBallastingRateM3_Hr']):
+            ballast_ = float(d_)
+            
+            if d__ < len(out['dischargePlanPortWiseDetails']):
+                timeEnd_ = int(out['dischargePlanPortWiseDetails'][d__]['time'])
+            else:
+                timeEnd_ = int(out['timeEnd'])
+                
+            pump_ = self._get_pump(timeEnd_, gravity)    
+            
+            # print(d__+1, timeStart_, timeEnd_, pump_)
+            
+            
+            if d__ == 0:
+                out['ballast']['Gravity'] = []
+                out['ballast']['BP1'] = []
+                out['ballast']['BP2'] = []
+                
+            
+            ## gravity
+            end_gravity_ = pump_.get('Gravity', 0.)
+            time_gr_ = end_gravity_ - timeStart_
+            amt_ = ballast_* time_gr_/60.
+            if time_gr_ > 0.:
+                info_ = {'timeStart': str(timeStart_), 'timeEnd': str(end_gravity_),
+                         "rateM3_Hr": str(round(ballast_,2)),
+                         "quantityM3": str(round(amt_))}
+            else:
+                info_ = {'timeStart': str(timeStart_), 'timeEnd': str(timeEnd_),
+                         "rateM3_Hr": str("0.00"),
+                         "quantityM3": str(0)}
+                
+            out['ballast']['Gravity'].append(info_)
+            
+            ## pump 1 ----------------------------------------------------
+            timeStart1_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
+            end_bp1_ = pump_.get('BP1', 0.)
+            
+            # if eduction_stage_ == d__+1:
+            #     timeEnd1_ = timeStart1_ + ballast_time_
+            # else:
+            timeEnd1_ = timeEnd_
+            
+            time_ = min(timeEnd1_, end_bp1_) - timeStart1_
+            amt_ = ballast_/self.input.discharging.num_pump* time_/60.
+            
+            
+            ## patch empty slots
+            if len(out['ballast']['BP1']) > 0:
+                pre_ = int(out['ballast']['BP1'][-1]['timeEnd'])
+                
+                if pre_ < timeStart1_:
+                    info_ = {'timeStart': str(pre_), 'timeEnd': str(timeStart1_),
+                             "rateM3_Hr": str("0.00"),
+                             "quantityM3": str(0)}
+                    
+                    if info_ not in out['ballast']['BP1']:
+                        out['ballast']['BP1'].append(info_)
+                
+            
+            
+            # print('BP', time_)
+            
+            if time_ > 0.:
+                info_ = {'timeStart': str(timeStart1_), 'timeEnd': str(timeEnd1_),
+                         "rateM3_Hr": str(round(ballast_/self.input.discharging.num_pump,2)),
+                         "quantityM3": str(round(amt_))}
+            else:
+                info_ = {'timeStart': str(timeStart_), 'timeEnd': str(timeEnd_),
+                         "rateM3_Hr": str("0.00"),
+                         "quantityM3": str(0)}
+                
+            if info_ not in out['ballast']['BP1']:
+                out['ballast']['BP1'].append(info_)
+            
+            if timeEnd1_ < timeEnd_:
+                
+                info_ = {'timeStart': str(timeEnd1_), 'timeEnd': str(timeEnd_),
+                         "rateM3_Hr": str("0.00"),
+                         "quantityM3": str(0)}
+                
+                if info_ not in out['ballast']['BP1']:
+                    out['ballast']['BP1'].append(info_)
+            
+            if self.input.discharging.num_pump > 1:
+            ## pump 2 ----------------------------------------------------
+                timeStart2_ = timeStart_ if time_gr_ < 0 else end_gravity_ 
+                end_bp2_ = pump_.get('BP2', 0.)
+                
+                # if eduction_stage_ == d__+1:
+                #     timeEnd2_ = timeStart2_ + ballast_time_
+                # else:
+                timeEnd2_ = timeEnd_
+                
+                time_ = min(timeEnd2_, end_bp2_) - timeStart2_
+                amt_ = ballast_/self.input.discharging.num_pump* time_/60.
+                
+                
+                ## patch empty slots
+                if len(out['ballast']['BP2']) > 0:
+                    pre_ = int(out['ballast']['BP2'][-1]['timeEnd'])
+                    
+                    if pre_ < timeStart2_:
+                        info_ = {'timeStart': str(pre_), 'timeEnd': str(timeStart2_),
+                                 "rateM3_Hr": str("0.00"),
+                                 "quantityM3": str(0)}
+                        if info_ not in out['ballast']['BP2']:
+                            out['ballast']['BP2'].append(info_)
+                    
+                
+                
+                if time_ > 0.:
+                    info_ = {'timeStart': str(timeStart2_), 'timeEnd': str(timeEnd2_),
+                             "rateM3_Hr": str(round(ballast_/self.input.discharging.num_pump,2)),
+                             "quantityM3": str(round(amt_))}
+                else:
+                    info_ = {'timeStart': str(timeStart_), 'timeEnd': str(timeEnd_),
+                             "rateM3_Hr": str("0.00"),
+                             "quantityM3": str(0)}
+                
+                if info_ not in out['ballast']['BP2']:
+                    out['ballast']['BP2'].append(info_)
+                
+                if timeEnd2_ < timeEnd_:
+                    info_ = {'timeStart': str(timeEnd2_), 'timeEnd': str(timeEnd_),
+                             "rateM3_Hr": str("0.00"),
+                             "quantityM3": str(0)}
+                    
+                    if info_ not in out['ballast']['BP2']:
+                        out['ballast']['BP2'].append(info_)
+            
+            timeStart_ = timeEnd_
+            
+        ## change ballast name to ballastId
+        if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
+            bp1_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP1']['pumpId']
+            out['ballast'][bp1_] = out['ballast'].pop('BP1')
+        
+        if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
+            bp2_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP2']['pumpId']
+            out['ballast'][bp2_] = out['ballast'].pop('BP2')
+        
+        # dictionary[new_key] = dictionary.pop(old_key)
+        # print(out['ballast']['Gravity'])
+        last_ = -1
+        for l__, l_ in enumerate(out['ballast']['Gravity']):
+            if float(l_['quantityM3']) > 0:
+                last_ = l__
+                
+        if len(out['ballast']['Gravity']) > 0:
+            out['ballast']['Gravity'] = out['ballast']['Gravity'][:(last_+1)]
 
         
     def _get_pump(self, timeEnd_, gravity):
         
         if gravity:
-            if self.input.loading.max_loading_rate > 15000:
+            
+            
+            if self.input.module in ['DISCHARGING']:
+                # gravity for 2 hr
+                if timeEnd_ <= self.gTimeStart + 2*60:
+                    pump_ = {'Gravity':timeEnd_}
+                else:
+                    pump_ = {'Gravity': self.gTimeStart +2*60}
+                    if self.input.discharging.num_pump == 1:
+                        pump_['BP1'] = timeEnd_
+                    elif self.input.discharging.num_pump == 2:
+                        pump_['BP1'] = timeEnd_
+                        pump_['BP2'] = timeEnd_
+                
+            elif self.input.module in ['LOADING']:
+            
+            
+                if self.input.loading.max_loading_rate > 15000:
+                    # pump only
+                    pump_ = {'Gravity':0}
+                    if self.input.loading.num_pump == 1:
+                        pump_['BP1'] = timeEnd_
+                    elif self.input.loading.num_pump == 2:
+                        pump_['BP1'] = timeEnd_
+                        pump_['BP2'] = timeEnd_
+                        
+                elif self.input.loading.max_loading_rate > 10000:
+                    # gravity for 2 hr
+                    if timeEnd_ <= self.gTimeStart + 2*60:
+                        pump_ = {'Gravity':timeEnd_}
+                    else:
+                        pump_ = {'Gravity': self.gTimeStart +2*60}
+                        if self.input.loading.num_pump == 1:
+                            pump_['BP1'] = timeEnd_
+                        elif self.input.loading.num_pump == 2:
+                            pump_['BP1'] = timeEnd_
+                            pump_['BP2'] = timeEnd_
+                else:
+                    # gravity for 4 hr
+                    if timeEnd_ <= self.gTimeStart + 4*60:
+                        pump_ = {'Gravity':timeEnd_}
+                    else:
+                        pump_ = {'Gravity': self.gTimeStart +4*60}
+                        if self.input.loading.num_pump == 1:
+                            pump_['BP1'] = timeEnd_
+                        elif self.input.loading.num_pump == 2:
+                            pump_['BP1'] = timeEnd_
+                            pump_['BP2'] = timeEnd_
+                        
+                    
+        else:
+            
+            if self.input.module in ['DISCHARGING']:
+                # pump only
+                pump_ = {'Gravity':0}
+                if self.input.discharging.num_pump == 1:
+                    pump_['BP1'] = timeEnd_
+                elif self.input.discharging.num_pump == 2:
+                    pump_['BP1'] = timeEnd_
+                    pump_['BP2'] = timeEnd_
+                
+            elif self.input.module in ['LOADING']:
+            
                 # pump only
                 pump_ = {'Gravity':0}
                 if self.input.loading.num_pump == 1:
@@ -1974,44 +2228,11 @@ class Generate_plan:
                 elif self.input.loading.num_pump == 2:
                     pump_['BP1'] = timeEnd_
                     pump_['BP2'] = timeEnd_
-                    
-            elif self.input.loading.max_loading_rate > 10000:
-                # gravity for 2 hr
-                if timeEnd_ <= self.gTimeStart + 2*60:
-                    pump_ = {'Gravity':timeEnd_}
-                else:
-                    pump_ = {'Gravity': self.gTimeStart +2*60}
-                    if self.input.loading.num_pump == 1:
-                        pump_['BP1'] = timeEnd_
-                    elif self.input.loading.num_pump == 2:
-                        pump_['BP1'] = timeEnd_
-                        pump_['BP2'] = timeEnd_
-            else:
-                # gravity for 4 hr
-                if timeEnd_ <= self.gTimeStart + 4*60:
-                    pump_ = {'Gravity':timeEnd_}
-                else:
-                    pump_ = {'Gravity': self.gTimeStart +4*60}
-                    if self.input.loading.num_pump == 1:
-                        pump_['BP1'] = timeEnd_
-                    elif self.input.loading.num_pump == 2:
-                        pump_['BP1'] = timeEnd_
-                        pump_['BP2'] = timeEnd_
-                        
-                    
-        else:
-            # pump only
-            pump_ = {'Gravity':0}
-            if self.input.loading.num_pump == 1:
-                pump_['BP1'] = timeEnd_
-            elif self.input.loading.num_pump == 2:
-                pump_['BP1'] = timeEnd_
-                pump_['BP2'] = timeEnd_
-        
+            
         
         return pump_
         
-    def _get_ballast(self, out, data, gravity):
+    def _get_ballast(self, out, data, gravity, deballast = True):
         
         # for stages before maxloadingrate
         # print(out)
@@ -2022,11 +2243,17 @@ class Generate_plan:
         pump_ = self._get_pump(timeEnd_, gravity)    
             
         # print(out['stage'], pump_)
+        if deballast:
+            rate__ = 'iniTotDeballastingRateM3_Hr'
+        else:
+            rate__ = 'iniTotBallastingRateM3_Hr'
+            
+        
         
         for k_, v_ in pump_.items():
             
             time_ = v_ - int(out['timeStart'])
-            rate_ = float(data['iniTotDeballastingRateM3_Hr'])
+            rate_ = float(data[rate__])
             amt_ = rate_*time_/60.
             
             if k_ == 'Gravity' and v_ > 0:
@@ -2061,7 +2288,7 @@ class Generate_plan:
         
     
     
-    ## for discharge study
+    ## for discharge study --------------------------------------------------------------------------------------
     def gen_json2(self, constraints, stability_values):
         data = {}
         data['message'] = None

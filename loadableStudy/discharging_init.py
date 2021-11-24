@@ -28,7 +28,7 @@ class Process_input(object):
         for p__, p_ in enumerate(data['discharging']['planPortWiseDetails']):
             if p_['portId'] == self.port_id:
                 self.discharge_json['planDetails'] = p_
-                # self.first_discharge_port = True if p__ == 0 else False
+                self.first_discharge_port = True if p__ == 0 else False
                 
                 
         #

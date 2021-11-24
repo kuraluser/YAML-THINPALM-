@@ -150,6 +150,13 @@ class Vessel:
         for k_ in ['SLP', 'SLS']:
             k1_ = str(vessel_info_['tankName'][k_])
             vessel_info_['ullage16mVol'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](16)),3)
+            
+        vessel_info_['ullage2mVol'] = {}
+        for k_ in vessel_info_['cargoTanks']:
+            k1_ = str(vessel_info_['tankName'][k_])
+            u1_ = vessel_info_['ullageEmpty'][k1_] - 2
+            vessel_info_['ullage2mVol'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](u1_)),3)
+            ## to 3m for High vapor vargo
          
         
         # self._get_ullage_corr(vessel_info_, vessel_json['ullageTrimCorrections'])
@@ -354,7 +361,28 @@ class Vessel:
                     
                     vessel_info_['vesselPumps']['ballastEductor'][d_['pumpName']] = {k_:v_ for k_, v_ in d_.items() if k_ not in ['pumpName']}
                     vessel_info_['vesselPumps']['ballastEductorId'][d_['pumpId']] = d_['pumpName']
+                    
             
+            vessel_info_['cargoPump'], vessel_info_['tankCargoPump'] = {}, {}
+            if vessel_json.get('vesselPumpTankMappings', []):
+                for l_ in vessel_json['vesselPumpTankMappings']:
+                    
+                    pump_ = l_['vesselPump']['pumpName']
+                    vessel_info_['cargoPump'][pump_] = []
+                    for l__ in l_['vesselPump']['vesselTanks']:
+                        vessel_info_['cargoPump'][pump_].append(l__['shortName'])
+                        vessel_info_['tankCargoPump'][l__['shortName']] = pump_
+                        
+            cargo_pumps_ = ['COP1','COP2','COP3','TCP', 'STP']
+            vessel_info_['cargoPumpId'] = {}
+            for p_ in vessel_json.get('vesselPumps', []):
+                if p_['pumpCode'] in cargo_pumps_:
+                    vessel_info_['cargoPumpId'][p_['pumpCode']] = {'id':p_['pumpId']}
+                    
+            if len(vessel_info_['cargoPumpId']) != len(cargo_pumps_):
+                inputs.error['Cargo Pump Error'] = ["Missing cargo pumps!!"]
+                    
+           
         self.info = vessel_info_     
         
         if not Path(vessel_info_['name']+'.pickle').is_file():

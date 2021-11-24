@@ -150,8 +150,8 @@ class Process_input1(object):
             if p_ == self.loadable.info['lastVirtualPort'] and cargo_weight_ > 100:
                 # last port dep
                 self.full_discharge = False
-                self.trim_lower[str(self.loadable.info['lastVirtualPort'])] = - 1e-4
-                self.trim_upper[str(self.loadable.info['lastVirtualPort'])] = 1e-4
+                #self.trim_lower[str(self.loadable.info['lastVirtualPort'])] = - 1e-4
+                #self.trim_upper[str(self.loadable.info['lastVirtualPort'])] = 1e-4
                 
                 
                 

@@ -705,7 +705,7 @@ subject to Constr163 {p in P_stable}: LCBp[p] = (<<{s in 1..pwLCB-1} bLCB[s]; {s
 subject to Constr164 {p in P_stable}: MTCp[p] = (<<{s in 1..pwMTC-1} bMTC[s]; {s in 1..pwMTC} mMTC[s]>> displacement1[p])*densitySeaWater[p]/1.025 + adjMTC ;
 
 subject to Constr16a {p in P_stable}: MTCp[p]*trim_lower[p]*100 <= L_mom[p] - LCBp[p] ;
-#subject to Constr16b {p in P_stable}: L_mom[p] - LCBp[p] <= MTCp[p]*trim_upper[p]*100;
+subject to Constr16b {p in P_stable}: L_mom[p] - LCBp[p] <= MTCp[p]*trim_upper[p]*100;
 
 ## SF and BM 
 
