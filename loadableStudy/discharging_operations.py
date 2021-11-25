@@ -791,7 +791,7 @@ class DischargingOperations(object):
         
         
         drive_tank_ = {}
-        if self.info['cow_tanks'][port+1]:
+        if self.info['cow_tanks'][port+1] or strip_:
             print('Drive tank needed!!')
             tank_in_ = self.info['cargo_tank'][cargo_to_discharge]
             
@@ -808,7 +808,7 @@ class DischargingOperations(object):
                 print('Not supported yet!!')
                 exit()
             
-            drive_tank_['departVol'] = self.info['cargo_plans'][port+1][drive_tank_['tank']][0]['quantityMT']
+            drive_tank_['departVol'] = self.info['cargo_plans'][port+1][drive_tank_['tank']][0]['quantityM3']
             
         ##
                 

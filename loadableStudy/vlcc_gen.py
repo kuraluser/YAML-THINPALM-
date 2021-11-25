@@ -1523,10 +1523,13 @@ class Generate_plan:
                         info_["sequence"].append(info1_)
                         
                     elif self.input.discharging.seq[cargo_+str(c__)]['driveTank']:
-                        e1_ += 1
-                        info1_ = {"stage": e_}
-                        discharging_seq._stage(info1_, cargo_+str(c__), c__+1, final_event = e1_)
-                        info_["sequence"].append(info1_)
+                        departVol_ = self.input.discharging.seq[cargo_+str(c__)]['driveTank']['departVol']
+                        # driveVol_ = self.input.discharging.seq[cargo_+str(c__)]['driveTank']['driveVol']
+                        if departVol_ == 0:
+                            e1_ += 1
+                            info1_ = {"stage": e_}
+                            discharging_seq._stage(info1_, cargo_+str(c__), c__+1, final_event = e1_)
+                            info_["sequence"].append(info1_)
                     
                 
                 
