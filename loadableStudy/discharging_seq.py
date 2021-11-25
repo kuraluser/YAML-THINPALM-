@@ -773,7 +773,7 @@ class Discharging_seq:
             info_['api'] = None 
             info_['temperature'] = None
             info_['ullage'] = str(round(self.plans.input.vessel.info['ullageEmpty'][str(info_['tankId'])],3))
-
+            
             parcel_ = self.plans.input.discharging.info['tank_cargo'].get(k_, None)
             
             if parcel_:
@@ -793,7 +793,9 @@ class Discharging_seq:
                 info_['colorCode'] = None
                 info_['cargoAbbreviation'] = None
                 info_['abbreviation'] = None
-
+                
+                
+            
             plan["dischargePlanStowageDetails"].append(info_)
             
                 
