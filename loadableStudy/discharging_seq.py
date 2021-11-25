@@ -773,13 +773,27 @@ class Discharging_seq:
             info_['api'] = None 
             info_['temperature'] = None
             info_['ullage'] = str(round(self.plans.input.vessel.info['ullageEmpty'][str(info_['tankId'])],3))
-            info_['cargoNominationId'] = None
+
+            parcel_ = self.plans.input.discharging.info['tank_cargo'].get(k_, None)
             
-            info_['cargoId'] = None
-            info_['colorCode'] = None
-            info_['cargoAbbreviation'] = None
-            info_['abbreviation'] = None
-            
+            if parcel_:
+                info_['cargoNominationId'] = int(parcel_[1:])
+                info_['dsCargoNominationId'] = int(self.plans.input.discharging.info['cargoNominationId'][parcel_][1:])
+                    
+                
+                info_['cargoId'] = self.plans.input.discharging.info['cargoId'][parcel_]
+                info_['colorCode'] = self.plans.input.discharging.info['colorCode'][parcel_]
+                info_['cargoAbbreviation'] = self.plans.input.discharging.info['abbreviation'][parcel_]
+                info_['abbreviation'] = self.plans.input.discharging.info['abbreviation'][parcel_]
+            else:
+                info_['cargoNominationId'] = None
+                info_['dsCargoNominationId'] = None
+                
+                info_['cargoId'] = None
+                info_['colorCode'] = None
+                info_['cargoAbbreviation'] = None
+                info_['abbreviation'] = None
+
             plan["dischargePlanStowageDetails"].append(info_)
             
                 
