@@ -1589,7 +1589,7 @@ class Generate_plan:
             elif t_ not in [drive_tank_]:
                 out['stripping'].append(info_)
                 
-        if len(cow_tanks_) > 0:
+        if len(tank_) > 0:
             print('open TCP')
             id_ = self.input.vessel.info['cargoPumpId']['TCP']['id']
             out["cargo"][id_] = [{"rateM3_Hr": "",
