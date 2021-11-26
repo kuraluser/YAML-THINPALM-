@@ -117,7 +117,7 @@ class Check_plans:
                 if self.input.module in ['LOADABLE'] and self.reballast:
                     for q_ in  self.input.vessel.info['loading'] + [self.input.loadable.info['lastVirtualPort']-1]:
                         trim__  = round(float(stability_[str(q_)]['trim']),2)
-                        if trim__ > 0.01 or trim__ < -0.01:
+                        if (trim__ > 0.01 or trim__ < -0.01) and (self.input.loadable.info['toLoadPort'][q_] > 0):
                             print('Rebalancing needed:', q_, trim__)
                             # input("Press Enter to continue...")
                             

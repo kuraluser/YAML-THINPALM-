@@ -454,11 +454,15 @@ class DischargingOperations(object):
             
             # ----------------------------------------------------
             direct_cargo_pump_ = []
+            direct_cargo_tank_pump_ = {}
+            
             for t_ in tanks_:
                 cp_ = self.vessel.info['tankCargoPump'][t_]
                 if cp_ not in direct_cargo_pump_:
                     direct_cargo_pump_.append(cp_)
-                    
+                    direct_cargo_tank_pump_[cp_] = 1
+                else:
+                    direct_cargo_tank_pump_[cp_] += 1
             
             # initial rate ---------------------------------
             # 20 min
@@ -498,7 +502,18 @@ class DischargingOperations(object):
             add_pump_ = []
             if len(direct_cargo_pump_) > num_pump_:
                 # need to remove pump
-                exit()
+                mincp_, min_ = 0, 1000
+                while True:
+                    for k_, v_  in direct_cargo_tank_pump_.items():
+                        if v_ < min_:
+                            mincp_ = k_
+                            min_ = v_
+                            
+                    del direct_cargo_tank_pump_[mincp_]                    
+                    if num_pump_ == len(direct_cargo_tank_pump_):
+                        cargo_pump_ = list(direct_cargo_tank_pump_.keys())
+                        break
+  
             elif len(direct_cargo_pump_) < num_pump_:
                 # need to add
                 add_pump_ = set(['COP1', 'COP2', 'COP3']) - set(direct_cargo_pump_)
@@ -739,7 +754,9 @@ class DischargingOperations(object):
             
             if min_vol_ < vol_[-1]:
                 ## partial with above 2m
-                end_time_[pump_].append(self.seq[cargo]['timeNeeded'])
+                if pump_ in end_time_:
+                    end_time_[pump_].append(self.seq[cargo]['timeNeeded'])
+
                 indir_pump_ = set(self.seq[cargo]['cargoPump']) - set([pump_])
                 for pp_ in indir_pump_:
                     if pp_ in end_time_:
@@ -749,8 +766,9 @@ class DischargingOperations(object):
                 ifunc_ = interp1d(vol_, time_)
                 time1_ = int(ifunc_(self.vessel.info['ullage2mVol'][t_]).round())
                 
-                end_time_[pump_].append(self.seq[cargo]['timeNeeded'])
-                
+                if pump_ in end_time_:
+                    end_time_[pump_].append(self.seq[cargo]['timeNeeded'])
+
                 indir_pump_ = set(self.seq[cargo]['cargoPump']) - set([pump_])
                 for pp_ in indir_pump_:
                     if pp_ in end_time_:

@@ -256,7 +256,7 @@ class Process_input1(object):
         print('base draft:', self.base_draft)
         
         
-    def write_dat_file(self, file = 'input_discharge.dat', IIS = True):
+    def write_dat_file(self, file = 'input_discharge.dat', IIS = True, lcg_port = None, weight = None):
         
         if not self.error and self.solver in ['AMPL']: #and self.mode not in ['FullManual']:
         
@@ -840,6 +840,21 @@ class Process_input1(object):
                         str1 += i_ + ' ' +  "{:.4f}".format(j_['lcg']) + ' '
                 print(str1+';', file=text_file)   
                 
+                print('# LCGs for cargo tanks', file=text_file)
+                str1 = 'param LCGtport := '
+                print(str1, file=text_file)
+                for i_, j_ in self.vessel.info['cargoTanks'].items():
+                    str1 = '['+ i_ + ',*] = '
+                    for k1_,v1_ in self.loadable.info['virtualArrDepPort'].items():
+                        if v1_ != '1A':
+                            if lcg_port in [None]:
+                                lcg_ = j_['lcg']
+                            else:
+                                lcg_ = lcg_port.get(k1_, {}).get(i_, j_['lcg'])
+                            str1 += str(k1_) + ' ' + "{:.4f}".format(lcg_) + ' '
+                                    
+                    print(str1, file=text_file)
+                print(';', file=text_file)
                 
                 self.vessel.info['TCGt'] = {}
                 print('# TCGs of tanks', file=text_file)
