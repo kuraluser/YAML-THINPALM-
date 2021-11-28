@@ -129,7 +129,7 @@ class Check_plans:
                         
                         if (trim__ > upper_limit_ or trim__ < lower_limit_) :
                             print('Rebalancing needed:', q_, trim__, lower_limit_, upper_limit_)
-                            input("Press Enter to continue...")
+                            # input("Press Enter to continue...")
                              
                             cur_plan_ = {'constraint':[], "message":[], "rotation":[[]]}
                             for kk_ in ['ship_status', 'obj', 'operation', 'cargo_status', 'slop_qty', 'cargo_order', 'loading_hrs', 'topping', 'loading_rate', 'cargo_tank']:
