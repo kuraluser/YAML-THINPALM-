@@ -28,8 +28,10 @@ class Process_input1(object):
         self.discharge_json = {'cargoNomination': data['discharge']['cargoNomination'],
                               'cargoOperation': data['discharge']['cargoNominationOperationDetails'],
                               'commingleCargo': data['discharge'].get('commingleCargos',[]),
-                              'arrivalPlan': data['discharge'].get('loadablePlanPortWiseDetails',{})
+                              'arrivalPlan': data['discharge'].get('loadablePlanPortWiseDetails',{}),
+                              'cowHistory': data['discharge'].get('cowHistory', [])
                               }
+
         
         self.user = data['discharge'].get('user', None)
         self.role = data['discharge'].get('role', None)                              
@@ -76,6 +78,7 @@ class Process_input1(object):
             self.vessel.info['onboard'] = {}
             self.vessel._set_preloaded(self) # change tankId to tankName for preloaded
             
+            self.loadable._get_COW(self) # get COW
             self.get_stability_param()
             
         
@@ -101,6 +104,7 @@ class Process_input1(object):
         self.trim_upper[str(self.loadable.info['lastVirtualPort'])] = 3.0
         
         self.limits = {'draft':{}}
+        
         self.limits['draft']['loadline'] = loadline_
         self.limits['draft'] = {**self.limits['draft'], **{k_[:-1]:v_  for k_, v_ in self.port.info['maxDraft'].items()}}
         self.limits['operationId'] = {k_:str(v_)[-1] for k_, v_ in self.port.info['portRotationId'].items()}
@@ -111,7 +115,10 @@ class Process_input1(object):
         self.limits['voyageId'] = self.voyage_id
         self.limits['airDraft'] = {k_[:-1]:v_  for k_, v_ in self.port.info['maxAirDraft'].items()} 
         self.limits['portOrderId'] = self.port.info['portOrderId']
-
+        
+        
+      
+        
         
         self.full_discharge = True
         
@@ -150,8 +157,8 @@ class Process_input1(object):
             if p_ == self.loadable.info['lastVirtualPort'] and cargo_weight_ > 100:
                 # last port dep
                 self.full_discharge = False
-                #self.trim_lower[str(self.loadable.info['lastVirtualPort'])] = - 1e-4
-                #self.trim_upper[str(self.loadable.info['lastVirtualPort'])] = 1e-4
+                # self.trim_lower[str(self.loadable.info['lastVirtualPort'])] = - 1e-4
+                # self.trim_upper[str(self.loadable.info['lastVirtualPort'])] = 1e-4
                 
                 
                 
@@ -170,14 +177,33 @@ class Process_input1(object):
              ## lower bound displacement
             lower_draft_limit_ = min_draft_limit_ #max(self.ports.draft_airdraft[p_], min_draft_limit_)
             lower_displacement_limit_ = np.interp(lower_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
+            ###
+            est_draft__ =  np.interp(est_displacement_,  self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
+            # print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
+            # print(self.trim_lower.get(str(p_),-0.0001), self.trim_upper.get(str(p_),0.0001))
+            
             # correct displacement to port seawater density
             lower_displacement_limit_  = lower_displacement_limit_*seawater_density_/1.025
             
             # disp1_ = lower_displacement_limit_*1.025/seawater_density_
             # d1_ = np.interp(disp1_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
             # print(port__,d1_,seawater_density_,disp1_,lower_displacement_limit_)
-            
-            est_displacement_ = max(lower_displacement_limit_, est_displacement_)   
+            trim_ = self.trim_lower.get(str(p_),.0)
+            if est_draft__ > lower_draft_limit_:
+                est_displacement_ = max(lower_displacement_limit_, est_displacement_)   
+            # elif est_draft__ + trim_/2 > lower_draft_limit_:
+            #     print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
+            #     print(self.trim_lower.get(str(p_),-0.0001), self.trim_upper.get(str(p_),0.0001))
+            #     lower_displacement_limit_ = est_displacement_-1
+                
+               
+            else:
+                 
+                trim_ = 2*(min_draft_limit_ - est_draft__)
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = round(trim_,2)+0.01, min(3.49, trim_ + 0.3)
+                lower_displacement_limit_ = est_displacement_-500
+                print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
+                print(p_, trim_)
 #            
            
             ## upper bound displacement
@@ -214,7 +240,7 @@ class Process_input1(object):
             est_draft_ = np.interp(est_displacement_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
             
             # base draft for BM and SF
-            trim_ = 0.5*(self.trim_lower.get(str(p_),2.0) + self.trim_upper.get(str(p_),2.5))
+            trim_ = 0.5*(self.trim_lower.get(str(p_),0.0) + self.trim_upper.get(str(p_),0.0))
             base_draft__ = int(np.floor(est_draft_+trim_/2))
             base_draft_ = base_draft__ if p_  == 1 else min(base_draft__, self.base_draft[str(p_-1)])
             self.base_draft[str(p_)] = base_draft_
@@ -757,7 +783,7 @@ class Process_input1(object):
                 for k_  in self.config['ban_ballast_discharge']:
                     str1 +=  str(k_)  + ' ' 
                 print(str1+';', file=text_file)
-                
+                               
                 # print('# first loading Port',file=text_file)#
                 # str1 = 'param firstloadingPort := ' #+ self.loadable.info['arrDepVirtualPort']['1D']
                 # print(str1+';', file=text_file)
@@ -855,7 +881,7 @@ class Process_input1(object):
                                     
                     print(str1, file=text_file)
                 print(';', file=text_file)
-                
+                 
                 self.vessel.info['TCGt'] = {}
                 print('# TCGs of tanks', file=text_file)
                 str1 = 'param TCGt := '

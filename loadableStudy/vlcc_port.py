@@ -58,7 +58,10 @@ class Port:
         ports_info_['portRotationId'] = {}
         ports_info_['portRotationId1'] = {}
         
-        
+        ports_info_['cargoSeq'] = {}
+        ports_info_['maxEmptyTanks'] = {}
+        ports_info_['cowType'] = {}
+
         port_details_ = {}
         for p__, p_ in enumerate(inputs.port_json['portDetails']):
             port_details_[p_['id']] = {'densitySeaWater':p_['densitySeaWater'],
@@ -120,6 +123,12 @@ class Port:
             ## berth info
         
         ports_info_['numPort'] = len(ports_info_['portRotation'])
+        for k_, v_ in ports_info_['cowType'].items():
+            if v_ not in [0,1]:
+                if 'Cow Type Error' not in inputs.error.keys():
+                    inputs.error['Cow Type Error'] = ['Manual COW at port  ' + str(k_[:-1]) + ' not supported yet!!']
+                else:
+                    inputs.error['Cow Type Error'].append('Manual COW at port  ' + str(k_[:-1]) + ' not supported yet!!')
         
 #        print(ports_info_['portOrder'])
         # arrival and departure ports for ballast synchronize

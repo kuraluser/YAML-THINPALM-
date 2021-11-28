@@ -2293,6 +2293,8 @@ class Generate_plan:
     
     ## for discharge study --------------------------------------------------------------------------------------
     def gen_json2(self, constraints, stability_values):
+        # self.cow_tanks = []
+        self.cow_tanks_remain = list(self.input.loadable.info['toCow'])
         data = {}
         data['message'] = None
         data['processId'] = self.input.process_id
@@ -2361,10 +2363,23 @@ class Generate_plan:
                 plan_['departureCondition']["dischargePlanRoBDetails"] = self._get_status(s_, str(p__+1)+'D', 'robStatus')
                 # get loadableQuantityCommingleCargoDetails
                 # plan_['departureCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'D', 'commingleStatus')
+                plan_['cowTanks'] = []
+                nonempty_tanks_ = [i_['tankShortName'] for i_ in plan_['departureCondition']["dischargePlanStowageDetails"]]
+                empty_tanks_ = set(self.input.vessel.info['cargoTanks'].keys()) - set(nonempty_tanks_)
+                # print(empty_tanks_)
+                for t_ in empty_tanks_:
+                    if t_ in self.cow_tanks_remain:
+                        plan_['cowTanks'].append(t_)
+                        self.cow_tanks_remain.remove(t_)
+                        
+                
                 plan['dischargePlanPortWiseDetails'].append(plan_)
                 
             data['dischargePlanDetails'].append(plan)
         data['message'] = {'limits':self.input.limits}
+        if len(self.cow_tanks_remain) > 0:
+            print('Non empty cow tanks:', self.cow_tanks_remain)
+ 
         
         
         return data

@@ -448,13 +448,17 @@ class Process_input(object):
             # correct displacement to port seawater density
             lower_displacement_limit_  = lower_displacement_limit_*seawater_density_/1.025
             
-            # disp1_ = lower_displacement_limit_*1.025/seawater_density_
-            # d1_ = np.interp(disp1_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
-            # print(port__,d1_,seawater_density_,disp1_,lower_displacement_limit_)
+            est_draft__ =  np.interp(est_displacement_,  self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
+            # trim_ = self.trim_lower.get(str(p_),-0.0001)
+            if est_draft__ > lower_draft_limit_:
+                est_displacement_ = max(lower_displacement_limit_, est_displacement_)   
+            else: 
+                trim_ = 2*(min_draft_limit_ - est_draft__)
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = round(trim_,2), min(3.49, trim_ + 1)
+                lower_displacement_limit_ = est_displacement_-2000
+                print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
+                print(p_, trim_)
             
-            est_displacement_ = max(lower_displacement_limit_, est_displacement_)   
-#            
-           
             ## upper bound displacement
             upper_draft_limit_ = min(loadline_, self.port.info['portRotation'][port_code_]['maxDraft']) - 0.001
             # check uplimit not exceeed for min load
@@ -1719,7 +1723,7 @@ class Process_input(object):
                 if self.config['loadableConfig']:
                     str1 = 'param runtimeLimit := ' + str(self.config['loadableConfig']['timeLimit'])
                 else:
-                    str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 25))
+                    str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 60))
                 print(str1+';', file=text_file)
                 
                 

@@ -65,7 +65,7 @@ class Check_plans:
                     
                     print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],5))
                     print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
-                    
+                    print('da:', result.get('da', 0))
                     stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
                                       'meanDraft': "{:.2f}".format(result['dm']),
                                       'afterDraft': "{:.2f}".format(result['da']),
@@ -117,10 +117,20 @@ class Check_plans:
                 if self.input.module in ['LOADABLE'] and self.reballast:
                     for q_ in  self.input.vessel.info['loading'] + [self.input.loadable.info['lastVirtualPort']-1]:
                         trim__  = round(float(stability_[str(q_)]['trim']),2)
-                        if (trim__ > 0.01 or trim__ < -0.01) and (self.input.loadable.info['toLoadPort'][q_] > 0):
-                            print('Rebalancing needed:', q_, trim__)
-                            # input("Press Enter to continue...")
+                        if round(self.input.trim_lower.get(str(q_), -0.01),2) == 0:
+                            lower_limit_ = -0.01
+                        else:
+                            lower_limit_ = round(self.input.trim_lower.get(str(q_), -0.01),2)
                             
+                        if round(self.input.trim_upper.get(str(q_), 0.01),2) == 0:
+                            upper_limit_ = 0.01
+                        else:
+                            upper_limit_ = round(self.input.trim_upper.get(str(q_), 0.01),2)
+                        
+                        if (trim__ > upper_limit_ or trim__ < lower_limit_) :
+                            print('Rebalancing needed:', q_, trim__, lower_limit_, upper_limit_)
+                            input("Press Enter to continue...")
+                             
                             cur_plan_ = {'constraint':[], "message":[], "rotation":[[]]}
                             for kk_ in ['ship_status', 'obj', 'operation', 'cargo_status', 'slop_qty', 'cargo_order', 'loading_hrs', 'topping', 'loading_rate', 'cargo_tank']:
                                 cur_plan_[kk_] = [outputs.plans[kk_][p__]]
@@ -237,6 +247,7 @@ class Check_plans:
                 
                 print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],5))
                 print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
+                print('da:', result.get('da', 0))
                 
                 stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
                                   'meanDraft': "{:.2f}".format(result['dm']),
@@ -340,7 +351,7 @@ class Check_plans:
             total_[type_] +=  v_[0]['wt']
             disp_ += v_[0]['wt']
                 
-                
+        # print(l_mom_)        
         result['disp'] =  disp_
         result['wt'] = total_
         result['tcg_mom'] = t_mom_
@@ -523,7 +534,8 @@ class Check_plans:
                 # print(f_, round(da_,3), round(W_[f__],3),round(sb_,3), round(BM_[f__]/1000,3), BM_percent[f__])
                 
                 # print(f_, ss_ ,sb_)
-                # print(f_ ,SF_[f__]/1000,BM_[f__]/1000)
+                #print(f_ ,SF_[f__]/1000,BM_[f__]/1000)
+                # print(f_,  sdraft_ )
     #            
     #        
             

@@ -8,6 +8,7 @@ DEC_PLACE = 3
 import numpy as np
 import itertools
 
+from datetime import datetime
 class Loadable:
     def __init__(self, inputs):
         
@@ -718,8 +719,8 @@ class Loadable:
             
             virtual_order_ = 2*(int(order_)-1) + 1
            
-            cargos_info_['toDischargePort'][int(virtual_order_)] -= qty_
-            cargos_info_['operation'][parcel_][virtual_order_] = -qty_
+            cargos_info_['toDischargePort'][int(virtual_order_)] -= round(qty_,1)
+            cargos_info_['operation'][parcel_][virtual_order_] = -round(qty_,1)
             
             
         cargos_info_['numParcel'] = len(self.info['parcel'])
@@ -747,8 +748,8 @@ class Loadable:
                     cargos_info_['preloadOperation'][parcel_] = {}
                     cargos_info_['preload'][parcel_]  = 0
                     
-                cargos_info_['preloadOperation'][parcel_][tank_] = wt_
-                cargos_info_['preload'][parcel_]  += wt_
+                cargos_info_['preloadOperation'][parcel_][tank_] = round(wt_,1)
+                cargos_info_['preload'][parcel_]  += round(wt_,1)
             
         
         cargos_info_['ballastOperation'] = {}
@@ -1014,4 +1015,50 @@ class Loadable:
     
         # return loading_plan_,  ballast_plan_
 
+    def _get_COW(self,inputs):
+        
+        cow_history_ = inputs.discharge_json['cowHistory']
+        
+        if cow_history_ not in [None]:
+            dateList_ = [l_["voyageEndDate"] for l_ in cow_history_]
+            tanks_ = [inputs.vessel.info['tankId'][l_["tankId"]] for l_ in cow_history_]
+            ind_ = sorted(range(len(dateList_)), key = dateList_.__getitem__)
+        
+        else:
+            dateList_,tanks_,ind_ = [], [], []
+        
+        
+        self.info['toCow'] = ['3C']
+        available_tanks_ = ['1', '1C', '2', '2C', '3', '4', '4C', '4', '4C', '5', '5C', 'SLP', 'SLS']
+        
+        for i_ in range(len(ind_)):
+            t_ = tanks_[ind_[i_]]
+            if t_[-1] in ['C'] or t_ in ['SLS', 'SLP']:
+                pass
+            else:
+                t_ = t_[0]
+            if t_ in available_tanks_:    
+                available_tanks_.remove(t_)
+            
+        print(available_tanks_)
+        
+        num_ = 1
+        while num_ <= 4:
+            t_ = available_tanks_.pop(0)
+            if t_[-1] in ['C'] or t_ in ['SLS', 'SLP']:
+                t_ = [t_]
+                num_ += 1
+            else:
+                t_ = [t_+'P', t_+'S']
+                num_ += 2
+                
+            self.info['toCow'] += t_
+            
+        print(self.info['toCow'])
+                
+            
+        
+        
+        
+   
         
