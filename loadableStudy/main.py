@@ -380,8 +380,13 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
     
     if data.get('loadableStudyProcessId', None):
         process_id_ = data['loadableStudyProcessId']
+        
+    elif data.get("dischargeStudyProcessId", None):
+        process_id_ = data["dischargeStudyProcessId"]
+        
     else:
         process_id_ = data['processId']
+#        print(process_id_)
         
     
     query = users.select().where(users.c.id == process_id_)
@@ -389,7 +394,7 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
     #out['status'] = await database.fetch_val(query,column=3)
     result = await database.fetch_val(query,column=2)
     
-    #print(result['message'])
+    # print(result['message'])
     limits = result['message']
     
     module_ = data.get('module', 'LOADABLE')
@@ -397,6 +402,7 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
     print(module_)
     
     if module_ in ['DISCHARGE']:    
+        print('DISCHARGE')
         out = loadicator(data, limits)
     
     elif module_ in ['LOADABLE']:    
