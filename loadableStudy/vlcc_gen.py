@@ -1595,7 +1595,7 @@ class Generate_plan:
         if len(tank_) > 0:
             print('open TCP')
             id_ = self.input.vessel.info['cargoPumpId']['TCP']['id']
-            out["cargo"][id_] = [{"rateM3_Hr": "",
+            out["TCP"][id_] = [{"rateM3_Hr": "",
                                      "quantityM3": "",
                                      "timeStart": str(min_start_-30),
                                       "timeEnd": str(max_end_)}]

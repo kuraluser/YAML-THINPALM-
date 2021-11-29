@@ -54,6 +54,7 @@ class Discharging_seq:
         info["cargoDischargingRatePerTankM3_Hr"] = []
         info["cargoDischargingRateM3_Hr"] = {}
         info["ballast"] = {}
+        info["TCP"] = {}
         info["cargo"] = {}
         info["simCargoDischargingRatePerTankM3_Hr"] = [{}]
         info["simBallastingRatePerTankM3_Hr"] = [{}]
