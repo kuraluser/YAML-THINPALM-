@@ -80,7 +80,7 @@ class Discharging_seq:
             if cargo_order == 1:
                 self._get_plan(plan_)
             else:
-                plan_ = {k_: v_ for k_, v_ in self.last_plan.items() if k_ in ['time', 'loadableQuantityCommingleCargoDetails', 'loadablePlanStowageDetails', 'loadablePlanBallastDetails', 'loadablePlanRoBDetails', 'ballastVol', 'cargoVol', 'foreDraft', 'meanDraft', 'afterDraft', 'trim', 'heel', 'airDraft', 'bendinMoment', 'shearForce']}
+                plan_ = {k_: v_ for k_, v_ in self.last_plan.items() if k_ in ['time', 'dischargeQuantityCommingleCargoDetails', 'dischargePlanStowageDetails', 'dischargePlanBallastDetails', 'dischargePlanRoBDetails', 'ballastVol', 'cargoVol', 'foreDraft', 'meanDraft', 'afterDraft', 'trim', 'heel', 'airDraft', 'bendinMoment', 'shearForce']}
             
             plan_['time'] = info["timeEnd"]
             info['dischargePlanPortWiseDetails'].append(plan_)
