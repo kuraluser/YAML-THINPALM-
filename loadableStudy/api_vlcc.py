@@ -151,8 +151,9 @@ def loadicator(data, limits):
         
         results_ =  data['loadicatorPatternDetail']
         fail_SF_, fail_BM_ = False, False
+        last_depart_ = len(results_['ldTrim'])
         
-        for u_, v_ in zip(results_['ldTrim'],results_['ldStrength']):
+        for n_, (u_, v_) in enumerate(zip(results_['ldTrim'],results_['ldStrength'])):
             assert u_['portId'] == v_['portId']
             info_ = {}
             info_['portId'] = int(u_['portId'])
@@ -189,9 +190,10 @@ def loadicator(data, limits):
             if data['module'] in ['LOADABLE']:
                 
                 # trim
-                if (float(u_["trimValue"]) < limits['limits']['trimLimit'][0]) or (float(u_["trimValue"]) > limits['limits']['trimLimit'][1]):
-                    info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trimValue"])) +'m)!')
-                    
+                if (0 < n_ < last_depart_-1) and (info_['operationId'] in [1,2]):
+                    if (float(u_["trimValue"]) < limits['limits']['trimLimit'][0]) or (float(u_["trimValue"]) > limits['limits']['trimLimit'][1]):
+                        info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trimValue"])) +'m)!')
+                        
                 # list
                 if u_["heelValue"] not in [None and ""]:
                     if (float(u_["heelValue"]) < limits['limits']['listLimit'][0]) or (float(u_["heelValue"]) > limits['limits']['listLimit'][1]):
@@ -254,11 +256,14 @@ def loadicator(data, limits):
         
         fail_BMSF_ = 0
         
-        for p_ in data['loadicatorPatternDetails']:
+        for p_ in data['loadicatorPatternDetails']: # number of plans
             out_ = {"loadablePatternId":p_["loadablePatternId"], 'loadicatorResultDetails':[]}
             
             fail_SF_, fail_BM_ = False, False
-            for u_, v_ in zip(p_['ldTrim'],p_['ldStrength']):
+            last_depart_ = len(p_['ldTrim'])
+            # print('last depart:', last_depart_ )
+            for n_, (u_, v_) in enumerate(zip(p_['ldTrim'],p_['ldStrength'])):
+                # print(n_)
                 assert u_['portId'] == v_['portId']
                 info_ = {}
                 info_['portId'] = int(u_['portId'])
@@ -296,9 +301,10 @@ def loadicator(data, limits):
                 if data['module'] in ['LOADABLE']:
                 
                     # trim
-                    if (float(u_["trimValue"]) < limits['limits']['trimLimit'][0]) or (float(u_["trimValue"]) > limits['limits']['trimLimit'][1]):
-                        info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trimValue"])) +'m)!')
-                        
+                    if (0 < n_ < last_depart_-1) and (info_['operationId'] in [1,2]):
+                        if (float(u_["trimValue"]) < limits['limits']['trimLimit'][0]) or (float(u_["trimValue"]) > limits['limits']['trimLimit'][1]):
+                            info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trimValue"])) +'m)!')
+                       
                     # list
                     if u_["heelValue"] not in [None and ""]:
                         if (float(u_["heelValue"]) < limits['limits']['listLimit'][0]) or (float(u_["heelValue"]) > limits['limits']['listLimit'][1]):

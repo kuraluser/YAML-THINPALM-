@@ -97,8 +97,8 @@ class Port:
                 ports_info_['portRotation'][code_]['portRotationId'] = p_['id']
                 
                 
-                if inputs.module == 'LOADABLE':
-                    ports_info_['portRotation'][code_]['maxDraft'] = p_['maxDraft'] - float(inputs.draftsag)/400
+                # if inputs.module == 'LOADABLE':
+                #    ports_info_['portRotation'][code_]['maxDraft'] = p_['maxDraft'] - float(inputs.draftsag)/400
                 
                 ports_info_['portOrder'][str(p_['portOrder'])] = code_
                 ports_info_['idPortOrder'][str(portId_)] = str(p_['portOrder']) # id:order

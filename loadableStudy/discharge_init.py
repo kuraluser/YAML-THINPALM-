@@ -169,9 +169,9 @@ class Process_input1(object):
             seawater_density_ = self.port.info['portRotation'][port_code_]['seawaterDensity']
             
             
-            # if p_ == self.loadable.info['lastVirtualPort'] and self.full_discharge:
-            #    min_draft_limit_ -= 2
-            #    print('last virtual port:', p_, min_draft_limit_)
+            #if p_ == self.loadable.info['lastVirtualPort'] and self.full_discharge:
+            #   min_draft_limit_ -= 2
+            #   print('last virtual port:', p_, min_draft_limit_)
                 
             
              ## lower bound displacement
