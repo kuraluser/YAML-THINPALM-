@@ -46,8 +46,7 @@ class Process_input(object):
         #                             "machineryInUses":data['discharging']['loadingInformation']["machineryInUses"]
         #                             }
         
-        self.discharging_information = { "machineryInUses":data['discharging']['dischargeInformation']["machineryInUses"]
-                                    }
+        self.discharging_information = data['discharging']['dischargeInformation']
         
         self.config = data['config']
         self.error = {}
