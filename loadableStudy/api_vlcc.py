@@ -372,14 +372,14 @@ def loadicator(data, limits):
         ## feedback loop
         out['feedbackLoop'] = False
         out['feedbackLoopCount'] = limits['limits'].get('feedback', {}).get('feedbackLoopCount', 0)
-        out['sfbmFac'] = limits['limits']['sfbm']
+        out['sfbmFac'] = limits['limits'].get('sfbm', 0.95)
         
         # print('do')
     elif data.get('module', None) in ['LOADABLE']:
         print('Rerun!!')
         out['feedbackLoop'] = True
         out['feedbackLoopCount'] = limits['limits']['feedback']['feedbackLoopCount'] + 1
-        out['sfbmFac'] = limits['limits']['sfbm'] - 0.05
+        out['sfbmFac'] = limits['limits'].get('sfbm', 0.95) - 0.05
     ## 
     
     
