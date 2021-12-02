@@ -365,6 +365,7 @@ param bMTC{p in 1..pwMTC-1}  default 0;
 
 # stability - Draft 
 param base_draft{p in P} default 0;
+param draft_corr{p in P} default 0;
 
 param pwDraft default 0;
 param mDraft{p in 1..pwDraft} default 0;
@@ -732,13 +733,13 @@ subject to Constr18d {p in P}: mean_draft[p] = <<{s in 1..pwDraft-1} bDraft[s]; 
 subject to Condition200a {p in P_stable}: est_trim[p] = (trim_upper[p]+trim_lower[p])/2;
 
 # SF -> zero trim
-subject to Condition20a2 {f in 1..Fr, p in P_stable}: SS[f,p] = BV_SF[f,p] + CD_SF[f,p]*(mean_draft[p]-base_draft[p]) + CT_SF[f,p]*est_trim[p];
+subject to Condition20a2 {f in 1..Fr, p in P_stable}: SS[f,p] = BV_SF[f,p] + CD_SF[f,p]*(mean_draft[p]+draft_corr[p]-base_draft[p]) + CT_SF[f,p]*est_trim[p];
 subject to Condition20a1 {f in 1..Fr, p in P_stable}: SS[f,p] = BV_SF[f,p] + CD_SF[f,p]*(mean_draft[p]+0.5*est_trim[p]-base_draft[p]) + CT_SF[f,p]*est_trim[p];
 subject to Condition20b {f in 1..Fr, p in P_stable}: lowerSFlimit[f] <= SS[f,p]- wn[f,p];
 subject to Condition20c {f in 1..Fr, p in P_stable}: SS[f,p] - wn[f,p] <= upperSFlimit[f];
 
 # BM -> -> zero trim
-subject to Condition21a2 {f in 1..Fr, p in P_stable}: SB[f,p] = BV_BM[f,p] + CD_BM[f,p]*(mean_draft[p]-base_draft[p]) + CT_BM[f,p]*est_trim[p];
+subject to Condition21a2 {f in 1..Fr, p in P_stable}: SB[f,p] = BV_BM[f,p] + CD_BM[f,p]*(mean_draft[p]+draft_corr[p]-base_draft[p]) + CT_BM[f,p]*est_trim[p];
 subject to Condition21a1 {f in 1..Fr, p in P_stable}: SB[f,p] = BV_BM[f,p] + CD_BM[f,p]*(mean_draft[p]+0.5*est_trim[p]-base_draft[p]) + CT_BM[f,p]*est_trim[p];
 subject to Condition21b {f in 1..Fr, p in P_stable}: lowerBMlimit[f] <= wn[f,p]*LCG_fr[f] + mn[f,p] - SB[f,p];
 subject to Condition21c {f in 1..Fr, p in P_stable}: wn[f,p]*LCG_fr[f] + mn[f,p] -  SB[f,p] <= upperBMlimit[f];

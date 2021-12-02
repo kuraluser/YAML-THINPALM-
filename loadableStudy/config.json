@@ -193,7 +193,8 @@
       "ban_ballast": [],
       "ban_ballast_discharge": [
         "WB6P",
-        "WB6S"
+        "WB6S",
+        "APT"
       ],
       "deballast_percent": 0.5,
       "diff_cargo_slops": [

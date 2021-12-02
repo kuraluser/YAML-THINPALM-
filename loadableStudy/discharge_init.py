@@ -200,10 +200,10 @@ class Process_input1(object):
             else:
                  
                 trim_ = 2*(min_draft_limit_ - est_draft__)
-                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = round(trim_,2)+0.01, min(3.49, trim_ + 0.3)
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = round(trim_,2)+0.01, min(3.45, trim_ + 0.3)
                 lower_displacement_limit_ = est_displacement_-500
                 print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
-                print(p_, trim_)
+                print(p_, round(trim_,2), round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
 #            
            
             ## upper bound displacement
@@ -241,7 +241,12 @@ class Process_input1(object):
             
             # base draft for BM and SF
             trim_ = 0.5*(self.trim_lower.get(str(p_),0.0) + self.trim_upper.get(str(p_),0.0))
-            base_draft__ = int(np.floor(est_draft_+trim_/2))
+
+            if self.vessel_id in [1]:
+                base_draft__ = int(np.floor(est_draft_+trim_/2))
+            elif self.vessel_id in [2]:
+                base_draft__ = int(np.floor(est_draft_))
+
             base_draft_ = base_draft__ if p_  == 1 else min(base_draft__, self.base_draft[str(p_-1)])
             self.base_draft[str(p_)] = base_draft_
             # print(p_,trim_,base_draft_)
@@ -1028,6 +1033,12 @@ class Process_input1(object):
                 for i_, j_ in self.base_draft.items():
                     str1 += str(i_) + ' ' +  "{:.2f}".format(j_) + ' '
                 print(str1+';', file=text_file)
+
+                if self.full_discharge: # only for vessel 2 and fully dishcarge
+                    print('# draft corr', file=text_file)
+                    str1 = 'param draft_corr := '
+                    str1 += str(len(self.base_draft)) + ' ' +  "0.1" + ' '
+                    print(str1+';', file=text_file)
                 
                 print('# slopes of draft curve', file=text_file)
                 str1 = 'param pwDraft := ' +  str(len(self.vessel.info['lcb_mtc']['draft']['slopes']))
