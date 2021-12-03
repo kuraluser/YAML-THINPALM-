@@ -502,8 +502,8 @@ class DischargingOperations(object):
             add_pump_ = []
             if len(direct_cargo_pump_) > num_pump_:
                 # need to remove pump
-                mincp_, min_ = 0, 1000
                 while True:
+                    mincp_, min_ = 0, 1000
                     for k_, v_  in direct_cargo_tank_pump_.items():
                         if v_ < min_:
                             mincp_ = k_
