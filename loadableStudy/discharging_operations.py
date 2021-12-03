@@ -762,7 +762,7 @@ class DischargingOperations(object):
             
             if min_vol_ < vol_[i1_]:
                 ## partial with above 2m
-                print('partial with above 2m')
+                # print('partial with above 2m')
                 if pump_ in end_time_:
                     end_time_[pump_].append(end_time__)
 #                    print(t_, pump_, end_time_[pump_][-1])
@@ -772,10 +772,10 @@ class DischargingOperations(object):
                     if pp_ in end_time_:
                         end_time_[pp_].append(end_time__)
                         
-                        print(t_, pp_, end_time_[pp_][-1])
+#                        print(t_, pp_, end_time_[pp_][-1])
                 
             else:
-                print('below 2m')
+                # print('below 2m')
                 ifunc_ = interp1d(vol_, time_)
                 time1_ = int(ifunc_(self.vessel.info['ullage2mVol'][t_]).round())
                 
@@ -793,7 +793,7 @@ class DischargingOperations(object):
                 for pp_ in indir_pump_:
                     if pp_ in end_time_:
                         end_time_[pp_].append(time1_)
-                        print(t_, pp_, end_time_[pp_][-1])
+#                        print(t_, pp_, end_time_[pp_][-1])
                     
 #            print('---------------------------------------------')
                         
