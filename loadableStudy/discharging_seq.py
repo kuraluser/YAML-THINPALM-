@@ -55,6 +55,8 @@ class Discharging_seq:
         info["cargoDischargingRateM3_Hr"] = {}
         info["ballast"] = {}
         info["TCP"] = {}
+        info["STPED"] = {}
+        info["STP"] = {}
         info["cargo"] = {}
         info["simCargoDischargingRatePerTankM3_Hr"] = [{}]
         info["simBallastingRatePerTankM3_Hr"] = [{}]
@@ -113,6 +115,13 @@ class Discharging_seq:
             info["timeStart"] = str(start_)
             info["timeEnd"] = str(end_)
             
+            info["dischargePlanPortWiseDetails"] = [{"time": str(end_),
+                                                     "dischargeQuantityCommingleCargoDetails": [],
+                                                     "dischargePlanStowageDetails": [],
+                                                     "dischargePlanBallastDetails": [],
+                                                     "dischargePlanRoBDetails": []
+                                                     }]
+            
             
         
         elif info['stage'] == 'warmPumps':
@@ -121,13 +130,25 @@ class Discharging_seq:
             info["timeStart"] = str(start_)
             info["timeEnd"] = str(end_)
             
-            
+            info["dischargePlanPortWiseDetails"] = [{"time": str(end_),
+                                                     "dischargeQuantityCommingleCargoDetails": [],
+                                                     "dischargePlanStowageDetails": [],
+                                                     "dischargePlanBallastDetails": [],
+                                                     "dischargePlanRoBDetails": []
+                                                     }]
             
         elif info['stage'] == 'initialRate':
             start_ = int(self.plans.input.discharging.seq[cargo]['stageInterval'][info['stage']][0] + start_time_ + self.delay)
             end_   = int(self.plans.input.discharging.seq[cargo]['stageInterval'][info['stage']][1] + start_time_ + self.delay)
             info["timeStart"] = str(start_)
             info["timeEnd"] = str(end_)
+            
+            info["dischargePlanPortWiseDetails"] = [{"time": str(end_),
+                                                     "dischargeQuantityCommingleCargoDetails": [],
+                                                     "dischargePlanStowageDetails": [],
+                                                     "dischargePlanBallastDetails": [],
+                                                     "dischargePlanRoBDetails": []
+                                                     }]
             
             info["cargoDischargingRateM3_Hr"] = {0:str(self.plans.input.discharging.seq[cargo]['initialRate'])}
             
@@ -164,6 +185,13 @@ class Discharging_seq:
             end_   = int(self.plans.input.discharging.seq[cargo]['stageInterval'][info['stage']][1] + start_time_ + self.delay)
             info["timeStart"] = str(start_)
             info["timeEnd"] = str(end_)
+            
+            info["dischargePlanPortWiseDetails"] = [{"time": str(end_),
+                                                     "dischargeQuantityCommingleCargoDetails": [],
+                                                     "dischargePlanStowageDetails": [],
+                                                     "dischargePlanBallastDetails": [],
+                                                     "dischargePlanRoBDetails": []
+                                                     }]
             
             info["cargoDischargingRateM3_Hr"] = {0:str(self.plans.input.discharging.seq[cargo]['incMaxRate'])}
             
@@ -443,7 +471,14 @@ class Discharging_seq:
                 else:
                     l_ = np.where(np.diff(vol_) == 0)[0][0] + 1
                     
-                time_ = self.plans.input.discharging.seq[cargo]['reduceRate']['C'+str(l_)]['Time']
+#                print(k_, l_)
+                if l_ == 1:
+                    time_ = 0
+                else:
+                    if vol_[-1] == 0:
+                        time_ = self.plans.input.discharging.seq[cargo]['reduceRate']['C'+str(l_-1)]['Time']
+                    else:
+                        time_ = self.plans.input.discharging.seq[cargo]['reduceRate']['C'+str(l_)]['Time']
                 # print(k_, time_, np.diff(vol_))
                 
                 if time_ > 0:
@@ -618,7 +653,7 @@ class Discharging_seq:
             
            
             id_ = self.plans.input.vessel.info['cargoPumpId']['STP']['id']
-            info["cargo"][id_] = [{"rateM3_Hr": "",
+            info["STP"][id_] = [{"rateM3_Hr": "",
                                      "quantityM3": "",
                                      "timeStart": info["timeStart"],
                                      "timeEnd": info["timeEnd"]}]

@@ -748,33 +748,58 @@ class DischargingOperations(object):
         # indir_time_ = {cp_: self.seq[cargo]['timeNeeded'] for cp_ in self.seq[cargo]['indirectPump']}
         
         for t_ in self.seq[cargo]['tanks']:
+            
             vol_ = [l_[1] for l_ in self.seq[cargo]['gantt'].loc[t_].to_list()]
             min_vol_ = self.vessel.info['ullage2mVol'][t_]  # to shut indirect pump
             pump_ = self.vessel.info['tankCargoPump'][t_]
             
-            if min_vol_ < vol_[-1]:
+            i1_ = np.where(np.diff(vol_) == 0)[0]
+            if len(i1_) == 0:
+                i1_ = len(vol_)-1
+            else:
+                i1_ = i1_[0]
+            end_time__ = time_[i1_]
+            
+            if min_vol_ < vol_[i1_]:
                 ## partial with above 2m
+                print('partial with above 2m')
                 if pump_ in end_time_:
-                    end_time_[pump_].append(self.seq[cargo]['timeNeeded'])
-
+                    end_time_[pump_].append(end_time__)
+#                    print(t_, pump_, end_time_[pump_][-1])
+                    
                 indir_pump_ = set(self.seq[cargo]['cargoPump']) - set([pump_])
                 for pp_ in indir_pump_:
                     if pp_ in end_time_:
-                        end_time_[pp_].append(self.seq[cargo]['timeNeeded'])
+                        end_time_[pp_].append(end_time__)
+                        
+                        print(t_, pp_, end_time_[pp_][-1])
                 
             else:
+                print('below 2m')
                 ifunc_ = interp1d(vol_, time_)
                 time1_ = int(ifunc_(self.vessel.info['ullage2mVol'][t_]).round())
                 
                 if pump_ in end_time_:
-                    end_time_[pump_].append(self.seq[cargo]['timeNeeded'])
-
+                    t1_ = list(np.argwhere(np.array(vol_) ==  0.))
+                    if len(t1_) > 0:
+                        t2_ = time_[int(t1_[0])-1]
+                        end_time_[pump_].append(t2_)
+                    else:
+                        end_time_[pump_].append(self.seq[cargo]['timeNeeded'])
+                        
+#                    print(t_, pump_, end_time_[pump_][-1])
+                
                 indir_pump_ = set(self.seq[cargo]['cargoPump']) - set([pump_])
                 for pp_ in indir_pump_:
                     if pp_ in end_time_:
                         end_time_[pp_].append(time1_)
+                        print(t_, pp_, end_time_[pp_][-1])
+                    
+#            print('---------------------------------------------')
                         
                     
+                
+               
                 
         for k_, v_ in   end_time_.items():
             self.seq[cargo]['COPendTime1'][k_] = int(max(v_))

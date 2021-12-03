@@ -1440,7 +1440,8 @@ class Generate_plan:
             info_["sequence"] = []
             first_cargo_ = c__ == 0
             
-            info_ ["driveTank"] = self.input.discharging.seq[cargo_+str(c__)]['driveTank'].get('tank', "")
+            info_ ["driveTank"] = {"tankShortName": self.input.discharging.seq[cargo_+str(c__)]['driveTank'].get('tank', "")}
+            info_ ["driveTank"]["tankId"] = self.input.vessel.info['tankName'].get(info_ ["driveTank"]["tankShortName"],"")
             gravity_ = self.input.first_discharge_port and first_cargo_ 
             print('gravity:', gravity_)
             
@@ -1536,8 +1537,11 @@ class Generate_plan:
             data["events"].append(info_)
                 
             
+        time_end_ = data["events"][-1]["sequence"][-1]["timeEnd"]
         
         data["plans"] = {'arrival':discharging_seq.initial_plan, 'departure':discharging_seq.final_plan}
+        data["plans"]['departure']["time"] = time_end_
+        
         data["stages"] = discharging_seq.stages
         data["dischargingInformation"] = self.input.discharging_information
         
@@ -1596,9 +1600,18 @@ class Generate_plan:
             print('open TCP')
             id_ = self.input.vessel.info['cargoPumpId']['TCP']['id']
             out["TCP"][id_] = [{"rateM3_Hr": "",
-                                     "quantityM3": "",
-                                     "timeStart": str(min_start_-30),
-                                      "timeEnd": str(max_end_)}]
+                                "quantityM3": "",
+                                "timeStart": str(min_start_),
+                                "timeEnd": str(max_end_)}]
+            
+            id_ = self.input.vessel.info['cargoPumpId']['STPED1']['id']
+            out["STPED"][id_] = [{"rateM3_Hr": "",
+                                "quantityM3": "",
+                                "timeStart": str(min_start_),
+                                "timeEnd": str(max_end_)}]
+            
+            out["cowStartTime"] = str(min_start_)
+        
         
                 
             

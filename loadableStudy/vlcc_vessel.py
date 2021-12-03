@@ -373,7 +373,7 @@ class Vessel:
                         vessel_info_['cargoPump'][pump_].append(l__['shortName'])
                         vessel_info_['tankCargoPump'][l__['shortName']] = pump_
                         
-            cargo_pumps_ = ['COP1','COP2','COP3','TCP', 'STP']
+            cargo_pumps_ = ['COP1','COP2','COP3','TCP', 'STP', 'STPED1', 'STPED2']
             vessel_info_['cargoPumpId'] = {}
             for p_ in vessel_json.get('vesselPumps', []):
                 if p_['pumpCode'] in cargo_pumps_:
