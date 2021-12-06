@@ -83,7 +83,7 @@ class LoadingOperations(object):
         shoreLoadingRate_ = shoreLoadingRate_ if shoreLoadingRate_ not in [None] else 1e6
         
         loading_rate_ = min(data.loading_info_json['loadingRates'].get('maxLoadingRate', 7000), shoreLoadingRate_)
-        # loading_rate_ = 4000
+        # loading_rate_ = 5000
         self.max_loading_rate = loading_rate_
         print('loading rate (max):', loading_rate_)
         min_loading_rate_ = data.loading_info_json['loadingRates']['minLoadingRate']
@@ -92,7 +92,7 @@ class LoadingOperations(object):
         
         self.max_ballast_rate = data.loading_info_json['loadingRates'].get('maxDeBallastingRate',7000.)*1.025
         # self.max_ballast_rate = 7000.
-        print('max ballast:', self.max_ballast_rate)
+        print('max ballast:', round(self.max_ballast_rate,2))
         
         self.staggering_param = {'maxShoreRate': loading_rate_, ####  11129
                                  'minLoadingRate': min_loading_rate_,
@@ -126,11 +126,20 @@ class LoadingOperations(object):
         self._get_ballast(data.loadable_json['planDetails']['departureCondition']['loadablePlanBallastDetails'], cargo_info_)
         self._get_eduction(cargo_info_)
         
+        deballastAmt_ = 0
+        for t_ in cargo_info_['tankToDeballast']:
+            ini_ = cargo_info_['ballast'][0].get(t_,[{}])[0].get('quantityM3', 0)
+            fin_ = cargo_info_['ballast'][1].get(t_,[{}])[0].get('quantityM3', 0)
+            deballastAmt_ += (ini_-fin_)
+            
+        
         tank_ = [t_ for t_ in cargo_info_['tankToDeballast'] if t_[0] == 'W' ]
         # self.num_pump = 1 if (len(cargo_info_['tankToBallast']) + len(cargo_info_['tankToDeballast']) <= 4) else 2
         self.num_pump = 1 if (len(tank_) <= 4) else 2
         print('num ballast pump:', self.num_pump)
-       
+        
+        
+        
         # for d_ in data.loadable_json['planDetails']['departureCondition']['loadablePlanBallastDetails']:
         #     type_, tank_, wt_ = 'Ballast', d_['tankId'], d_['quantityMT']
         #     tankName_ = data.vessel.info['tankId'][tank_]
@@ -210,7 +219,34 @@ class LoadingOperations(object):
                        commingleDetails = data.loadable_json['planDetails']['departureCondition']['loadablePlanCommingleDetails'],
                        initial = False)
         
-                
+        cargo_info_['loading_amt'] = {'tot': 0.}
+        for c_ in cargo_info_['loading_order']:
+            cargo_info_['loading_amt'][c_] = 0.
+            for k_, v_ in cargo_info_['cargo_plans'][-1].items():
+                if len(v_) == 2:
+                    if v_[0]['cargo'] == c_:
+                        cargo_info_['loading_amt'][c_] += v_[0]['quantityM3']
+                        cargo_info_['loading_amt']['tot'] += v_[0]['quantityM3']
+                    elif v_[1]['cargo'] == c_:
+                        cargo_info_['loading_amt'][c_] += v_[1]['quantityM3']
+                        cargo_info_['loading_amt']['tot'] += v_[1]['quantityM3']
+                    
+                else:
+                    if v_[0]['cargo'] == c_:
+                        cargo_info_['loading_amt'][c_] += v_[0]['quantityM3']
+                        cargo_info_['loading_amt']['tot'] += v_[0]['quantityM3']
+        
+        
+        init_time_ = 0 if not self.first_loading_port else 2
+        ballast_time_ = deballastAmt_/self.num_pump/3500
+        eduction_time_ = 2 if cargo_info_['eduction'] else 0
+        topping_time_ = 2
+        tot_time_ = init_time_ + ballast_time_ + eduction_time_ + topping_time_
+        avail_rate_ = cargo_info_['loading_amt']['tot']/tot_time_
+        
+        print(init_time_, ballast_time_, eduction_time_, topping_time_ )
+        print("avail_rate:", avail_rate_)
+       
         self.info = cargo_info_
         
         # print('total wt_', total_wt_)
@@ -523,6 +559,7 @@ class LoadingOperations(object):
             gravity_ = self.first_loading_port and p__ == 0 and (self.max_loading_rate < 15000)
             
             
+            
             df_ = pd.DataFrame(index=INDEX)
             
             df_['Initial'] = None
@@ -673,7 +710,7 @@ class LoadingOperations(object):
             
             
             max_loading_rate_ = min(loading_rate__, self.staggering_param['maxShoreRate'])
-            
+            # max_loading_rate_ = 3000
             print('max loading rate:', max_loading_rate_)
             cargo_loaded_ = loading_rate_*15/60 + max_loading_rate_*10/60
             cargo_loaded_per_tank_ = cargo_loaded_/total_tank_
@@ -819,6 +856,8 @@ class LoadingOperations(object):
             self.time_interval[cargo_to_load_] = time_interval_
             
             df1_ = df_.copy()
+            
+            #self.num_stage_interval = 2
             
             while num_stages_ < self.num_stage_interval and time_interval_ >= 60 :
             

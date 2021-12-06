@@ -136,13 +136,31 @@ class Generate_plan:
                     self._process_ampl(result, num_plans=num_plans)
                     
                 self._process_checking_plans(result)
+                
+            elif self.input.module in ['LOADING']:
+                # print('Rerun for loading module')
+                if self.input.solver in ['AMPL']:
+                    print('Rerun AMPL ....')
+                    self.input.write_ampl(listMOM = True) # relax list mom to 100000
+                    drop_const = ['Condition21c', 'Constr16a']
+                    result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
+                    
+                    if result['succeed']:
+                        self._process_ampl(result, num_plans=num_plans)
+                        self._process_ampl(result, num_plans=num_plans)
+                    
+                    self._process_checking_plans(result)
+                    
+                    
+                else:
+                    self.plans['message']['Optimization Error'] = result['message']
             else:
                 self.plans['message']['Optimization Error'] = result['message']
         else:
             self.plans['message'] = self.input.error
             
         
-    def _run_ampl(self,dat_file='input.dat'):
+    def _run_ampl(self, drop_const = [], dat_file='input.dat'):
                 
         is_succeed, num_solutions = False, 0
         solve_result, obj, plan, ship_status, ballast_weight, cargo_loaded, xx, cargo_loaded_port = [], [], [], [], [], [], [], []
@@ -287,7 +305,12 @@ class Generate_plan:
                 c4_.drop()
                 c5_.drop()
                     
-                    
+            # drop constraints
+            for d_ in drop_const:
+                print('Drop:', d_)
+                d1_ = ampl.getConstraint(d_)
+                d1_.drop()
+                
             ampl.readData(dat_file)
             ampl.read('run_ampl.run')
             

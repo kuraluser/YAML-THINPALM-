@@ -308,7 +308,46 @@ class Process_input(object):
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_
                     
-       
+        
+        self.LCGport = {t_:{} for t_ in self.vessel.info['cargoTanks']}
+        
+        for s__, s_ in enumerate(self.loading.seq['stages']):
+            loading_cargo_ = self.loading.info['loading_order'][int(s_[-1])-1]
+            stage_ = s_[:-1]
+            # print(s__+1, self.loading.info["cargo_tank"][loading_cargo_])
+            for i_, r_ in self.loading.seq[loading_cargo_]['gantt'][stage_].items():
+                if i_ not in ["Time"] and r_ not in [None]:
+                    if len(r_) == 2:
+                        tank_, vol_ = i_, r_[1]
+                        # print(tank_, vol_)
+                        if tank_[-1] == 'W':
+                            tank_ = tank_[0] + 'P'
+                            if tank_ in self.vessel.info['tankLCG']['lcg']:
+                                lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tank_]['vol'],
+                                                     self.vessel.info['tankLCG']['lcg'][tank_]['lcg'])
+                                
+                                self.LCGport[tank_[0] + 'P'][s__+1] = round(lcg_,4)
+                                self.LCGport[tank_[0] + 'S'][s__+1] = round(lcg_,4)
+                          
+                        else:
+                                
+                            if tank_ in self.vessel.info['tankLCG']['lcg']:
+                                lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tank_]['vol'],
+                                                     self.vessel.info['tankLCG']['lcg'][tank_]['lcg'])
+                                self.LCGport[tank_][s__+1] = round(lcg_,4)
+                          
+                        
+                    else:
+                        tank_, vol_ = i_, r_[1] + r_[3]
+                        # print(tank_, vol_)
+                        if tank_ in self.vessel.info['tankLCG']['lcg']:
+                            lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tank_]['vol'],
+                                                 self.vessel.info['tankLCG']['lcg'][tank_]['lcg'])
+                            self.LCGport[tank_][s__+1] = round(lcg_,4)
+                          
+                    
+            
+          
             
         self.vessel.info['incInitBallast'] = []
         self.vessel.info['decInitBallast'] = []
@@ -374,8 +413,12 @@ class Process_input(object):
             
             # base draft for BM and SF
             trim_ = 0.5*(self.trim_lower.get(str(p_),0.) + self.trim_upper.get(str(p_),0.))
-            base_draft__ = int(np.floor(est_draft_+trim_/2))
-            # base_draft__ = int(np.floor(est_draft_))
+            
+            if self.vessel_id in [1]:
+                base_draft__ = int(np.floor(est_draft_+trim_/2))
+            elif self.vessel_id in [2]:
+                base_draft__ = int(np.floor(est_draft_))
+                
             base_draft_ = base_draft__ if p_  == 1 else max(base_draft__, self.base_draft[str(p_-1)])
             self.base_draft[str(p_)] = base_draft_
             # print(p_,trim_,base_draft_)
@@ -415,7 +458,7 @@ class Process_input(object):
             
             
     
-    def write_ampl(self, file = 'input_load.dat', IIS = True):
+    def write_ampl(self, file = 'input_load.dat', listMOM = None, IIS = True):
         
         if not self.error and self.solver in ['AMPL']:
             
@@ -864,7 +907,7 @@ class Process_input(object):
                 print('# rotating ports ',file=text_file)#
                 str1 = 'set rotatingPort1 := '
                 for k_  in range(0, self.loadable['lastVirtualPort']):
-                        str1 += '('+ str(k_)  + ',' + str(k_+1)+ ') '
+                    str1 += '('+ str(k_)  + ',' + str(k_+1)+ ') '
                 print(str1+';', file=text_file)
                 
                 str1 = 'set rotatingPort2 := '
@@ -982,7 +1025,8 @@ class Process_input(object):
                 for i_, j_ in self.vessel.info['cargoTanks'].items():
                     str1 = '['+ i_ + ',*] = '
                     for k1_ in range(1, self.loadable['lastVirtualPort']):
-                        lcg_ = j_['lcg']
+                        # lcg_ = j_['lcg']
+                        lcg_ = self.LCGport.get(i_, {}).get(k1_, j_['lcg'])
                         str1 += str(k1_) + ' ' + "{:.4f}".format(lcg_) + ' '
                                     
                     print(str1, file=text_file)
@@ -1071,12 +1115,16 @@ class Process_input(object):
                     print(str1, file=text_file)
                 print(';', file=text_file)
                 
+                if listMOM:
+                    print('# Limits of List MOM', file=text_file)
+                    str1 = 'param ListMOM := 10000' 
+                    print(str1+';', file=text_file)
+                
+                
                 print('# slopes of LCB x Disp curve', file=text_file)
                 str1 = 'param pwLCB := ' +  str(len(self.vessel.info['lcb_mtc']['lcb']['slopes']))
                 print(str1+';', file=text_file)
                 
-                # str1 = 'param adjLCB := ' +  "{:.8f}".format(self.vessel.info['lcb_mtc']['lcb']['adj'])
-                # print(str1+';', file=text_file)
                 
                 str1 = 'param mLCB := '
                 for m_ in range(1, len(self.vessel.info['lcb_mtc']['lcb']['slopes'])+1):
@@ -1311,8 +1359,17 @@ class Process_input(object):
                 str1 += '1' if IIS else '0'
                 print(str1+';', file=text_file)
                 
+                print('# adjustment for LCB, MTC and draft ',file=text_file)#                
+                str1 = 'param adjLCB := ' + str(self.config['adj_LCB'])
+                print(str1+';', file=text_file)
+                str1 = 'param adjMeanDraft := ' + str(self.config['adj_mean_draft'])
+                print(str1+';', file=text_file)
+                str1 = 'param adjMTC := ' + str(self.config['adj_MTC'])
+                print(str1+';', file=text_file)
+                
+                
                 print('# runtime limit ',file=text_file)#  
-                str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 60))
+                str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 30))
                 print(str1+';', file=text_file)
                 
               
