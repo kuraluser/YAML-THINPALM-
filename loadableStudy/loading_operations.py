@@ -132,7 +132,7 @@ class LoadingOperations(object):
             fin_ = cargo_info_['ballast'][1].get(t_,[{}])[0].get('quantityM3', 0)
             deballastAmt_ += (ini_-fin_)
             
-        
+        cargo_info_['deballastAmt'] = round(deballastAmt_,2)
         tank_ = [t_ for t_ in cargo_info_['tankToDeballast'] if t_[0] == 'W' ]
         # self.num_pump = 1 if (len(cargo_info_['tankToBallast']) + len(cargo_info_['tankToDeballast']) <= 4) else 2
         self.num_pump = 1 if (len(tank_) <= 4) else 2

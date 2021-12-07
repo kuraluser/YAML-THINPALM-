@@ -141,15 +141,16 @@ class Generate_plan:
                 # print('Rerun for loading module')
                 if self.input.solver in ['AMPL']:
                     print('Rerun AMPL ....')
-                    self.input.write_ampl(listMOM = True) # relax list mom to 100000
-                    drop_const = ['Condition21c', 'Constr16a']
-                    result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
-                    
-                    if result['succeed']:
-                        self._process_ampl(result, num_plans=num_plans)
-                        self._process_ampl(result, num_plans=num_plans)
-                    
-                    self._process_checking_plans(result)
+                    if self.input.loading.info['deballastAmt'] < 1200:
+                        self.input.write_ampl(listMOM = True) # relax list mom to 100000
+                        drop_const = ['Condition21c', 'Constr16a']
+                        result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
+                        
+                        input("Press Enter to continue...")
+                        if result['succeed']:
+                            self._process_ampl(result, num_plans=num_plans)
+                            self._process_checking_plans(result)
+
                     
                     
                 else:
