@@ -200,8 +200,8 @@ class Process_input1(object):
             else:
                  
                 trim_ = 2*(min_draft_limit_ - est_draft__)
-                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = round(trim_,2)+0.01, min(3.45, trim_ + 0.3)
-                lower_displacement_limit_ = est_displacement_-500
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = round(trim_,2)+0.01, min(2.95, trim_ + 0.5)
+                lower_displacement_limit_ = est_displacement_-5000
                 print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
                 print(p_, round(trim_,2), round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
 #            
