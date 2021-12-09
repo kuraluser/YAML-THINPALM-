@@ -141,17 +141,30 @@ class Generate_plan:
                 # print('Rerun for loading module')
                 if self.input.solver in ['AMPL']:
                     print('Rerun AMPL ....')
-                    if self.input.loading.info['deballastAmt'] < 1200:
+                    
+                    if not result['succeed'] and len(self.input.loading.info['loading_order1']) > 1:
+                        self.input.get_param(min_int_trim = 0.5)
+                        self.input.write_ampl()
+                        result = self._run_ampl(dat_file='input_load.dat') 
+                        
+                        # input("Press Enter to continue...")
+                        if result['succeed']:
+                            self._process_ampl(result, num_plans=num_plans)
+                            self._process_checking_plans(result)
+                        
+                    
+                    if not result['succeed'] and (self.input.loading.info['deballastAmt'] < 1200):
                         self.input.write_ampl(listMOM = True) # relax list mom to 100000
                         drop_const = ['Condition21c', 'Constr16a']
                         result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
                         
-                        input("Press Enter to continue...")
+                        # input("Press Enter to continue...")
                         if result['succeed']:
                             self._process_ampl(result, num_plans=num_plans)
                             self._process_checking_plans(result)
-
                     
+                    if not result['succeed']:
+                        self.plans['message']['Optimization Error'] = result['message']
                     
                 else:
                     self.plans['message']['Optimization Error'] = result['message']
@@ -1679,59 +1692,51 @@ class Generate_plan:
             info_ = {}
             info_["cargoNominationId"] = int(c_[1:])
             info_["sequence"] = []
-            first_cargo_ = c__ == 0
-            gravity_ = self.input.first_loading_port and first_cargo_ and (self.input.loading.max_loading_rate < 15000)
-            print('gravity:', gravity_)
+            first_port_cargo_ = c__ == 0 and self.input.loading.first_loading_port
+            gravity_ = False
+            # gravity_ = self.input.first_loading_port and first_cargo_ and (self.input.loading.max_loading_rate < 15000)
+            # print('gravity:', gravity_)
             
             for e__, e_ in enumerate(EVENTS):
-                info1_ = {"stage": e_, "gravityNeeded": gravity_}
+                info1_ = {"stage": e_, "gravityNeeded": False}
                 loading_seq._stage(info1_, c_, c__+1)
                 
-                if e_ == 'initialCondition' and gravity_:
-                    self.gTimeStart = int(int(info1_['timeStart']) + 120)
-                elif e_ == 'initialCondition' and (not gravity_):
+                if e_ == 'initialCondition':
                     self.gTimeStart = -1
+                
+                # if e_ == 'initialCondition' and first_port_cargo_:
+                #     self.gTimeStart = int(int(info1_['timeStart']) + 120)
+                # elif e_ == 'initialCondition' and (not gravity_):
+                #     self.gTimeStart = -1
                        
                 
                 
                 
                 if e_ in ['loadingAtMaxRate']:
                     for d__, d_ in enumerate(info_['sequence'][1:]):
-                        # open single tank ... increase to max rate
+                        # from open single tank ... increase to max rate
                         
-                        if (gravity_ and int(info_['sequence'][d__+1]['timeStart']) >= self.gTimeStart) or (not gravity_):
+                        info_['sequence'][d__+1]['deballastingRateM3_Hr'] = info1_.get('iniDeballastingRateM3_Hr', {})
+                        info_['sequence'][d__+1]['ballastingRateM3_Hr'] = info1_.get('iniBallastingRateM3_Hr', {})
                         
-                            info_['sequence'][d__+1]['deballastingRateM3_Hr'] = info1_.get('iniDeballastingRateM3_Hr', {})
-                            info_['sequence'][d__+1]['ballastingRateM3_Hr'] = info1_.get('iniBallastingRateM3_Hr', {})
-                            
-                            info2_ = {'simIniDeballastingRateM3_Hr': deepcopy(info1_.get('simIniDeballastingRateM3_Hr', {})),
-                                      'simIniBallastingRateM3_Hr': deepcopy(info1_.get('simIniBallastingRateM3_Hr', {}))}
-                            
-                            # if len(info2_['simIniDeballastingRateM3_Hr']) > 0:
-                            for k_, v_ in info2_['simIniDeballastingRateM3_Hr'].items():
-                                info2_['simIniDeballastingRateM3_Hr'][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
-                                info2_['simIniDeballastingRateM3_Hr'][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
-                                
-                            for k_, v_ in info2_['simIniBallastingRateM3_Hr'].items():
-                                info2_['simIniBallastingRateM3_Hr'][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
-                                info2_['simIniBallastingRateM3_Hr'][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
-                                 
-                            
-                            
-                            # info2_['simIniDeballastingRateM3_Hr'][0]['timeStart'] = info_['sequence'][d__+1]['timeStart']
-                            # info2_['simIniDeballastingRateM3_Hr'][0]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
-                            
-                            # info2_['simIniBallastingRateM3_Hr'][0]['timeStart'] = info_['sequence'][d__+1]['timeStart']
-                            # info2_['simIniBallastingRateM3_Hr'][0]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
-                                
-                            info_['sequence'][d__+1]['simDeballastingRateM3_Hr'] = [info2_['simIniDeballastingRateM3_Hr']]
-                            info_['sequence'][d__+1]['simBallastingRateM3_Hr'] = [info2_['simIniBallastingRateM3_Hr']]
-                            
-                            
-                            self._get_ballast(info_['sequence'][d__+1], info1_, gravity_)
+                        info2_ = {'simIniDeballastingRateM3_Hr': deepcopy(info1_.get('simIniDeballastingRateM3_Hr', {})),
+                                  'simIniBallastingRateM3_Hr': deepcopy(info1_.get('simIniBallastingRateM3_Hr', {}))}
                         
+                        # change time to current stage
+                        for k_, v_ in info2_['simIniDeballastingRateM3_Hr'].items():
+                            info2_['simIniDeballastingRateM3_Hr'][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                            info2_['simIniDeballastingRateM3_Hr'][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                            
+                        for k_, v_ in info2_['simIniBallastingRateM3_Hr'].items():
+                            info2_['simIniBallastingRateM3_Hr'][k_]['timeStart'] = info_['sequence'][d__+1]['timeStart']
+                            info2_['simIniBallastingRateM3_Hr'][k_]['timeEnd'] = info_['sequence'][d__+1]['timeEnd']
+                             
+                        info_['sequence'][d__+1]['simDeballastingRateM3_Hr'] = [info2_['simIniDeballastingRateM3_Hr']]
+                        info_['sequence'][d__+1]['simBallastingRateM3_Hr'] = [info2_['simIniBallastingRateM3_Hr']]
                         
-                    
+                        # get ballast pump operating time
+                        self._get_ballast(info_['sequence'][d__+1], info1_, gravity_)
+    
                     self._get_ballast1(info1_, gravity_, c_)
                     
                     # print(info1_['stageEndTime'])
@@ -1801,7 +1806,7 @@ class Generate_plan:
             # need to close one or two pumps
             for id_ in pump_:
                 for l_ in zero_rate_:
-                    if l_[0] == id_:
+                    if l_[0] == id_ and l_[1] in out['ballast'][id_]:
                         out['ballast'][id_].remove(l_[1])
                         
         if 'Gravity' in pump_:
@@ -2278,9 +2283,8 @@ class Generate_plan:
         # print(out)
         # timeStart_ = int(out['timeStart'])
         timeEnd_   = int(out['timeEnd'])
-        
-      
         pump_ = self._get_pump(timeEnd_, gravity)    
+        # print("pump:", pump_)
             
         # print(out['stage'], pump_)
         if deballast:
@@ -2296,26 +2300,26 @@ class Generate_plan:
             rate_ = float(data[rate__])
             amt_ = rate_*time_/60.
             
-            if k_ == 'Gravity' and v_ > 0:
+            if k_ == 'Gravity' and rate_ > 0:
                 
                 out['ballast']['Gravity'] = [{'timeStart': out['timeStart'],
                                               'timeEnd': str(v_),
                                               "rateM3_Hr": str(round(rate_,2)),
                                               "quantityM3": str(round(amt_))}]
                 
-            elif k_ == 'BP1' and v_ > 0:
+            elif k_ == 'BP1' and rate_ > 0:
                 out['ballast']['BP1'] = [{'timeStart': out['timeStart'],
                                               'timeEnd': str(v_),
                                               "rateM3_Hr": str(round(rate_/2,2)),
                                               "quantityM3": str(round(amt_))}]
                 
-            elif k_ == 'BP2' and v_ > 0:
+            elif k_ == 'BP2' and rate_ > 0:
                 out['ballast']['BP2'] = [{'timeStart': out['timeStart'],
                                               'timeEnd': str(v_),
                                               "rateM3_Hr": str(round(rate_/2,2)),
                                               "quantityM3": str(round(amt_))}]
                      
-        ## 
+        ## convert pumpCode to pumpId
         if 'BP1' in out['ballast'].keys():
             if 'ballastPump' in self.input.vessel.info['vesselPumps'].keys():
                 bp1_ = self.input.vessel.info['vesselPumps']['ballastPump']['BP1']['pumpId']

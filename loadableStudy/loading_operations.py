@@ -244,8 +244,8 @@ class LoadingOperations(object):
         tot_time_ = init_time_ + ballast_time_ + eduction_time_ + topping_time_
         avail_rate_ = cargo_info_['loading_amt']['tot']/tot_time_
         
-        print(init_time_, ballast_time_, eduction_time_, topping_time_ )
-        print("avail_rate:", avail_rate_)
+        # print(init_time_, round(ballast_time_), eduction_time_, topping_time_ )
+        print("avail_rate:", round(avail_rate_,2), init_time_, round(ballast_time_), eduction_time_, topping_time_)
        
         self.info = cargo_info_
         
@@ -556,10 +556,13 @@ class LoadingOperations(object):
         
         for p__, p_ in enumerate(self.info['cargo_plans'][:-1]):
             
-            gravity_ = self.first_loading_port and p__ == 0 and (self.max_loading_rate < 15000)
+            # gravity_ = self.first_loading_port and p__ == 0 and (self.max_loading_rate < 15000)
             
+            # gravity_ = False
+            first_loading_cargo_ = self.first_loading_port and p__ == 0 
             
-            
+            print('first_loading_cargo', first_loading_cargo_)
+
             df_ = pd.DataFrame(index=INDEX)
             
             df_['Initial'] = None
@@ -867,7 +870,7 @@ class LoadingOperations(object):
                 
                 ballast_ = [(0, 'Initial')]
                 ballast_stop_, before_topping_ = [], 'MaxLoading' + str(stage_)
-                ballast_init_ = [] # for gravity first 2 hr
+                ballast_init_ = [] # for first 2 hr no deballasting 
                 single_max_stage_ = True
                 while (time_ < topping_start_):
                     single_max_stage_ = False
@@ -878,7 +881,8 @@ class LoadingOperations(object):
                     before_topping_ = ss_
                     ballast_.append((int(time_),ss_))
                     
-                    if int(time_) <= 120 and gravity_:
+                    # first two hrs no deballasting 
+                    if int(time_) <= 120 and first_loading_cargo_:
                         ballast_init_.append((int(time_),ss_))
                         
                     for t_ in self.info['cargo_tank'][cargo_to_load_]:
@@ -1005,21 +1009,23 @@ class LoadingOperations(object):
             if single_max_stage_ and  (df_['MaxLoading1']['Time'],'MaxLoading1') not in ballast_:
                 ballast_.insert(1, (df_['MaxLoading1']['Time'],'MaxLoading1'))
                
-            ballast_limit_ = {}
-            gravity_ = 120
+            ballast_limit_ = {} # time for ballast at each interval
+            ini_delay_ = 120 # inital delay for first cargo
             for aa_, (bb_,cc_) in enumerate(ballast_):
                 if cc_[:3] in ['Max']:
                     time_ = bb_ - ballast_[aa_-1][0]
-                    if self.first_loading_port and p__ == 0 and gravity_ > 0:
-                        if time_ >= gravity_:
-                            time_ -= gravity_
-                            gravity_ = 0
+                    if first_loading_cargo_ and ini_delay_ > 0:
+                        if bb_ >= ini_delay_:
+                            time_ -= ini_delay_
+                            ini_delay_ = 0
                         else:
+                            ini_delay_ -= time_
                             time_ = 0
-                            gravity_ -= time_
                         
                     
                     ballast_limit_[cc_] = time_
+                    # print(ini_delay_)
+
                     
                     
                 

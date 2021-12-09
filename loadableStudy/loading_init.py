@@ -98,7 +98,7 @@ class Process_input(object):
         else:
             self.error = {**self.error, **self.loading.error}
         
-    def get_param(self):
+    def get_param(self, base_draft = None, min_int_trim = 0.96):
         
         
         self.limits = {}
@@ -297,7 +297,7 @@ class Process_input(object):
                     self.trim_lower[str(port_)] = b_
                     
                 elif not last_cargo_ and d_ in [self.loading.seq[c_]['lastStage'] + str(c__+1)]:
-                    a_, b_ = 1.1, 0.96
+                    a_, b_ = 1.1, min_int_trim
                     print(d_,'lastStage -- trim constraint:', b_, a_)
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_
@@ -378,7 +378,7 @@ class Process_input(object):
         self.base_draft = {}
         self.sf_base_value, self.sf_draft_corr, self.sf_trim_corr = {}, {}, {}
         self.bm_base_value, self.bm_draft_corr, self.bm_trim_corr = {}, {}, {}
-        self.sf_bm_frac = self.config.get('sf_bm_frac',0.95)  ##
+        self.sf_bm_frac = self.config.get('sf_bm_frac', 0.95)  ##
         
         for p_ in range(1, self.loadable['lastVirtualPort']+1):  # exact to virtual
             # print(p_)
@@ -420,7 +420,10 @@ class Process_input(object):
                 base_draft__ = int(np.floor(est_draft_))
                 
             base_draft_ = base_draft__ if p_  == 1 else max(base_draft__, self.base_draft[str(p_-1)])
-            self.base_draft[str(p_)] = base_draft_
+            if base_draft:
+                self.base_draft[str(p_)] = base_draft[str(p_)]
+            else:
+                self.base_draft[str(p_)] = base_draft_
             # print(p_,trim_,base_draft_)
             
             
@@ -458,7 +461,7 @@ class Process_input(object):
             
             
     
-    def write_ampl(self, file = 'input_load.dat', listMOM = None, IIS = True):
+    def write_ampl(self, file = 'input_load.dat', listMOM = None, IIS = True, ave_trim = None):
         
         if not self.error and self.solver in ['AMPL']:
             
@@ -734,12 +737,12 @@ class Process_input(object):
                     str1 = '[' + tank_ + ', *] := '
                     for k__, v__ in v_.items():
                         if k__ not in ['0']:
-                            fill_ = v__/self.vessel.info['ballastTanks'][k_]['capacityCubm']/1.025
-                            if fill_ > 0.99 and int(k__) > 1:
-                                print(k_, k__,  fill_, 0.99*self.vessel.info['ballastTanks'][k_]['capacityCubm']*1.025)
-                                vv_ = 0.99*self.vessel.info['ballastTanks'][k_]['capacityCubm']*1.025
-                                str1 += k__ + ' ' + "{:.3f}".format(int(vv_*100)/100) + ' '
-                            else:
+                            # fill_ = v__/self.vessel.info['ballastTanks'][k_]['capacityCubm']/1.025
+                            # if fill_ > 0.99 and int(k__) > 1:
+                            #    print(k_, k__,  fill_, 0.99*self.vessel.info['ballastTanks'][k_]['capacityCubm']*1.025)
+                            #    vv_ = 0.99*self.vessel.info['ballastTanks'][k_]['capacityCubm']*1.025
+                            #    str1 += k__ + ' ' + "{:.3f}".format(int(vv_*100)/100) + ' '
+                            # else:
                                 str1 += k__ + ' ' + "{:.3f}".format(v__) + ' '
                     print(str1, file=text_file)
                 print(';', file=text_file)  
@@ -1168,6 +1171,13 @@ class Process_input(object):
                 #str1 = 'param deadweight   := ' + str(self.vessel.info['draftCondition']['deadweight']) 
                 str1 = 'param deadweight   := ' + str(1000000) 
                 print(str1+';', file=text_file)
+                
+                if ave_trim:
+                    print('# ave trim', file=text_file)
+                    str1 = 'param ave_trim := '
+                    for i_, j_ in ave_trim.items():
+                        str1 += str(i_) + ' ' +  "{:.2f}".format(j_) + ' '
+                    print(str1+';', file=text_file)
                 
                 
                 print('# base draft', file=text_file)
