@@ -9,6 +9,7 @@ from loading_init import Process_input
 from vlcc_gen import Generate_plan 
 from vlcc_check import Check_plans
 from vlcc_valves import Generate_valves
+from valveSequence import Constants, ValveFilters, ValveOperations, ValveSequencing, ValveConversion
 import numpy as np
 # import json
 
@@ -82,10 +83,21 @@ def loading(data: dict) -> dict:
         print('Valves module not ready for Atlantic Pioneer')
         return out
     else:
-        valve_params = Generate_valves(params, out, gen_output)  ## get parameters for valve module
-        valve_params.prepOperation()
-        valve_out = valve_params.integrateValves()
-        return valve_out
+        # valve_params = Generate_valves(params, out, gen_output)  ## get parameters for valve module
+        # valve_params.prepOperation()
+        # valve_out = valve_params.integrateValves()
+
+        # Cargo & Ballast Valves
+        constants = Constants()
+        vfilter = ValveFilters(constants)
+        voperation = ValveOperations(vfilter, data, constants)
+        voperation.getManifoldParameters(out)
+        valve_time = ValveSequencing(out, voperation, constants.LOADING_OPS, constants)
+        # Conversion
+        valve_conversion = ValveConversion(out, constants)
+        valve_conversion.convertValves(valve_time.load_valves, 'cargoValves')
+        valve_conversion.convertValves(valve_time.deballast_valves, 'ballastValves')
+        return valve_conversion.json #valve_out
 
 
 

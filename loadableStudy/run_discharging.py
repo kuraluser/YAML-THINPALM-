@@ -16,7 +16,7 @@ with open('config.json', "r") as f_:
    config = json.load(f_)
    
    
-fname = 'discharging_plan47.json' # 1 single cargo
+fname = '../samples/discharge_information_request_100000005.json' # 1 single cargo
 
 
 

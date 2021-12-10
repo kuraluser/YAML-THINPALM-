@@ -217,9 +217,7 @@ fname = 'all_rules_updated.json'
 
 # fname = 'discharge_study_111.json'
 
-# fname = 'loadableStudy_100000351.json'
-
-fname = 'loadable_study_request_100000411.json'
+fname = '../samples/DS ALGO request with Cow history.json'
 
 #fname = 'error_request_json.json'
 

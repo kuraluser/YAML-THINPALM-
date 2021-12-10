@@ -61,7 +61,7 @@ fname = 'loading_commingle_first_port.json'
 
 # fname = 'loading_information_100000057.json' # commingle
 
-fname = '../samples/loading_information_request_100000240.json'
+fname = '../samples/loadingInformationRequest_100000148.json'
 
 # fname = 'AP18.json'
 # fname = '100000270request1.json'
@@ -77,7 +77,7 @@ with open(fname) as f_:
     vessel_id_ = data['loading']['vesselId']
         
         
-with open('vessel_info'+str(vessel_id_)+'.json') as f_:    
+with open('vessel_info'+str(vessel_id_)+'.json') as f_:
     data['vessel'] = json.load(f_)
     
     
