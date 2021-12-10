@@ -2300,20 +2300,20 @@ class Generate_plan:
             rate_ = float(data[rate__])
             amt_ = rate_*time_/60.
             
-            if k_ == 'Gravity' and rate_ > 0:
+            if k_ == 'Gravity' and rate_ > 0 and v_ > 0:
                 
                 out['ballast']['Gravity'] = [{'timeStart': out['timeStart'],
                                               'timeEnd': str(v_),
                                               "rateM3_Hr": str(round(rate_,2)),
                                               "quantityM3": str(round(amt_))}]
                 
-            elif k_ == 'BP1' and rate_ > 0:
+            elif k_ == 'BP1' and rate_ > 0 and v_ > 0:
                 out['ballast']['BP1'] = [{'timeStart': out['timeStart'],
                                               'timeEnd': str(v_),
                                               "rateM3_Hr": str(round(rate_/2,2)),
                                               "quantityM3": str(round(amt_))}]
                 
-            elif k_ == 'BP2' and rate_ > 0:
+            elif k_ == 'BP2' and rate_ > 0 and v_ > 0:
                 out['ballast']['BP2'] = [{'timeStart': out['timeStart'],
                                               'timeEnd': str(v_),
                                               "rateM3_Hr": str(round(rate_/2,2)),
