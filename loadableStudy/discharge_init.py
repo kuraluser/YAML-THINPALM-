@@ -169,9 +169,9 @@ class Process_input1(object):
             seawater_density_ = self.port.info['portRotation'][port_code_]['seawaterDensity']
             
             
-            #if p_ == self.loadable.info['lastVirtualPort'] and self.full_discharge:
-            #   min_draft_limit_ -= 2
-            #   print('last virtual port:', p_, min_draft_limit_)
+            # if p_ == self.loadable.info['lastVirtualPort'] and self.full_discharge:
+            #     min_draft_limit_ -= 2
+            #     print('last virtual port:', p_, min_draft_limit_)
                 
             
              ## lower bound displacement
@@ -198,12 +198,21 @@ class Process_input1(object):
                 
                
             else:
+                
+                est_draft__ = min_draft_limit_ - 1.5 # max trim = 3m 
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 0.5, 2.95
+                lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
+                print(p_, round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
+                
                  
-                trim_ = 2*(min_draft_limit_ - est_draft__)
-                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = round(trim_,2)+0.01, min(2.95, trim_ + 0.5)
-                lower_displacement_limit_ = est_displacement_-5000
-                print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
-                print(p_, round(trim_,2), round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
+                # trim_ = 2*(min_draft_limit_ - est_draft__)
+                # self.trim_lower[str(p_)], self.trim_upper[str(p_)] = round(trim_,2)+0.01, min(2.95, trim_ + 0.5)
+                # lower_displacement_limit_ = est_displacement_-5000
+                # print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
+                # print(p_, round(trim_,2), round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
+                
+                # if round(self.trim_lower[str(p_)],2) > 3.5:
+                    
 #            
            
             ## upper bound displacement
@@ -241,12 +250,12 @@ class Process_input1(object):
             
             # base draft for BM and SF
             trim_ = 0.5*(self.trim_lower.get(str(p_),0.0) + self.trim_upper.get(str(p_),0.0))
-
+            
             if self.vessel_id in [1]:
                 base_draft__ = int(np.floor(est_draft_+trim_/2))
             elif self.vessel_id in [2]:
                 base_draft__ = int(np.floor(est_draft_))
-
+                
             base_draft_ = base_draft__ if p_  == 1 else min(base_draft__, self.base_draft[str(p_-1)])
             self.base_draft[str(p_)] = base_draft_
             # print(p_,trim_,base_draft_)
@@ -374,6 +383,25 @@ class Process_input1(object):
                     
                 print(';', file=text_file)
                 
+                if lcg_port and weight:
+                    
+                    print('# QW1')
+                    str1 = 'param QW1 := '
+                    print(str1, file=text_file)
+                    for k1_, v1_ in weight.items():
+                        str1 = '[*, *, ' + str(k1_) + '] := '
+                        for k2_, v2_ in v1_.items():
+                            str1 += v2_[0]['parcel'] + ' ' + k2_ + ' ' + str(v2_[0]['wt']) + ' '
+                        print(str1, file=text_file)
+                    
+                    print(';', file=text_file)
+                    
+                    print('# QWT')
+                    for i_,j_ in self.loadable.info['parcel'].items():
+                        str1 = 'set QWT1[' + str(i_) + '] := '
+                        for j_ in cargo_tanks_:
+                            str1 += j_ + ' '
+                        print(str1+';', file=text_file)
                 
                 ## 
                 print('# total number of ports in the booking list',file=text_file)#   
@@ -708,7 +736,8 @@ class Process_input1(object):
                 print('# initial ballast ',file=text_file)#
                 str1 = 'param initBallast := '
                 for k_, v_ in self.vessel.info['initBallast']['wt'].items():
-                    str1 += str(k_) + ' ' + "{:.4f}".format(v_)  + ' '
+                    if k_ not in self.vessel.info['banBallast']:
+                        str1 += str(k_) + ' ' + "{:.4f}".format(v_)  + ' '
                 print(str1+';', file=text_file)
                 
                 print('# inc initial ballast ',file=text_file)#
@@ -1033,7 +1062,7 @@ class Process_input1(object):
                 for i_, j_ in self.base_draft.items():
                     str1 += str(i_) + ' ' +  "{:.2f}".format(j_) + ' '
                 print(str1+';', file=text_file)
-
+                
                 if self.full_discharge: # only for vessel 2 and fully dishcarge
                     print('# draft corr', file=text_file)
                     str1 = 'param draft_corr := '
@@ -1220,10 +1249,26 @@ class Process_input1(object):
                 print(';', file=text_file)
                 
                 str1 = 'param IIS := ' 
-                str1 += '1' if IIS else '0'
+                str1 += '1;' if IIS else '0;'
                 print(str1, file=text_file)
                 
-              
+                print('# adjustment for LCB, MTC and draft ',file=text_file)#                
+                str1 = 'param adjLCB := ' + str(self.config['adj_LCB'])
+                print(str1+';', file=text_file)
+                str1 = 'param adjMeanDraft := ' + str(self.config['adj_mean_draft'])
+                print(str1+';', file=text_file)
+                str1 = 'param adjMTC := ' + str(self.config['adj_MTC'])
+                print(str1+';', file=text_file)
+                
+                # print('# runtime limit ',file=text_file)#  
+                # if self.config['loadableConfig']:
+                #     str1 = 'param runtimeLimit := ' + str(self.config['loadableConfig']['timeLimit'])
+                # else:
+                #     str1 = 'param runtimeLimit := ' + str(self.config.get('timeLimit', 60))
+                # print(str1+';', file=text_file)
+                
+                
+             
             
             
             
