@@ -923,6 +923,8 @@ class Discharging_seq:
         plan["bendinMoment"] = self.stability[str(port)]['bendinMoment']
         plan["shearForce"] = self.stability[str(port)]['shearForce']
         plan["gom"] = self.stability[str(port)].get('gom', None)
+        plan["manifoldHeight"] = self.stability[str(port)]['manifoldHeight']
+        plan["freeboard"] = self.stability[str(port)]['freeboard']
         
         
         
