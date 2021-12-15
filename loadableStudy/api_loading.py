@@ -171,7 +171,7 @@ def loadicator1(data, limits):
             
             
             # trim
-            if abs(float(u_["trim"])) > 3:
+            if abs(float(u_["trim"])) > 5:
                 info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trim"])) +'m)!')
                
             # list
@@ -261,7 +261,7 @@ def loadicator1(data, limits):
             
             
             # trim
-            if abs(float(u_["trimValue"])) > 3:
+            if abs(float(u_["trimValue"])) > 5:
                 info_['judgement'].append('Failed trim check ('+ "{:.2f}".format(float(u_["trimValue"])) +'m)!')
                 
             # list
