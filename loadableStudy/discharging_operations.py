@@ -585,7 +585,7 @@ class DischargingOperations(object):
             
             stripping_start_ = time_taken_ + TIME_INITIAL + TIME_INIT_RATE + TIME_INC_RATE
             
-            time_interval_ = 360 ## self.time_interval1 ## fixed
+            time_interval_ = self.time_interval1 ## fixed
             num_stages_ = 0
             self.time_interval[p__+1] = time_interval_
             
@@ -653,38 +653,37 @@ class DischargingOperations(object):
             
             # last max stage before stripping
             # if p__+1 < len(self.info['loading_order'])+1:
-            ballast_.append((int(df_[ss_]['Time']),ss_)) # need to monitor ballast
-            ballast_stop_.append((int(df_[ss_]['Time']),ss_))
+            # ballast_.append((int(df_[ss_]['Time']),ss_)) # need to monitor ballast
+            # ballast_stop_.append((int(df_[ss_]['Time']),ss_))
             
-            next_ballast_ = (None,None,10000)  # time; stage; relative to interval
-            final_ballast_ = (None, None)
+            ballast1_, time1_ = [ss_], [int(df_[ss_]['Time'])]
+            
             for c_ in range(2,num_stripping_+1):
                 # print(c_)
                 ss_ = 'Stripping' + str(c_-1)
                 df_[ss_] = cow_strip_['C'+str(c_)]
                 df_[ss_]['Time'] = df_[last_discharging_max_rate_stage_]['Time'] + cow_strip_['C'+str(c_)]['Time']
-                
-                final_ballast_ = (int(df_[ss_]['Time']),ss_)
-                
-                if abs(df_[ss_]['Time']-next_time_) < next_ballast_[-1]:
-                    next_ballast_ = (int(df_[ss_]['Time']),ss_,int(abs(df_[ss_]['Time']-next_time_)))
-                 
+                ballast1_.append(ss_)
+                time1_.append(df_[ss_]['Time'])
+                   
             stages_['stripping'] = (df_[last_discharging_max_rate_stage_]['Time'], df_[ss_]['Time'])
             
-            if next_ballast_ not in [(None,None,10000)]:
-                ballast_.append((next_ballast_[0],next_ballast_[1]))    
-                if next_ballast_[1] != ss_:
-                    ballast_stop_.append((next_ballast_[0],next_ballast_[1]))
+            next_time_ = ballast_[-1][0] + time_interval_
+            while True:
+                nearest_time_ = min(time1_, key=lambda x_:abs(x_-next_time_))
+                a_ = time1_.index(nearest_time_)
+                b_ = ballast1_[a_]
+                ballast_.append((nearest_time_,b_))
                 
-            if (final_ballast_[0],final_ballast_[1]) not in ballast_:
-                ballast_.append((final_ballast_[0],final_ballast_[1]))    
-                # ballast_stop_.append((next_ballast_[0],next_ballast_[1]))
-                
+                next_time_ += time_interval_
+                if next_time_ > time1_[-1]:
+                    break
+  
                 
             ## add MaxLoading1 if necessary 
-            if single_max_stage_ and  (df_['MaxLoading1']['Time'],'MaxLoading1') not in ballast_:
-                ballast_.insert(1, (df_['MaxLoading1']['Time'],'MaxLoading1'))
-               
+            if single_max_stage_ and  (df_['MaxDischarging1']['Time'],'MaxDischarging1') not in ballast_:
+                ballast_.insert(1, (df_['MaxDischarging1']['Time'],'MaxDischarging1'))
+                
             ballast_limit_ = {}
             for aa_, (bb_,cc_) in enumerate(ballast_):
                 if cc_[:3] in ['Max', 'Str']:
@@ -693,6 +692,18 @@ class DischargingOperations(object):
                     time_ = bb_ - ballast_[aa_-1][0] - add_time_
                     ballast_limit_[cc_] = time_
                     
+            if p__+2 == len(self.info['cargo_plans']):
+                print('last cargo')
+                last_time_ = df_[df_.columns[-1]]['Time']
+                df_['Depart'] = None
+                df_['Depart']['Time'] = last_time_ + 180
+                
+                for k_, v_ in self.info['cargo_plans'][-1].items():
+                    df_['Depart'][k_] = (v_[0]['cargo'], v_[0]['quantityM3'])
+                    
+                ballast_.append((df_['Depart']['Time'], 'Depart'))
+                ss_ = 'Depart'
+                ballast_limit_['Depart'] = 180
             
             self.seq[cargo_to_discharge_+str(p__)]['gantt'] = df_        
             self.seq[cargo_to_discharge_+str(p__)]['ballast'] = list(ballast_) # need to get ballast for these stages
@@ -701,7 +712,7 @@ class DischargingOperations(object):
             self.seq[cargo_to_discharge_+str(p__)]['justBeforeStripping'] = just_before_stripping_ # last stage before topping
             self.seq[cargo_to_discharge_+str(p__)]['stageInterval'] = stages_ # time duration for each stage
             self.seq[cargo_to_discharge_+str(p__)]['startTime'] = start_time_ # start time without delay
-            self.seq[cargo_to_discharge_+str(p__)]['ballastStop'] = list(ballast_stop_) # need to get ballast for these stages
+            # self.seq[cargo_to_discharge_+str(p__)]['ballastStop'] = list(ballast_stop_) # need to get ballast for these stages
             self.seq[cargo_to_discharge_+str(p__)]['lastStage'] = ss_
             # if self.commingle_loading1:
             #     self.seq[cargo_to_load_]['loadingRateM3Min'] = (staggering_rate_['LoadingRateM3Min1'],staggering_rate_['LoadingRateM3Min2'])
@@ -849,7 +860,7 @@ class DischargingOperations(object):
                 
             else:
                 print('Not supported yet!!')
-                exit()
+                raise Exception("Not supported cow_tank")
             
             drive_tank_['departVol'] = self.info['cargo_plans'][port+1][drive_tank_['tank']][0]['quantityM3']
             
@@ -1256,7 +1267,7 @@ class DischargingOperations(object):
             cargo_ = self.info['discharging_order'][c_] # less than 10 cargos loading at one port
             cargo_to_discharge_ = self.info['dsCargoNominationId'][cargo_]
             c1_ = cargo_to_discharge_+str(c_)
-            if s_[:3] in ['Max', 'Str']:
+            if s_[:3] in ['Max', 'Str', 'Dep']:
                 b_ = round(self.max_ballast_rate * self.seq[c1_]['ballastLimit'][s_[:-1]]/60 *1.025,2) # in MT
                 ballast_limit_[s__+1] = b_
             

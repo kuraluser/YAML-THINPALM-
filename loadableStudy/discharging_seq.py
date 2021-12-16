@@ -471,7 +471,7 @@ class Discharging_seq:
                 else:
                     l_ = np.where(np.diff(vol_) == 0)[0][0] + 1
                     
-#                print(k_, l_)
+                # print(k_, l_)
                 if l_ == 1:
                     time_ = 0
                 else:
@@ -540,7 +540,51 @@ class Discharging_seq:
             
             for k_, v_ in self.plans.input.loadable.info['stages'].items():
                 
-                if v_[:3] in ['Str'] and v_[-1] == str(cargo_order):
+                if v_[:3] in ['Dep']: 
+                    port_ = [a_ for a_, b_ in self.plans.input.loadable.info['stages'].items() if b_ == v_][0]
+                    time_ = self.plans.input.discharging.seq[cargo]['gantt'][v_[:-1]]['Time'] + self.plans.input.discharging.seq[cargo]['startTime']
+                    
+                    plan_ = {'time': str(int(time_+self.delay)), 
+                     "dischargeQuantityCommingleCargoDetails":[],
+                     "dischargePlanStowageDetails":[],
+                     "dischargePlanBallastDetails":[],
+                     "dischargePlanRoBDetails":[]}
+                    
+                    
+                    self._get_plan(plan_, port_)
+                    self.final_plan = deepcopy(plan_)
+                    
+                    
+                    ballast_plan_ = {'deballastingRateM3_Hr':{}, 'ballastingRateM3_Hr':{}}
+                    
+                    cur_time_ = self.plans.input.loadable.info['stageTimes'][port_]
+                    pre_time_ = self.plans.input.loadable.info['stageTimes'].get(pre_port_, 0.)
+                    
+                    self._get_ballast_rate(ballast_plan_, port_, pre_port_, cur_time_-pre_time_)
+                    
+                    plan_['deballastingRateM3_Hr'] = ballast_plan_['deballastingRateM3_Hr']
+                    plan_['ballastingRateM3_Hr'] = ballast_plan_['ballastingRateM3_Hr']
+                    
+                    info_ = {}
+                    for k1_, v1_ in  ballast_plan_['deballastingRateM3_Hr'].items():
+                        info_[k1_] = {'tankShortName': self.plans.input.vessel.info['tankId'][k1_],
+                                     'rate': v1_,
+                                     "timeStart": str(start_), "timeEnd": str(end_)}
+                    
+                    plan_['simDeballastingRateM3_Hr'] = deepcopy(info_)
+                    
+                    info_ = {}
+                    for k1_, v1_ in  ballast_plan_['ballastingRateM3_Hr'].items():
+                        info_[k1_] = {'tankShortName': self.plans.input.vessel.info['tankId'][k1_],
+                                     'rate': v1_,
+                                     "timeStart": str(start_), 
+                                     "timeEnd": str(end_)}
+                    
+                    plan_['simBallastingRateM3_Hr'] = deepcopy(info_)
+                    
+                    self.final_ballast = plan_
+                
+                elif v_[:3] in ['Str'] and v_[-1] == str(cargo_order):
                     
                     port_ = [a_ for a_, b_ in self.plans.input.loadable.info['stages'].items() if b_ == v_][0]
                     time_ = self.plans.input.discharging.seq[cargo]['gantt'][v_[:-1]]['Time'] + self.plans.input.discharging.seq[cargo]['startTime']
@@ -574,8 +618,8 @@ class Discharging_seq:
                             
                     self.stages.append(info_)
                     
-                    if self.plans.input.discharging.seq['stages'][-1] == v_:
-                        self.final_plan = plan_
+                    # if self.plans.input.discharging.seq['stages'][-1] == v_:
+                    #     self.final_plan = plan_
                         
                     ballast_plan_ = {'deballastingRateM3_Hr':{}, 'ballastingRateM3_Hr':{}}
                     
@@ -849,7 +893,7 @@ class Discharging_seq:
             info_['sounding'] = str(round(v_[0]['corrLevel'],3))
             
             info_['sg'] = str(v_[0]['SG'])
-            info_['colorCode'] = self.plans.input.discharging.ballast_color[k_]
+            info_['colorCode'] = self.plans.input.discharging.ballast_color.get(k_,None)
             
             if k_ not in ballast_tanks_added_:
                 ballast_tanks_added_.append(k_)

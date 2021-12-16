@@ -76,7 +76,8 @@ class Check_plans:
                                       'freeboard':"{:.2f}".format(result['freeboard']),
                                       'manifoldHeight':"{:.2f}".format(result['manifoldHeight']),
                                       'bendinMoment': "{:.2f}".format(result.get('maxBM',[None, 10000])[1]),
-                                      'shearForce':  "{:.2f}".format(result.get('maxSF',[None, 10000])[1])
+                                      'shearForce':  "{:.2f}".format(result.get('maxSF',[None, 10000])[1]),
+                                      'sdraft': "{:.2f}".format(result['sdraft'])
                                       }
                     
                     # update correction ullage
@@ -85,10 +86,10 @@ class Check_plans:
                     for a_, b_ in plans[p__][k_]['cargo'].items():
                         tankId_ = self.input.vessel.info['tankName'][a_]
                         if str(tankId_) in self.input.vessel.info['ullageCorr'].keys():
-                            cf_ = self._get_correction(str(tankId_), b_[0]['corrUllage'], trim_)
+                            cf_ = self._get_correction(str(tankId_), b_[0]['corrUllage'], min(5.99,trim_))
                             rdgUllage_ = b_[0]['corrUllage'] - cf_/100 if cf_ not in [None] else ""
                             plans[p__][k_]['cargo'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else ""
-                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(rdgUllage_,6) if cf_ not in [None] else ""
+                            plans[p__][k_]['cargo'][a_][0]['rdgUllage'] = round(rdgUllage_,7) if cf_ not in [None] else ""
                             
                         else:
                             # print(str(tankId_), a_, 'Missing correction data!!')
@@ -100,7 +101,7 @@ class Check_plans:
                         tankId_ = self.input.vessel.info['tankName'][a_]
                         if str(tankId_) in self.input.vessel.info['ullageCorr'].keys():
                             # print(b_[0].keys())
-                            cf_ = self._get_correction(str(tankId_), b_[0]['corrLevel'], trim_)
+                            cf_ = self._get_correction(str(tankId_), b_[0]['corrLevel'], min(5.99,trim_))
                             rdgLevel_ = b_[0]['corrLevel'] - cf_/100 if cf_ not in [None] else ""
                             
                             plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = round(cf_/100,3) if cf_ not in [None] else ""
@@ -112,7 +113,54 @@ class Check_plans:
                             # print(str(tankId_), a_, 'Missing correction data!!')
                             plans[p__][k_]['ballast'][a_][0]['correctionFactor'] = ""
                             plans[p__][k_]['ballast'][a_][0]['rdgLevel'] = ""
-                                                
+                
+                # check BM                                
+                if self.input.module in ['LOADING'] and self.reballast:
+                    fail_bm_, base_draft_, ave_trim_ = False, {}, {}
+                    for q_ in range(1, self.input.loadable['lastVirtualPort'] + 1):
+                        bm_ = float(stability_[str(q_)]['bendinMoment'])
+                        # base_draft_[str(q_)] = int(float(stability_[str(q_)]['afterDraft']))
+                        # base_draft_[str(q_)] = int(float(stability_[str(q_)]['sdraft']))
+                        ave_trim_[str(q_)] = float(stability_[str(q_)]['trim'])
+                        if bm_ > 100 or bm_ < -100:
+                            fail_bm_ = True
+                            
+                    if fail_bm_:
+                        self.input.get_param(base_draft = base_draft_)
+                        self.input.write_ampl(ave_trim = ave_trim_)
+                        
+                        # collect plan from AMPL
+                        gen_output_ = Generate_plan(self.input)
+                        gen_output_.run(num_plans=1)
+                        
+                        replan_, restability_ = self._check_reballast_plans(gen_output_)
+                        if replan_:
+                            print('Replaced plan:', p__)
+                            
+                            stability_ = restability_[0]
+                            
+                            if self.index not in [None]:
+                                
+                                for name_ in ['cargo_status', 'operation', 'cargo_tank', 'slop_qty', 'topping', 'loading_rate', 'loading_hrs']:
+                                    outputs.plans[name_][self.index] = gen_output_.plans[name_][0]
+                                    
+                                outputs.plans['ship_status'][self.index] = replan_[0]
+                                
+                            else:
+                               for name_ in ['cargo_status', 'operation', 'cargo_tank', 'slop_qty', 'topping', 'loading_rate', 'loading_hrs']:
+                                    outputs.plans[name_][p__] = gen_output_.plans[name_][0]
+                               
+                               outputs.plans['ship_status'][p__] = replan_[0]
+                            
+                            
+                        # input("Press Enter to continue...")
+                        break
+                        
+                            
+                            
+                        
+                        
+                    
                 # check trim
                 if self.input.module in ['LOADABLE'] and self.reballast:
                     for q_ in  self.input.vessel.info['loading'] + [self.input.loadable.info['lastVirtualPort']-1]:
@@ -173,6 +221,73 @@ class Check_plans:
                                 
                             # input("Press Enter to continue...")
                             break
+                        
+                elif self.input.module in ['DISCHARGE'] and self.reballast:
+                    
+                    for q_ in  [*self.input.loadable.info['toDischargePort1']]:
+                        trim__  = round(float(stability_[str(q_)]['trim']),2)
+                        
+                        if round(self.input.trim_lower.get(str(q_), -0.01),2) == 0:
+                            lower_limit_ = -0.01
+                        else:
+                            lower_limit_ = round(self.input.trim_lower.get(str(q_), -0.01),2)
+                            
+                        if round(self.input.trim_upper.get(str(q_), 0.01),2) == 0:
+                            upper_limit_ = 0.01
+                        else:
+                            upper_limit_ = round(self.input.trim_upper.get(str(q_), 0.01),2)
+                        
+                        if (trim__ > upper_limit_ or trim__ < lower_limit_) :
+                            print('Rebalancing needed:', q_, trim__, lower_limit_, upper_limit_)
+                            input("Press Enter to continue...")
+                            
+                            cur_plan_ = {'constraint':[], "message":[], "rotation":[[]]}
+                            for kk_ in ['ship_status', 'obj', 'operation', 'cargo_status', 'slop_qty', 'cargo_order', 'loading_hrs', 'topping', 'loading_rate', 'cargo_tank']:
+                                # print(kk_)
+                                cur_plan_[kk_] = [outputs.plans[kk_][p__]] if len(outputs.plans[kk_]) > 0 else []
+                                
+                            # get lcg
+                            lcg_port_, qw_ = {}, {}
+                            for i_, j_ in cur_plan_['ship_status'][0].items():
+                                # print(i_, j_)
+                                lcg_port_[i_] = {}
+                                for i1_, j1_ in j_['cargo'].items():
+                                    lcg_port_[i_][i1_] = j1_[0]['lcg']
+                                    
+                            qw_ = {}
+                            for qq_ in  [*self.input.loadable.info['toDischargePort1']]:
+                                qw_[qq_] =  cur_plan_['ship_status'][0][str(qq_)]['cargo']
+                            
+                            self.input.write_dat_file(lcg_port = lcg_port_, weight = qw_)
+                            
+                             # collect plan from AMPL
+                            gen_output_ = Generate_plan(self.input)
+                            gen_output_.run(num_plans=1)
+                            
+                            replan_, restability_ = self._check_reballast_plans(gen_output_)
+                            if replan_:
+                                print('Replaced plan:', p__)
+                                
+                                stability_ = restability_[0]
+                                
+                                if self.index not in [None]:
+                                    
+                                    for name_ in ['cargo_status', 'operation', 'cargo_tank', 'slop_qty', 'topping', 'loading_rate', 'loading_hrs']:
+                                        outputs.plans[name_][self.index] = gen_output_.plans[name_][0]
+                                        
+                                    outputs.plans['ship_status'][self.index] = replan_[0]
+                                    
+                                else:
+                                   for name_ in ['cargo_status', 'operation', 'cargo_tank', 'slop_qty', 'topping', 'loading_rate', 'loading_hrs']:
+                                       if  len(outputs.plans[name_]) > 0:
+                                           outputs.plans[name_][p__] = gen_output_.plans[name_][0] if len(gen_output_.plans[name_]) > 0 else []
+                                   
+                                   outputs.plans['ship_status'][p__] = replan_[0]
+                                
+                                
+                            # input("Press Enter to continue...")
+                            break
+                             
                         
                 self.stability_values.append(stability_)
                 
@@ -367,7 +482,7 @@ class Check_plans:
         lcb_ = np.interp(disp1_, self.input.vessel.info['hydrostatic']['displacement'], self.input.vessel.info['hydrostatic']['lcb'])
         lcf_   = np.interp(disp1_, self.input.vessel.info['hydrostatic']['displacement'], self.input.vessel.info['hydrostatic']['lcf'])
         # mid.f = lcf; mid.b = lcb
-#        print(draft_,mtc_,lcb_,lcf_)
+        # print(draft_,mtc_,lcb_,lcf_)
         lcg_ = l_mom_/ disp_
         bg_ = lcg_ - lcb_
         trim_ = bg_*disp_/mtc_/100
@@ -434,11 +549,12 @@ class Check_plans:
         lcb_ = np.interp(disp_, self.input.vessel.info['hydrostatic']['displacement'], self.input.vessel.info['hydrostatic']['lcb'])
         lcf_   = np.interp(disp_, self.input.vessel.info['hydrostatic']['displacement'], self.input.vessel.info['hydrostatic']['lcf'])
         # mid.f = lcf; mid.b = lcb
-#        print(draft_,mtc_,lcb_,lcf_)
+        # print(draft_,mtc_,lcb_,lcf_)
         lcg_ = l_mom_/ disp_
         bg_ = lcg_ - lcb_
         trim_ = bg_*disp_/mtc_/100
         
+        # print(l_mom_, lcb_, mtc_)
         # print(disp_, mtc_, lcb_)
         
         df_ = draft_ -  (0.5*lpp_ + lcf_)/lpp_*trim_
@@ -451,6 +567,8 @@ class Check_plans:
             sdraft_ = da_ 
         elif int(self.input.vessel_id) in [2]:
             sdraft_ = dm_
+            
+        result['sdraft'] = sdraft_
         
         base_drafts, indx = np.unique(self.input.vessel.info['SSTable']['baseDraft'].to_numpy(dtype=np.float), return_index=True)
         ind_ = np.where(sdraft_ >= base_drafts)
@@ -527,6 +645,10 @@ class Check_plans:
                 
                 if BM_percent[f__] > max_bm_[1]:
                     max_bm_ = [f_, round(BM_percent[f__],2)]
+                    
+                # print(sb_, W_[f__] * tankGroupLCG_[str(f__+1)],  M_[f__], BM_[f__]/1000)
+                    
+                # print(df_['baseValue'].to_numpy()[0], df_['draftCorrection'].to_numpy()[0], df_['trimCorrection'].to_numpy()[0])
                 
                 # print(f_, round(sdraft_,3), round(BM_[f__],3), round(BM_limits_[f__]*9.8,3), round(BM_percent[f__],2))
                 

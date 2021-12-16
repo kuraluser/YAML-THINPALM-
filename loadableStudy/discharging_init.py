@@ -243,14 +243,59 @@ class Process_input(object):
                     
                     strip_ = len(cargo_info['stripping_tanks'][c__+1]) > 1  
                     self.loadable.info['operation'][cargo_][port_] = round(self.loadable.info['operation'][cargo_][port_],1)
-                    # print('DOne')            
-                    if not strip_:
-                        self.trim_lower[str(port_)] = 3.0
-                        self.trim_upper[str(port_)] = 4.0
-                    else:
-                        self.trim_lower[str(port_)] = 4.0
-                        self.trim_upper[str(port_)] = 5.0
+                    # print(d_)            
+                    
+                    if d_[:3] in ['Max'] or not strip_:
+                        t1_, t2_ = 2.0, 6.0 
+                        print(port_, d_, t1_, t2_)
+                        self.trim_lower[str(port_)] = t1_
+                        self.trim_upper[str(port_)] = t2_
+                    elif d_[:3] in ['Str'] and strip_:
+                        t1_, t2_ = 4.0, 6.0 
+                        print(port_, d_, t1_, t2_)
+                        self.trim_lower[str(port_)] = t1_
+                        self.trim_upper[str(port_)] = t2_
                 
+        self.LCGport = {t_:{} for t_ in self.vessel.info['cargoTanks']}
+        
+        for s__, s_ in enumerate(self.discharging.seq['stages']):
+            order_ = int(s_[-1])-1
+            loading_cargo_ = self.discharging.info['discharging_order'][order_]
+            loading_cargo_ = self.discharging.info['dsCargoNominationId'][loading_cargo_] + str(order_)
+            stage_ = s_[:-1]
+            # print(s__+1, self.loading.info["cargo_tank"][loading_cargo_])
+            for i_, r_ in self.discharging.seq[loading_cargo_]['gantt'][stage_].items():
+                if i_ not in ["Time"] and r_ not in [None]:
+                    if len(r_) == 2:
+                        tank_, vol_ = i_, r_[1]
+                        # print(tank_, vol_)
+                        if tank_[-1] == 'W':
+                            tank_ = tank_[0] + 'P'
+                            if tank_ in self.vessel.info['tankLCG']['lcg']:
+                                lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tank_]['vol'],
+                                                     self.vessel.info['tankLCG']['lcg'][tank_]['lcg'])
+                                
+                                self.LCGport[tank_[0] + 'P'][s__+1] = round(lcg_,4)
+                                self.LCGport[tank_[0] + 'S'][s__+1] = round(lcg_,4)
+                          
+                        else:
+                                
+                            if tank_ in self.vessel.info['tankLCG']['lcg']:
+                                lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tank_]['vol'],
+                                                     self.vessel.info['tankLCG']['lcg'][tank_]['lcg'])
+                                self.LCGport[tank_][s__+1] = round(lcg_,4)
+                          
+                        
+                    else:
+                        tank_, vol_ = i_, r_[1] + r_[3]
+                        # print(tank_, vol_)
+                        if tank_ in self.vessel.info['tankLCG']['lcg']:
+                            lcg_ = np.interp(vol_, self.vessel.info['tankLCG']['lcg'][tank_]['vol'],
+                                                 self.vessel.info['tankLCG']['lcg'][tank_]['lcg'])
+                            self.LCGport[tank_][s__+1] = round(lcg_,4)
+                          
+                    
+          
             
         for k_, v_ in cargo_info['ballast'][0].items():
             if v_[0]['quantityMT'] > 0:
@@ -347,34 +392,37 @@ class Process_input(object):
             lower_draft_limit_ = min_draft_limit_ #max(self.ports.draft_airdraft[p_], min_draft_limit_)
             lower_displacement_limit_ = np.interp(lower_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
             # correct displacement to port seawater density
+            est_draft__ =  np.interp(est_displacement_,  self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
+            # print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
+            # print(self.trim_lower.get(str(p_),-0.0001), self.trim_upper.get(str(p_),0.0001))
+            
+            # correct displacement to port seawater density
             lower_displacement_limit_  = lower_displacement_limit_*seawater_density_/1.025
             
             # disp1_ = lower_displacement_limit_*1.025/seawater_density_
             # d1_ = np.interp(disp1_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
             # print(port__,d1_,seawater_density_,disp1_,lower_displacement_limit_)
-            
-            est_displacement_ = max(lower_displacement_limit_, est_displacement_)   
+            # trim_ = self.trim_lower.get(str(p_),.0)
+            if est_draft__ > lower_draft_limit_:
+                est_displacement_ = max(lower_displacement_limit_, est_displacement_)   
+               
+            else:
+                est_draft__ = min_draft_limit_ - 2.5 # max trim = 3m 
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 4.0, 6.0
+                lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
+                print(p_, round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
+                
+                # est_displacement_ = max(lower_displacement_limit_, est_displacement_)  
+                
 #            
            
-            ## upper bound displacement
-            # upper_draft_limit_ = #min(loadline_, float(self.port.info['portRotation'][port_code_]['maxDraft'])) - 0.001
-            # check uplimit not exceeed for min load
-            # est_displacement_wo_ballast_ =  self.loadable.info['toLoadMinPort'][p_]  + cont_weight_ + misc_weight_ + lightweight_
-            # est_draft_wo_ballast_ =  np.interp(est_displacement_wo_ballast_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
             
-            # if est_draft_wo_ballast_ > upper_draft_limit_:
-            #     message_ = 'Draft error at '+ port_code_ + '!!'
-            #     #print('Draft error')
-            #     if 'Draft Error' not in self.error.keys():
-            #         self.error['Draft Error'] = [message_]
-            #     elif message_ not in self.error['Draft Error']:
-            #         self.error['Draft Error'].append(message_)
-                
-            # upper_displacement_limit_ = np.interp(upper_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
-            # # correct displacement to port seawater density
-            # upper_displacement_limit_  = upper_displacement_limit_*seawater_density_/1.025
             
             upper_displacement_limit_ = 1e6
+            upper_displacement_limit_  = upper_displacement_limit_*seawater_density_/1.025
+            
+            
+            
             est_displacement_ = min(est_displacement_, upper_displacement_limit_)
             
             self.displacement_lower[str(p_)] = lower_displacement_limit_
@@ -382,12 +430,20 @@ class Process_input(object):
             
             est_draft_ = np.interp(est_displacement_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
             
+            
+            # print(p_, 'est_draft:', est_draft_)
             # base draft for BM and SF
-            trim_ = 0.5*(self.trim_lower.get(str(p_), 3.0) + self.trim_upper.get(str(p_), 5.0))
-            base_draft__ = int(np.floor(est_draft_+trim_/2))
+            trim_ = 4.0 #0.5*(self.trim_lower.get(str(p_),0.0) + self.trim_upper.get(str(p_),0.0))
+            
+            if self.vessel_id in [1]:
+                base_draft__ = int(np.floor(est_draft_+trim_/2))
+            elif self.vessel_id in [2]:
+                base_draft__ = int(np.floor(est_draft_))
+                
             base_draft_ = base_draft__ if p_  == 1 else min(base_draft__, self.base_draft[str(p_-1)])
             self.base_draft[str(p_)] = base_draft_
-            
+            # print(p_,trim_,base_draft_)
+              
             
             frames_ = self.vessel.info['frames']
             
@@ -423,7 +479,7 @@ class Process_input(object):
        
         
         
-    def write_ampl(self, file = 'input_discharging.dat', IIS = True):
+    def write_ampl(self, file = 'input_discharging.dat', IIS = True, ave_trim = None):
         
         if not self.error and self.solver in ['AMPL']:
             
@@ -1051,6 +1107,18 @@ class Process_input(object):
                         str1 += i_ + ' ' +  "{:.4f}".format(j_['lcg']) + ' '
                 print(str1+';', file=text_file)   
                 
+                print('# LCGs for cargo tanks', file=text_file)
+                str1 = 'param LCGtport := '
+                print(str1, file=text_file)
+                for i_, j_ in self.vessel.info['cargoTanks'].items():
+                    str1 = '['+ i_ + ',*] = '
+                    for k1_ in range(1, self.loadable.info['lastVirtualPort']+1):
+                        # lcg_ = j_['lcg']
+                        lcg_ = self.LCGport.get(i_, {}).get(k1_, j_['lcg'])
+                        str1 += str(k1_) + ' ' + "{:.4f}".format(lcg_) + ' '
+                                    
+                    print(str1, file=text_file)
+                print(';', file=text_file)
                 
                 self.vessel.info['TCGt'] = {}
                 print('# TCGs of tanks', file=text_file)
@@ -1184,6 +1252,12 @@ class Process_input(object):
                 str1 = 'param deadweight   := ' + str(1000000) 
                 print(str1+';', file=text_file)
                 
+                if ave_trim:
+                    print('# ave trim', file=text_file)
+                    str1 = 'param ave_trim := '
+                    for i_, j_ in ave_trim.items():
+                        str1 += str(i_) + ' ' +  "{:.2f}".format(j_) + ' '
+                    print(str1+';', file=text_file)
                 
                 print('# base draft', file=text_file)
                 str1 = 'param base_draft := '

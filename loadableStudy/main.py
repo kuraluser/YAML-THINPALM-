@@ -109,12 +109,13 @@ async def errors_handling(request: Request, call_next):
 
 async def get_vessel_details(url, gID, vesselId):
     try:
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(verify=False) as client:
             resp_ = await client.get(url)
 #            resp_.raise_for_status()
             if resp_.status_code == httpx.codes.OK:
                 response_json = resp_.json()
-                
+            else:
+                resp_.raise_for_status()
     except httpx.HTTPError as err:
         # print(f"HTTP Exception: {err}")
         # print('>>>> get vessel FILE')
@@ -237,7 +238,9 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
         await post_response(result_url_, result, uid)
     except Exception as err:
         print(err)
-        result = traceback.format_exc()
+#        result = traceback.format_exc()
+        result = {"error":traceback.format_exc(), "abnormal_exit":True}
+        result = json.dumps(result)
         gDate = str(datetime.datetime.now())
         query = users.update().\
             where(users.c.id == uid).\
@@ -331,7 +334,7 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
     print(vesselId_)
         
     vessel_url_ = config['url']['vessel-details'].format(vesselId=vesselId_)
-#    print(vessel_url_)
+    print(vessel_url_)
     data_['vessel'] = await get_vessel_details(vessel_url_, gID, str(vesselId_))
         
     # print('>>>> add new loadable')
