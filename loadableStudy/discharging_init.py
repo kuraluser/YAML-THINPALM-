@@ -189,7 +189,7 @@ class Process_input(object):
                 if e_[0] not in ['Time', 'Weight'] and e_[1] not in [None] and e_[1][0] == cargo_:
                     toLoadTank_[e_[0]] = round(e_[1][1]*density_[cargo_],1) 
             
-            
+            self.stripping_ports = []
             for d_ in  self.discharging.seq[c1_]['loadingInfo']: # for each column
             
                 if self.discharging.seq[c1_]['loadingInfo'][d_]['Weight'] not in [None, np.nan]:
@@ -246,7 +246,7 @@ class Process_input(object):
                     # print(d_)            
                     
                     if d_[:3] in ['Max'] or not strip_:
-                        t1_, t2_ = 2.0, 6.0 
+                        t1_, t2_ = 0.5, 6.0 
                         print(port_, d_, t1_, t2_)
                         self.trim_lower[str(port_)] = t1_
                         self.trim_upper[str(port_)] = t2_
@@ -255,6 +255,7 @@ class Process_input(object):
                         print(port_, d_, t1_, t2_)
                         self.trim_lower[str(port_)] = t1_
                         self.trim_upper[str(port_)] = t2_
+                        self.stripping_ports.append(str(port_))
                 
         self.LCGport = {t_:{} for t_ in self.vessel.info['cargoTanks']}
         
@@ -479,7 +480,7 @@ class Process_input(object):
        
         
         
-    def write_ampl(self, file = 'input_discharging.dat', IIS = True, ave_trim = None):
+    def write_ampl(self, file = 'input_discharging.dat', IIS = True, ave_trim = None, incDec_ballast = None):
         
         if not self.error and self.solver in ['AMPL']:
             
@@ -905,6 +906,12 @@ class Process_input(object):
                     if i_ not in tb_list_:
                         str1 += i_ + ' '
                 print(str1+';', file=text_file)
+                if incDec_ballast:
+                    print('# ballast tanks which can be ballast or deballast anytime',file=text_file)#  
+                    str1 = 'set TB3 := '
+                    for i_ in incDec_ballast:
+                        str1 += i_ + ' '
+                    print(str1+';', file=text_file)
                 
                 print('# ballast tanks with non-pw lcg details',file=text_file)#  
                 tb_list_ = list(self.vessel.info['tankLCG']['lcg_pw'].keys()) + self.vessel.info['banBallast']
