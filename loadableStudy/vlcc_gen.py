@@ -177,13 +177,25 @@ class Generate_plan:
                     
                     if not result['succeed'] and (self.input.loading.info['deballastAmt'] < 1200):
                         self.input.write_ampl(listMOM = True) # relax list mom to 100000
-                        drop_const = ['Condition21c', 'Constr16a']
+                        drop_const = ['Condition21c']
                         result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
                         
                         # input("Press Enter to continue...")
                         if result['succeed']:
                             self._process_ampl(result, num_plans=num_plans)
                             self._process_checking_plans(result)
+                            
+                        else:
+                            
+                            self.input.write_ampl(listMOM = True) # relax list mom to 100000
+                            drop_const = ['Condition21c', 'Constr16a']
+                            result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
+                        
+                            # input("Press Enter to continue...")
+                            if result['succeed']:
+                                self._process_ampl(result, num_plans=num_plans)
+                                self._process_checking_plans(result)
+
                     
                     if not result['succeed']:
                         self.plans['message']['Optimization Error'] = result['message']

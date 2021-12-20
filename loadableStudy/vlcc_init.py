@@ -453,11 +453,12 @@ class Process_input(object):
             if est_draft__ > lower_draft_limit_:
                 est_displacement_ = max(lower_displacement_limit_, est_displacement_)   
             else: 
-                trim_ = 2*(min_draft_limit_ - est_draft__)
-                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = round(trim_,2), min(3.49, trim_ + 1)
-                lower_displacement_limit_ = est_displacement_-2000
-                print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
-                print(p_, trim_)
+            
+                est_draft__ = min_draft_limit_ - 1.5 # max trim = 3m 
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 0.5, 2.95
+                lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
+                print(p_, round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
+  
             
             ## upper bound displacement
             upper_draft_limit_ = min(loadline_, self.port.info['portRotation'][port_code_]['maxDraft']) - 0.001

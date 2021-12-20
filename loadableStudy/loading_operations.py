@@ -713,7 +713,7 @@ class LoadingOperations(object):
             
             
             max_loading_rate_ = min(loading_rate__, self.staggering_param['maxShoreRate'])
-            # max_loading_rate_ = 3000
+            # max_loading_rate_ = 5000
             print('max loading rate:', max_loading_rate_)
             cargo_loaded_ = loading_rate_*15/60 + max_loading_rate_*10/60
             cargo_loaded_per_tank_ = cargo_loaded_/total_tank_

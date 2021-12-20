@@ -23,14 +23,15 @@ class Process_input(object):
                             }
         #
         self.port_id   = data['loading']['portId']
+        self.port_rotation_id = data['loading']['portRotationId']
         self.port_json = {'portDetails': data['loading']['loadingInformation']['berthDetails']}
         
-        self.loadable1_json = {'planDetails': [p_ for p_ in data['loading']['loadablePlanPortWiseDetails'] if p_['portId'] == self.port_id][0]
+        self.loadable1_json = {'planDetails': [p_ for p_ in data['loading']['loadablePlanPortWiseDetails'] if p_['portRotationId'] == self.port_rotation_id][0]
                               }
         
         self.loadable_json = {'planDetails': []}
         for p__, p_ in enumerate(data['loading']['loadablePlanPortWiseDetails']):
-            if p_['portId'] == self.port_id:
+            if p_['portRotationId'] == self.port_rotation_id:
                 self.loadable_json['planDetails'] = p_
                 
                 if len(p_['arrivalCondition']['loadablePlanStowageDetails']) == 0:
