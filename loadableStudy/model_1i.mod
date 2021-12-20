@@ -193,6 +193,11 @@ param V_loaded{c in C_loaded, t in T_loaded, p in P} = W_loaded[c,t,p]/densityCa
 # for fixed qw
 param QW{c in C, t in T} >=0 default 0;
 set QWT{c in C} default {};
+
+# discharge
+param QW1{c in C, t in T, p in P} >=0 default 0;
+set QWT1{c in C} default {};
+
 # loading ports
 set loadPort;
 param loadingPortAmt{p in loadPort} default 0;
@@ -348,6 +353,7 @@ param LCGtp{t in OtherTanks, p in P} default 0;
 #param TrimMOM default 1;
 param trim_upper{p in P} default 0.0001;
 param trim_lower{p in P} default -0.0001;
+param ave_trim {p in P} default 0.5*(trim_lower[p]+trim_upper[p]);
 
 param pwLCG default 0;
 param mTankLCG{p in 1..pwLCG,   t in T union TB} default 0; # need update input based on tcg details
@@ -623,7 +629,10 @@ subject to Condition112i4 {c in C_max}: x[c,'4P'] + x[c,'4C'] + x[c,'4S'] + x[c,
 subject to Condition112j {c in firstDisCargo}: x[c,'SLS'] + x[c,'SLP'] >= 1;
 
 ##
-subject to Condition117 {c in C, t in QWT[c], p in P_last_loading}:  0.98*QW[c,t] <= qw[c,t,p] <= QW[c,t]*1.02;
+subject to Condition117a {c in C, t in QWT[c], p in P_last_loading}:  0.98*QW[c,t] <= qw[c,t,p] <= QW[c,t]*1.02;
+subject to Condition117b {c in C, t in QWT1[c], p in dischargePort}:  0.98*QW1[c,t,p] <= qw[c,t,p] <= QW1[c,t,p]*1.02;
+
+
 ## 
 subject to Condition112b1 {t in T, c in C diff C_loaded diff C_locked, p in P_last_loading}: qw[c,t,p] >= minCargoAmt*x[c,t]; # link xB and wB
 subject to Condition112b2 {t in T, c in C diff C_loaded diff C_locked, p in P_last_loading}: qw[c,t,p] <= 1e5*x[c,t]; # link xB and wB
@@ -730,7 +739,8 @@ subject to Constr19b {f in 1..Fr, p in P_stable}: mn[f,p] = mn[f-1,p] + sum {t i
 # mean_draft=pwl(displacement)
 subject to Constr18d {p in P}: mean_draft[p] = <<{s in 1..pwDraft-1} bDraft[s]; {s in 1..pwDraft}mDraft[s]>> displacement[p] + adjMeanDraft;
 
-subject to Condition200a {p in P_stable}: est_trim[p] = (trim_upper[p]+trim_lower[p])/2;
+#subject to Condition200a {p in P_stable}: est_trim[p] = (trim_upper[p]+trim_lower[p])/2;
+subject to  Condition200a {p in P_stable}: est_trim[p] = ave_trim[p];
 
 # SF -> zero trim
 subject to Condition20a2 {f in 1..Fr, p in P_stable}: SS[f,p] = BV_SF[f,p] + CD_SF[f,p]*(mean_draft[p]+draft_corr[p]-base_draft[p]) + CT_SF[f,p]*est_trim[p];
