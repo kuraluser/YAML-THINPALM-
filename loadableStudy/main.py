@@ -145,7 +145,27 @@ async def run_in_process(fn, *args):
 
 
 async def start_cpu_bound_task(uid: str, data: dict) -> None:
+
+    errorUrl = None
     try:
+        if data['module'] in ['LOADABLE']:
+            errorUrl = config['url']['LOADABLE']['validate-patterns'].format(vesselId=data['loadable']['vesselId'],
+                                                                        voyageId=data['loadable']['voyageId'],
+                                                                        loadableStudyId=data['loadable']['id'],
+                                                                        loadablePatternId=data['loadable']['loadablePatternId'])
+        if data['module'] in ['LOADING']:
+            errorUrl = config['url']['LOADING']['loading-patterns'].format(vesselId=data['loading']['vesselId'],
+                                                                        voyageId=data['loading']['voyageId'],
+                                                                        infoId=data['loading']['infoId'])
+        if data['module'] in ['DISCHARGE']:
+            errorUrl = config['url']['DISCHARGE']['discharge-patterns'].format(vesselId=data['discharge']['vesselId'],
+                                                                        voyageId=data['discharge']['voyageId'],
+                                                                        dischargeStudyId=data['discharge']['id'])        
+            
+        if data['module'] in ['DISCHARGING']:
+            errorUrl = config['url']['DISCHARGING']['discharging-patterns'].format(vesselId=data['discharging']['vesselId'],
+                                                                        voyageId=data['discharging']['voyageId'],
+                                                                        infoId=data['discharging']['infoId'])
 #    print(uid,type(uid))
         if data['module'] in ['LOADABLE', 'DISCHARGE']:
             result = await run_in_process(gen_allocation, data)
@@ -236,6 +256,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
         # if data['module'] in ['LOADABLE', 'LOADING']:
             # print(result)
         await post_response(result_url_, result, uid)
+        
     except Exception as err:
         print(err)
 #        result = traceback.format_exc()
@@ -250,6 +271,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
                 timestamp = gDate
                 )
         await database.execute(query)
+        await post_response(errorUrl, result, uid)
 
         
 def get_data(data, gID):
