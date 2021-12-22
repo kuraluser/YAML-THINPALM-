@@ -2547,11 +2547,11 @@ class DischargingOperations(object):
             
         for d_ in stowageDetails:
             tank_ = self.vessel.info['tankId'][d_['tankId']]
-            tanks_.append(tank_)
             
             cargo_ = d_.get('cargoNominationId', None)
             if cargo_ not in [None]:
                 cargo_ = 'P' + str(cargo_)
+                tanks_.append(tank_)
             
             if not cargo_:
                 continue

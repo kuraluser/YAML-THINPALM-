@@ -237,6 +237,7 @@ set NP1 default {NP}; # NP1 = {} for cargo left in last discharge port
 set P_stable1 =  P_stable diff NP1; # port with min draft requirement
 set P_stable2{C} default P_stable; 
 set P_opt default {};
+set P_bm default {};
 
 set zeroListPort default {};
 
@@ -752,7 +753,7 @@ subject to Condition20c {f in 1..Fr, p in P_stable}: SS[f,p] - wn[f,p] <= upperS
 subject to Condition21a2 {f in 1..Fr, p in P_stable}: SB[f,p] = BV_BM[f,p] + CD_BM[f,p]*(mean_draft[p]+draft_corr[p]-base_draft[p]) + CT_BM[f,p]*est_trim[p];
 subject to Condition21a1 {f in 1..Fr, p in P_stable}: SB[f,p] = BV_BM[f,p] + CD_BM[f,p]*(mean_draft[p]+0.5*est_trim[p]-base_draft[p]) + CT_BM[f,p]*est_trim[p];
 subject to Condition21b {f in 1..Fr, p in P_stable}: lowerBMlimit[f] <= wn[f,p]*LCG_fr[f] + mn[f,p] - SB[f,p];
-subject to Condition21c {f in 1..Fr, p in P_stable}: wn[f,p]*LCG_fr[f] + mn[f,p] -  SB[f,p] <= upperBMlimit[f];
+subject to Condition21c {f in 1..Fr, p in P_stable diff P_bm}: wn[f,p]*LCG_fr[f] + mn[f,p] -  SB[f,p] <= upperBMlimit[f];
 
 
 

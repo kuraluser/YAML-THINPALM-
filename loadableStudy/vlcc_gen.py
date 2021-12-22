@@ -159,6 +159,22 @@ class Generate_plan:
                     if not result['succeed']:
                         self.plans['message']['Optimization Error'] = result['message']
                         
+            elif self.input.module in ['DISCHARGE']:
+                # print('Rerun for loading module')
+                if self.input.solver in ['AMPL']:
+                    print('Rerun AMPL ....')
+                    if not result['succeed']:
+                        self.input.write_dat_file(drop_BM = True)
+                        result = self._run_ampl(dat_file='input_discharge.dat') 
+                        
+                        # input("Press Enter to continue...")
+                        if result['succeed']:
+                            self._process_ampl(result, num_plans=num_plans)
+                            self._process_checking_plans(result)
+                            
+                if not result['succeed']:
+                        self.plans['message']['Optimization Error'] = result['message']
+                        
             elif self.input.module in ['LOADING']:
                 # print('Rerun for loading module')
                 if self.input.solver in ['AMPL']:

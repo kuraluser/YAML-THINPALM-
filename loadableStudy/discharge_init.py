@@ -200,7 +200,7 @@ class Process_input1(object):
             else:
                 
                 est_draft__ = min_draft_limit_ - 1.5 # max trim = 3m 
-                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 0.5, 2.99
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 2.5, 2.99
                 lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
                 print(p_, round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
                 self.ave_trim[str(p_)] = 3.0
@@ -297,7 +297,7 @@ class Process_input1(object):
         print('base draft:', self.base_draft)
         
         
-    def write_dat_file(self, file = 'input_discharge.dat', IIS = True, lcg_port = None, weight = None):
+    def write_dat_file(self, file = 'input_discharge.dat', IIS = True, lcg_port = None, weight = None, drop_BM = False):
         
         if not self.error and self.solver in ['AMPL']: #and self.mode not in ['FullManual']:
         
@@ -640,6 +640,11 @@ class Process_input1(object):
                     str1 = 'param ave_trim := '
                     for k_, v_ in self.ave_trim.items():
                         str1 += k_ + ' ' + "{:.3f}".format(v_) + ' '
+                    print(str1+';', file=text_file)
+                if drop_BM:
+                    str1 = 'set P_bm := '
+                    for k_, v_ in self.ave_trim.items():
+                        str1 += k_ + ' ' 
                     print(str1+';', file=text_file)
                 
                 # set of other tanks, e.g. fuel tanks, water tanks,
