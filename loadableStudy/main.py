@@ -147,12 +147,13 @@ async def run_in_process(fn, *args):
 async def start_cpu_bound_task(uid: str, data: dict) -> None:
 
     errorUrl = None
+    print("data['module']", data['module'])
     try:
         if data['module'] in ['LOADABLE']:
-            errorUrl = config['url']['LOADABLE']['validate-patterns'].format(vesselId=data['loadable']['vesselId'],
+            errorUrl = config['url']['LOADABLE']['loadable-patterns'].format(vesselId=data['loadable']['vesselId'],
                                                                         voyageId=data['loadable']['voyageId'],
-                                                                        loadableStudyId=data['loadable']['id'],
-                                                                        loadablePatternId=data['loadable']['loadablePatternId'])
+                                                                        loadableStudyId=data['loadable']['id'])
+#            print(errorUrl)
         if data['module'] in ['LOADING']:
             errorUrl = config['url']['LOADING']['loading-patterns'].format(vesselId=data['loading']['vesselId'],
                                                                         voyageId=data['loading']['voyageId'],
@@ -259,6 +260,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
         
     except Exception as err:
         print(err)
+#        print("errorUrl:", errorUrl)
 #        result = traceback.format_exc()
         result = {"error":traceback.format_exc(), "abnormal_exit":True}
         result = json.dumps(result)
@@ -271,7 +273,9 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
                 timestamp = gDate
                 )
         await database.execute(query)
-        await post_response(errorUrl, result, uid)
+        
+        if errorUrl not in [None]:
+            await post_response(errorUrl, result, uid)
 
         
 def get_data(data, gID):
