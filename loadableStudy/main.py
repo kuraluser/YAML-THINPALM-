@@ -321,9 +321,10 @@ def get_data(data, gID):
     data_['vessel'] = None
     data_['processId'] = gID
     data_['config'] = config["vessel"][str(vessel_id_)]
+    data_['config']["solver"] = config["solver"]
     
-    print('module', data_['module'], vessel_id_)
-    
+    print('module', data_['module'], data_['config']["solver"], vessel_id_)
+
     return data_
     
 

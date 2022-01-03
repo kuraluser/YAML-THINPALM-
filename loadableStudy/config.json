@@ -24,6 +24,7 @@
     "fileName": "main.log",
     "rotation": "1 week"
   },
+  "solver": "AMPL",
   "vessel": {
     "1": {
       "adj_LCB": -13665.8,
