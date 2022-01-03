@@ -519,6 +519,16 @@ class Vessel:
             ## config for discharging 
             self.info['initBallast']['inc'] = ['WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S']
             
+        else:
+            self.info['initBallast'] = {'wt':{}, 'dec':[], 'inc':[]}
+            
+            for k_, v_ in inputs.vessel.info['ballastTanks'].items():
+                if k_ not in inputs.vessel.info['banBallast']:
+                    # tank_ = v_['tankId']
+                    self.info['initBallast']['wt'][k_] = 0.
+            
+            ## config for discharging 
+            self.info['initBallast']['inc'] = ['WB1P','WB1S','WB2P','WB2S','WB3P','WB3S','WB4P','WB4S','WB5P','WB5S']
         
             
         if  inputs.loadable.info['preloadOperation']:

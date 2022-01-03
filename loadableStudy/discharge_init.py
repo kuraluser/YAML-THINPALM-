@@ -85,6 +85,9 @@ class Process_input1(object):
     def get_stability_param(self, ballast_weight_ = 91800, sf_bm_frac = 0.95, trim_upper = 3.0, trim_lower = 2.5):
         
         self.ballast_percent = self.config['ballast_percent'] #0.4 
+        if self.loadable.info['lastVirtualPort'] == 1:
+            self.ballast_percent = 1
+            print("Change ballast_percent to 1.0")
         lightweight_ = self.vessel.info['lightweight']['weight']
         max_deadweight_ = 1000*1000
         cont_weight_ = self.vessel.info['deadweightConst']['weight'] #+ self.vessel.info['onboard']['totalWeight']
@@ -200,7 +203,7 @@ class Process_input1(object):
             else:
                 
                 est_draft__ = min_draft_limit_ - 1.5 # max trim = 3m 
-                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 2.5, 2.99
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 2.5, 3.00
                 lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
                 print(p_, round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
                 self.ave_trim[str(p_)] = 3.0
@@ -739,8 +742,8 @@ class Process_input1(object):
                 # str1 = 'param diffVol := 1' 
                 # print(str1+';', file=text_file)
                 
-                print('# deballast percent ',file=text_file)#
-                str1 = 'param deballastPercent := ' + "{:.4f}".format(self.deballast_percent) 
+                print('# ballast percent ',file=text_file)#
+                str1 = 'param ballastPercent := ' + "{:.4f}".format(self.ballast_percent) 
                 print(str1+';', file=text_file)
                 
                 

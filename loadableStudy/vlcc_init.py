@@ -72,7 +72,7 @@ class Process_input(object):
         
         self.firstDisCargo = str(data['loadable'].get("cargoToBeDischargeFirstId", ''))
                 
-        self.solver = self.config['solver'] #_SOLVER_ ## config
+        self.solver = self.config.get('solver', 'AMPL')#_SOLVER_ ## config
                 
         self.preloaded_cargo = []
         
@@ -181,7 +181,7 @@ class Process_input(object):
                     ## 328 "Commingle can be done with maximum two cargoes"
                     
                     for k__, k_ in enumerate(l_['rules']):
-                        #print(k_['ruleTemplateId'])
+                        # print(k_['ruleTemplateId'])
                         v_ =  RULES.get(k_['ruleTemplateId'], None)
                         # print(k_['ruleTemplateId'], v_)
                         if v_ in ["cargoTankUpperLimit", "cargoTankLowerLimit", 
