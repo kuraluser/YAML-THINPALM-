@@ -653,7 +653,10 @@ def vlcc_ortools(inputs):
 
     ballastBan = []
     if inputs.module in ['DISCHARGE']:
-        ballastBan = ['AWBP', 'AWBS', 'APT']
+        if inputs.vessel_id == 1:
+            ballastBan = ['AWBP', 'AWBS', 'APT']
+        elif inputs.vessel_id == 2:
+            ballastBan = ['WB6P', 'WB6S', 'APT']
 
     # first loading Port, default 1
     firstLoadingPort = 1
