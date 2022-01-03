@@ -259,11 +259,14 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
         await post_response(result_url_, result, uid)
         
     except Exception as err:
-        print(err)
-#        print("errorUrl:", errorUrl)
-#        result = traceback.format_exc()
-        result = {"error":traceback.format_exc(), "abnormal_exit":True}
+#        print(err)
+        r_ = traceback.format_exc()
+        r_ = r_.replace("\n", " ")                     
+        result ={ "errors": [{"errorHeading": "ALGO Internal Server Error", "errorDetails": [r_]}]}
         result = json.dumps(result)
+        #print("the res ",result)
+
+
         gDate = str(datetime.datetime.now())
         query = users.update().\
             where(users.c.id == uid).\
