@@ -261,9 +261,12 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
     except Exception as err:
 #        print(err)
         r_ = traceback.format_exc()
-        r_ = r_.replace("\n", " ")                     
+        r_ = r_.replace("\n", " ")
+        r_ = r_.replace('"','')
+        
         result ={ "errors": [{"errorHeading": "ALGO Internal Server Error", "errorDetails": [r_]}]}
-        result = json.dumps(result)
+        result = json.loads(json.dumps(result))
+
         #print("the res ",result)
 
 
