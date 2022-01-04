@@ -95,8 +95,10 @@ def loading(data: dict) -> dict:
         valve_time = ValveSequencing(out, voperation, constants.LOADING_OPS, constants)
         # Conversion
         valve_conversion = ValveConversion(out, constants)
-        valve_conversion.convertValves(valve_time.load_valves, 'cargoValves')
-        valve_conversion.convertValves(valve_time.deballast_valves, 'ballastValves')
+        if hasattr(valve_time, 'load_valves'):
+            valve_conversion.convertValves(valve_time.load_valves, 'cargoValves')
+        if hasattr(valve_time, 'deballast_valves'):
+            valve_conversion.convertValves(valve_time.deballast_valves, 'ballastValves')
         return valve_conversion.json #valve_out
 
 
