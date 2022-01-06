@@ -264,8 +264,7 @@ async def start_cpu_bound_task(uid: str, data: dict) -> None:
         r_ = r_.replace("\n", " ")
         r_ = r_.replace('"','')
         
-        result = {'processId': uid,
-                  "errors": [{'processId': uid},{"errorHeading": "ALGO Internal Server Error", "errorDetails": [r_]}]}
+        result = {"errors": [{"errorHeading": "ALGO Internal Server Error", "errorDetails": [r_, uid]}]}
         result = json.loads(json.dumps(result))
 
         #print("the res ",result)
