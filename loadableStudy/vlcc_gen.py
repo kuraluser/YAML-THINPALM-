@@ -181,8 +181,9 @@ class Generate_plan:
                     print('Rerun AMPL ....')
                     
                     if not result['succeed'] and len(self.input.loading.info['loading_order1']) > 1:
-                        self.input.get_param(min_int_trim = 0.5)
-                        self.input.write_ampl()
+                        print('Relax intermitted trim ...')
+                        self.input.get_param(min_int_trim = 0.5, max_int_trim = 1.5)
+                        self.input.write_ampl(IIS = self.IIS)
                         result = self._run_ampl(dat_file='input_load.dat') 
                         
                         # input("Press Enter to continue...")
@@ -192,10 +193,11 @@ class Generate_plan:
                         
                     
                     if not result['succeed'] and (self.input.loading.info['deballastAmt'] < 1200):
-                        self.input.write_ampl(listMOM = True) # relax list mom to 100000
+                        print('For small ballast amt ...')
+                        self.input.write_ampl(listMOM = True, IIS = self.IIS) # relax list mom to 100000
                         drop_const = ['Condition21c']
-                        result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
-                        
+                        result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const, IIS = self.IIS) 
+                         
                         # input("Press Enter to continue...")
                         if result['succeed']:
                             self._process_ampl(result, num_plans=num_plans)
@@ -203,7 +205,7 @@ class Generate_plan:
                             
                         else:
                             
-                            self.input.write_ampl(listMOM = True) # relax list mom to 100000
+                            self.input.write_ampl(listMOM = True, IIS = self.IIS) # relax list mom to 100000
                             drop_const = ['Condition21c', 'Constr16a']
                             result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
                         

@@ -99,7 +99,7 @@ class Process_input(object):
         else:
             self.error = {**self.error, **self.loading.error}
         
-    def get_param(self, base_draft = None, min_int_trim = 0.96):
+    def get_param(self, base_draft = None, min_int_trim = 0.96, max_int_trim = 1.1):
         
         
         self.limits = {}
@@ -298,8 +298,8 @@ class Process_input(object):
                     self.trim_lower[str(port_)] = b_
                     
                 elif not last_cargo_ and d_ in [self.loading.seq[c_]['lastStage'] + str(c__+1)]:
-                    a_, b_ = 1.1, min_int_trim
-                    print(d_,'lastStage -- trim constraint:', b_, a_)
+                    a_, b_ = max_int_trim, min_int_trim
+                    print(d_,'last intermeditate stage -- trim constraint:', b_, a_)
                     self.trim_upper[str(port_)] =  a_
                     self.trim_lower[str(port_)] =  b_
                     
