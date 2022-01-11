@@ -434,7 +434,7 @@ class Process_input(object):
             
             # print(p_, 'est_draft:', est_draft_)
             # base draft for BM and SF
-            trim_ = 4.0 #0.5*(self.trim_lower.get(str(p_),0.0) + self.trim_upper.get(str(p_),0.0))
+            trim_ = 4.0  if str(p_) in self.stripping_ports else 4.0 #0.5*(self.trim_lower.get(str(p_),0.0) + self.trim_upper.get(str(p_),0.0))
             
             if self.vessel_id in [1]:
                 base_draft__ = int(np.floor(est_draft_+trim_/2))

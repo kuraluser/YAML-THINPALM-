@@ -58,11 +58,13 @@ class Process_input1(object):
         
         self.has_loadicator = self.vessel_json['vessel']['vessel'].get('hasLoadicator',False)
         
-        self.feedback_sf_bm_frac = 99
+        self.feedback_sf_bm_frac = 95
         
         self.mode = ""
         
         self.accurate = True
+        
+        self.cargo_rotation = []
         
     def prepare_dat_file(self, ballast_weight=1000):
         
@@ -73,6 +75,7 @@ class Process_input1(object):
         if not self.error:
             self.loadable = Loadable(self) # basic info
             self.loadable._create_discharge_operations(self) # operation and commingle
+        if not self.error:
             self.vessel = Vessel(self)
             self.vessel._get_onhand(self) # ROB
             self.vessel.info['onboard'] = {}
@@ -88,6 +91,7 @@ class Process_input1(object):
         if self.loadable.info['lastVirtualPort'] == 1:
             self.ballast_percent = 1
             print("Change ballast_percent to 1.0")
+ 
         lightweight_ = self.vessel.info['lightweight']['weight']
         max_deadweight_ = 1000*1000
         cont_weight_ = self.vessel.info['deadweightConst']['weight'] #+ self.vessel.info['onboard']['totalWeight']
@@ -103,8 +107,8 @@ class Process_input1(object):
         self.sf_bm_frac = min(sf_bm_frac, self.feedback_sf_bm_frac)
         self.trim_lower, self.trim_upper = {}, {}
         
-        self.trim_lower[str(self.loadable.info['lastVirtualPort'])] = 2.0
-        self.trim_upper[str(self.loadable.info['lastVirtualPort'])] = 3.0
+        # self.trim_lower[str(self.loadable.info['lastVirtualPort'])] = 2.0
+        # self.trim_upper[str(self.loadable.info['lastVirtualPort'])] = 3.0
         
         self.limits = {'draft':{}}
         
@@ -152,7 +156,7 @@ class Process_input1(object):
                 misc_weight_ += v1_.get(str(port_)+arr_dep_,{}).get('wt',0.)
 #                
 #            # get estimate cargo weight
-            cargo_weight_  = weight_ + self.loadable.info['toDischargePort'][p_] 
+            cargo_weight_  = max(0., weight_ + self.loadable.info['toDischargePort'][p_])
 #            print(str(port_)+arr_dep_, cargo_weight_)
     
 
@@ -203,7 +207,7 @@ class Process_input1(object):
             else:
                 
                 est_draft__ = min_draft_limit_ - 1.5 # max trim = 3m 
-                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 2.5, 3.00
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 2.5, 2.95
                 lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
                 print(p_, round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
                 self.ave_trim[str(p_)] = 3.0
@@ -644,12 +648,12 @@ class Process_input1(object):
                     for k_, v_ in self.ave_trim.items():
                         str1 += k_ + ' ' + "{:.3f}".format(v_) + ' '
                     print(str1+';', file=text_file)
+                
                 if drop_BM:
                     str1 = 'set P_bm := '
                     for k_, v_ in self.ave_trim.items():
                         str1 += k_ + ' ' 
                     print(str1+';', file=text_file)
-                
                 # set of other tanks, e.g. fuel tanks, water tanks,
                 other_tanks_ = {**self.vessel.info['fuelTanks'], **self.vessel.info['dieselTanks'], **self.vessel.info['freshWaterTanks'] }
                 str1 = 'set OtherTanks := '
@@ -1078,11 +1082,12 @@ class Process_input1(object):
                     str1 += str(i_) + ' ' +  "{:.2f}".format(j_) + ' '
                 print(str1+';', file=text_file)
                 
-                if self.full_discharge: # only for vessel 2 and fully dishcarge
-                    print('# draft corr', file=text_file)
-                    str1 = 'param draft_corr := '
-                    str1 += str(len(self.base_draft)) + ' ' +  "0.1" + ' '
-                    print(str1+';', file=text_file)
+                print('# draft corr', file=text_file)
+                str1 = 'param draft_corr := '
+                for k_, v_ in self.trim_upper.items():
+                    if v_ > 0.5:
+                        str1 += str(k_) + ' ' +  "0.1" + ' '
+                print(str1+';', file=text_file)
                 
                 print('# slopes of draft curve', file=text_file)
                 str1 = 'param pwDraft := ' +  str(len(self.vessel.info['lcb_mtc']['draft']['slopes']))

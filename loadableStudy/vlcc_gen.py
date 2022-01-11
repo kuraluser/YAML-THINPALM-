@@ -162,9 +162,9 @@ class Generate_plan:
             elif self.input.module in ['DISCHARGE']:
                 # print('Rerun for loading module')
                 if self.input.solver in ['AMPL']:
-                    print('Rerun AMPL ....')
+                    print('Rerun AMPL drop BM ....')
                     if not result['succeed']:
-                        self.input.write_dat_file(drop_BM = True)
+                        self.input.write_dat_file(drop_BM = True, IIS = False)
                         result = self._run_ampl(dat_file='input_discharge.dat') 
                         
                         # input("Press Enter to continue...")
@@ -2386,8 +2386,6 @@ class Generate_plan:
     
     ## for discharge study --------------------------------------------------------------------------------------
     def gen_json2(self, constraints, stability_values):
-        # self.cow_tanks = []
-        self.cow_tanks_remain = list(self.input.loadable.info['toCow'])
         data = {}
         data['message'] = None
         data['processId'] = self.input.process_id
@@ -2403,6 +2401,8 @@ class Generate_plan:
             
             return data
         
+        # self.cow_tanks = []
+        self.cow_tanks_remain = list(self.input.loadable.info['toCow'])
         # all loading port
         path_ = [self.input.port.info['portOrder'][str(i_+1)]  for i_ in range(self.input.port.info['numPort'])]
         # print(path_)

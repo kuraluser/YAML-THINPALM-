@@ -919,12 +919,15 @@ class DischargingOperations(object):
             # strip - 1 additional stage
             if 'SLP' in [drive_tank_.get('tank', None)] and 'SLP' in strip_:
                 exit()
-            if 'SLS' in [drive_tank_.get('tank', None)] and 'SLS' in strip_:
-                exit()
+            
                 
                 
                 
             total_stage_ = 2 + len(strip_num_) + 1
+            if 'SLS' in [drive_tank_.get('tank', None)] and 'SLS' in strip_:
+                total_stage_ -= 1
+
+
             for ss_ in range(1, total_stage_+1):
                 df_['C'+str(ss_)] = None
             
@@ -949,19 +952,29 @@ class DischargingOperations(object):
             # self.info['sorted_cow'][port] = sort_strip_num_
             
             for t_ in sort_strip_num_:
-                if len(t_) == 1:
-                    # wing tanks
+            
+                if t_ in [drive_tank_.get('tank', None)]:
+                    print('Drive tank:', t_)
+                    vol_ = drive_tank_['ullage16mVol'] if  drive_tank_['departVol'] == 0. else drive_tank_['departVol']
+                    df_.loc[t_] = [(cargo_to_discharge, vol_)]*len(df_.loc[t_])
+                
+                elif len(t_) == 1:
+                      # wing tanks
                     t1_, t2_ = t_+'P', t_+'S'
                     
                     df_['C'+str(ss_)][t1_] = (cargo_to_discharge, STRIP_LEVEL[t1_])
                     df_['C'+str(ss_)][t2_] = (cargo_to_discharge, STRIP_LEVEL[t2_])
                     add_time_ = 60 if t1_ in self.info['cow_tanks'][port+1] else 20
+
+                    ss_ += 1
+                    df_['C'+str(ss_)]['Time'] = df_['C'+str(ss_-1)]['Time'] + add_time_
+                    
                 else:
                     df_['C'+str(ss_)][t_] = (cargo_to_discharge, STRIP_LEVEL[t_])
                     add_time_ = 60 if t_ in self.info['cow_tanks'][port+1] else 20
                 
-                ss_ += 1
-                df_['C'+str(ss_)]['Time'] = df_['C'+str(ss_-1)]['Time'] + add_time_
+                    ss_ += 1
+                    df_['C'+str(ss_)]['Time'] = df_['C'+str(ss_-1)]['Time'] + add_time_
                     
                 
                 
@@ -978,9 +991,16 @@ class DischargingOperations(object):
             # discharging_rate_per_tank_ = {}
             tank_strip_ = 0
             tank__ = []
+            s2_ = 3
+            s4_ = 0
             for s1_, s2_ in enumerate(range(total_stage_-1, 3, -1)):
                 strip_tank_ = sort_strip_num_[len(sort_strip_num_) - s1_ - 1] if len(sort_strip_num_) - s1_ - 1 >= 0 else ""
                 # print(s2_, strip_tank_)
+                
+                if strip_tank_ in [drive_tank_.get('tank', None)]:
+                    s4_ = 1
+                    continue
+
                 if len(strip_tank_) == 1:
                     tank__ += [strip_tank_+'P', strip_tank_+'S']
                     tank_strip_ += 2
@@ -989,21 +1009,21 @@ class DischargingOperations(object):
                     tank__ += [strip_tank_]
                     tank_strip_ += 1
                     
-                rate_ = discharging_rate_[s2_-2]
+                rate_ = discharging_rate_[s2_-2+s4_]
                 discharging_rate_per_tank_ = rate_/tank_strip_
                 # print(s2_, tank_strip_, rate_, discharging_rate_per_tank_)
                 
-                add_time_ = df_['C'+str(s2_)]['Time'] - df_['C'+str(s2_-1)]['Time']
+                add_time_ = df_['C'+str(s2_+s4_)]['Time'] - df_['C'+str(s2_-1+s4_)]['Time']
                 for t4_ in tank__:
-                    df_['C'+str(s2_-1)][t4_] = (df_['C'+str(s2_)][t4_][0], 
-                                                df_['C'+str(s2_)][t4_][1]+discharging_rate_per_tank_*add_time_/60)
+                    df_['C'+str(s2_-1+s4_)][t4_] = (df_['C'+str(s2_+s4_)][t4_][0], 
+                                                df_['C'+str(s2_+s4_)][t4_][1]+discharging_rate_per_tank_*add_time_/60)
                 
                     
-                    
-            for s1_, s2_ in enumerate(range(3, 1, -1)):
+            ss_ = s2_ - 1 + s4_
+            for s1_, s2_ in enumerate(range(ss_, 1, -1)):
                 rate_ = discharging_rate_[s2_-2]
                 # print(s2_, rate_)
-                tanks_ = [t4_ for t4_ in tanks if df_['C'+str(s2_)][t4_][1] > 0.]
+                tanks_ = [t4_ for t4_ in tanks if df_['C'+str(s2_)][t4_][1] > 0. and t4_ not in [drive_tank_.get('tank', None)]] 
                 discharging_rate_per_tank_ = rate_/len(tanks_)
                 
                 add_time_ = df_['C'+str(s2_)]['Time'] - df_['C'+str(s2_-1)]['Time']
@@ -1041,8 +1061,8 @@ class DischargingOperations(object):
                 tank_ = k_
                 df_['C1'][tank_] = (v_[0]['cargo'], v_[0]['quantityM3'])
                 
-            for ss_ in range(1, total_stage_+1):
-                if ss_ not in [1]:
+            for ss_ in range(1, total_stage_+1): # repeat for other column
+                if ss_ not in [1]: 
                     df_['C'+str(ss_)].iloc[1:] = df_['C1'].iloc[1:] 
                     
             
@@ -1072,7 +1092,7 @@ class DischargingOperations(object):
                 if t_ in [drive_tank_.get('tank', None)]:
                     print('Drive tank:', t_)
                     vol_ = drive_tank_['ullage16mVol'] if  drive_tank_['departVol'] == 0. else drive_tank_['departVol']
-                    df_.loc['SLS'] = [(cargo_to_discharge, vol_)]*len(df_.loc['SLS'])
+                    df_.loc[t_] = [(cargo_to_discharge, vol_)]*len(df_.loc[t_])
                 else:
                     ss_ += 1
                     df_['C'+str(ss_)]['Time'] = df_['C'+str(ss_-1)]['Time'] + add_time_

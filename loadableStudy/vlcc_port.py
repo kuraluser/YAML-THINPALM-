@@ -87,6 +87,8 @@ class Port:
                 ports_info_['portRotationId'][str(p_['id'])] = portId_
                 ports_info_['portRotationId1'][str(portId_)] = p_['id']
                 
+                if inputs.module in ['DISCHARGE']:
+                    ports_info_['cowType'][str(portId_)]  = p_.get('cowDetails',{}).get('type',0)
                 
                 
                 ports_info_['portRotation'][code_] = {}

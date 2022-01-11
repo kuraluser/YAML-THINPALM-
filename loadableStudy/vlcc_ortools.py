@@ -45,7 +45,7 @@ Created on Wed Mar 24 12:37:49 2021
 import numpy as np
 from ortools.linear_solver import pywraplp
 
-RUN_TIME = 900 # in sec
+RUN_TIME = 90 # in sec
 
 def vlcc_ortools(inputs):
     

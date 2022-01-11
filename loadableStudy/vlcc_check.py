@@ -362,7 +362,7 @@ class Check_plans:
                 
                 print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],5))
                 print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
-                print('da:', result.get('da', 0))
+                print('da:', round(result.get('da', 0),4), 'dc:', round(result.get('dc', 0),4))
                 
                 stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
                                   'meanDraft': "{:.2f}".format(result['dm']),
