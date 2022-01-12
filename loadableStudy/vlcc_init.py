@@ -639,7 +639,7 @@ class Process_input(object):
                     
         
         
-    def write_dat_file(self, file = 'input.dat', IIS = True, lcg_port = None, weight = None):
+    def write_dat_file(self, file = 'input.dat', IIS = True, lcg_port = None, weight = None, incDec_ballast = None):
         
         if not self.error and self.solver in ['AMPL']: #and self.mode not in ['FullManual']:
         
@@ -1151,6 +1151,13 @@ class Process_input(object):
                     if i_ not in tb_list_:
                         str1 += i_ + ' '
                 print(str1+';', file=text_file)
+                if incDec_ballast:
+                    print('# ballast tanks which can be ballast or deballast anytime',file=text_file)#  
+                    str1 = 'set TB3 := '
+                    for i_ in incDec_ballast:
+                        str1 += i_ + ' '
+                    print(str1+';', file=text_file)
+ 
     #            
                 # density of seawater
                 print('# density of seawater ',file=text_file)#

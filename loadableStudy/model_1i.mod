@@ -212,6 +212,7 @@ param ballastPercent default 0.4;
 set TB; #set of ballast tanks
 set TB1; # set of ballast tanks with no pw tcg details
 set TB2; # set of ballast tanks with no pw lcg details
+set TB3 default {}; 
 set minTB default {}; # set of ballast tanks >= 30cm ullage
 set toBallastTank default {};
 set toDeballastTank default {};
@@ -654,7 +655,7 @@ subject to Condition114b {t in TB, (u,v) in loadingPortNotLast}: wB[t,u] >= wB[t
 subject to Condition114c {(u,v) in loadingPort}: sum{t in TB}xB[t,u] >= sum{t in TB}xB[t,v];
 # depart and arrival has to use same tank
 subject to Condition114d2 {t in TB, (u,v) in depArrPort2}: wB[t,u] = wB[t,v]; # fixed ROB
-subject to Condition114d1 {t in TB, (u,v) in depArrPort1}: wB[t,u] >= wB[t,v]; # non-zero ROB
+subject to Condition114d1 {t in TB diff TB3, (u,v) in depArrPort1}: wB[t,u] >= wB[t,v]; # non-zero ROB
 # rotation loading ports
 subject to Condition114e1 {t in TB, (u,v) in rotatingPort1}:  -wB[t,u] +  wB[t,v] <= 1e6*(1-zBa1[t]);
 subject to Condition114e2 {t in TB, (u,v) in rotatingPort1}:    wB[t,u] -  wB[t,v] <= 1e6*(1-zBb1[t]);

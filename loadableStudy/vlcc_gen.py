@@ -137,6 +137,24 @@ class Generate_plan:
                     
                 self._process_checking_plans(result)
                 
+            elif self.input.module in ['LOADABLE']:
+                # print('Rerun for loading module')
+                if self.input.solver in ['AMPL']:
+                    print('Rerun AMPL ....')
+                    # case 1:
+                    if self.input.vessel_id in [1]:
+                        self.input.write_dat_file(incDec_ballast = ['LFPT']) # relax list mom to 100000
+                    elif self.input.vessel_id in [2]:
+                        self.input.write_dat_file(incDec_ballast = ['FPT']) # relax list mom to 100000
+                        
+                    result = self._run_ampl(dat_file='input.dat') 
+                    if result['succeed']:
+                        self._process_ampl(result, num_plans=num_plans)
+                        self._process_checking_plans(result)
+                        
+                        
+                    if not result['succeed']:
+                        self.plans['message']['Optimization Error'] = result['message']
                 
             elif self.input.module in ['DISCHARGING']:
                 # print('Rerun for loading module')
