@@ -938,7 +938,7 @@ class Generate_plan:
                         
                     info_ = {'parcel':'onboard', 'wt': wt_, 'SG': density_,
                              'fillRatio': round(v_['vol']/capacity_,DEC_PLACE), 'tcg':tcg_, 'lcg':lcg_, 
-                             'temperature':None,
+                             'temperature': round(v_['temperature'], 2),
                              'corrUllage': corrUllage_,
                              'maxTankVolume': capacity_,
                              'vol':vol_}
@@ -2802,7 +2802,7 @@ class Generate_plan:
                     
                     info_['fillingRatio'] = str(round(v_[0]['fillRatio']*100,2))
                     info_['tankName'] = self.input.vessel.info['cargoTanks'][k_]['name']
-                    info_['temperature'] = None
+                    info_['temperature'] = str(v_[0]['temperature'])
                     info_['colorCode'] = self.input.vessel.info['cargoTanks'][k_]['colorCode']
                     info_['api'] = self.input.vessel.info['cargoTanks'][k_]['api']
                     

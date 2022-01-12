@@ -424,7 +424,7 @@ class Vessel:
                 
                 
                 vol_ =  max(vol1_, wt_/ave_sg_)
-                self.info['onboard'][tank_]= {'vol': vol_, 'wt': wt_, 'vol1':vol1_}
+                self.info['onboard'][tank_]= {'vol': vol_, 'wt': wt_, 'vol1':vol1_, 'temperature': float(o_['temperature'])}
                 self.info['onboard']['totalWeight'] += wt_
                 self.info['cargoTanks'][tank_]['api'] = o_.get('api',None)
                 self.info['cargoTanks'][tank_]['colorCode'] = o_.get('colorCode',None)
