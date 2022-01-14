@@ -124,7 +124,12 @@ class Process_input1(object):
         self.limits['portOrderId'] = self.port.info['portOrderId']
         
         
-      
+        inter_port_ = []
+        for r_ in self.loadable.info['rotationVirtual']:
+            inter_port_ += r_[:-1]
+            
+        print('inter_port:', inter_port_)
+     
         
         
         self.full_discharge = True
@@ -358,7 +363,7 @@ class Process_input1(object):
                     str1 += k_ + ' '
                 print(str1+';', file=text_file)
                 
-                print('# 1 e=text_file)if cargo c has been loaded in tank t (partial loading condition)',file=text_file)
+                print('# if cargo c has been loaded in tank t (partial loading condition)',file=text_file)
                 str1 = 'param I_loaded := '
                 print(str1, file=text_file)
                 for k_, v_ in self.loadable.info['preloadOperation'].items():
@@ -458,7 +463,7 @@ class Process_input1(object):
                     str1 = '[' + str(i_) + ', *] := '
                     for k_,v_ in j_.items():
                         if int(k_) > 0:
-                            str1 += str(k_) + ' ' + "{:.1f}".format(round(v_,1)) + ' '
+                            str1 += str(k_) + ' ' + "{:.1f}".format(round(v_-1,1)) + ' '
                     print(str1, file=text_file)
                 print(';', file=text_file)
                 
@@ -899,6 +904,16 @@ class Process_input1(object):
                 str1 = 'set C_slop := '  
                 # if len(self.loadable.info['parcel']) == 1:
                 #     str1 += list(self.loadable.info['parcel'].keys())[0]
+                print(str1+';', file=text_file) 
+                
+                str1 = 'set slopP := '
+                slopP = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'P']
+                str1 += slopP[0]
+                print(str1+';', file=text_file) 
+                
+                str1 = 'set slopS := '
+                slopS = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'S']
+                str1 += slopS[0]
                 print(str1+';', file=text_file) 
                     
                 

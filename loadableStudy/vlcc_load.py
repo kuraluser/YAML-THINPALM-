@@ -844,9 +844,9 @@ class Loadable:
         
         
         
-        if inputs.discharge_json['arrivalPlan']['loadableQuantityCommingleCargoDetails']:
-            inputs.error['Cargo Error'] = ['Commingle cargo not supported!!']
-            return
+        # if inputs.discharge_json['arrivalPlan']['loadableQuantityCommingleCargoDetails']:
+        #     inputs.error['Cargo Error'] = ['Commingle cargo not supported!!']
+        #     return
             
         cargos_info_['preloadOperation'] = {}
         cargos_info_['preload'] = {}
@@ -864,6 +864,18 @@ class Loadable:
                 cargos_info_['preloadOperation'][parcel_][tank_] = round(wt_,1)
                 cargos_info_['preload'][parcel_]  += round(wt_,1)
             
+        for d__, d_  in enumerate(inputs.discharge_json['arrivalPlan']['loadableQuantityCommingleCargoDetails']):
+            wt_ = float(d_['quantity'])
+            if wt_ > 0:
+                parcel_ = self.info['dscargoNominationId']['PNone']
+                tank_ = d_['tankId']
+                ## need to convert to tankName later
+                if parcel_ not in cargos_info_['preloadOperation']:
+                    cargos_info_['preloadOperation'][parcel_] = {}
+                    cargos_info_['preload'][parcel_]  = 0
+                    
+                cargos_info_['preloadOperation'][parcel_][tank_] = round(wt_,1)
+                cargos_info_['preload'][parcel_]  += round(wt_,1)
         
         cargos_info_['ballastOperation'] = {}
         cargos_info_['initialBallast'] = {}
@@ -1141,23 +1153,23 @@ class Loadable:
         
         
         self.info['toCow'] = ['3C']
-        available_tanks_ = ['1', '1C', '2', '2C', '3', '4', '4C', '4', '4C', '5', '5C', 'SLP', 'SLS']
+        available_tanks_ = ['1', '1C', '2', '2C', '3', '4', '4C', '4', '4C', '5', '5C'] + inputs.vessel.info['slopTank']
         
         for i_ in range(len(ind_)):
             t_ = tanks_[ind_[i_]]
-            if t_[-1] in ['C'] or t_ in ['SLS', 'SLP']:
+            if t_[-1] in ['C'] or t_ in inputs.vessel.info['slopTank']:
                 pass
             else:
                 t_ = t_[0]
             if t_ in available_tanks_:    
                 available_tanks_.remove(t_)
             
-        print(available_tanks_)
+        # print(available_tanks_)
         
         num_ = 1
         while num_ <= 4:
             t_ = available_tanks_.pop(0)
-            if t_[-1] in ['C'] or t_ in ['SLS', 'SLP']:
+            if t_[-1] in ['C'] or t_ in inputs.vessel.info['slopTank']:
                 t_ = [t_]
                 num_ += 1
             else:
@@ -1166,8 +1178,9 @@ class Loadable:
                 
             self.info['toCow'] += t_
             
-        print(self.info['toCow'])
+        print('toCow: ',self.info['toCow'])
                 
+                   
             
         
         

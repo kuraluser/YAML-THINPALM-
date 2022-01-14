@@ -315,8 +315,11 @@ param minBallastAmt{t in TB} default 10;
 param minCargoAmt default 1000;
 
 ## cargo tank
+set slopS default {'SLS'};
+set slopP default {'SPP'};
+
 set cargoTankNonSym within T cross T; # non-sym cargo tanks
-set symmetricVolTank within T cross T default  {('1P','1S'), ('2P','2S'),('SLS','SLP'), ('3P','3S'), ('4P','4S'), ('5P','5S')};
+set symmetricVolTank within T cross T default  {('3P','3S')} union (slopS cross slopP);
 set equalWeightTank within T cross T default  {('1P','1S'), ('2P','2S'), ('4P','4S'), ('5P','5S')};
 
 ## stability: set and params
@@ -611,8 +614,8 @@ subject to Condition116a {c in C_loaded1, t in T, p in P_opt} : qw[c,t,p] <= 1e5
 subject to Condition112f {c in C, (u,v) in cargoTankNonSym}: x[c,u] + x[c,v] <= diffSlop;
 
 # slop tanks have to be used
-subject to Condition112g1 : sum{c in C_slop} x[c,'SLP'] = 1;
-subject to Condition112g2 : sum{c in C_slop} x[c,'SLS'] = 1;
+subject to Condition112g1 : sum{c in C_slop, t in slopP} x[c, t] = 1;
+subject to Condition112g2 : sum{c in C_slop, t in slopS} x[c, t] = 1;
 
 # each row must have a the cargo for C_max, empty when only 1 cargo is loaded
 subject to Condition112h1 {c in C_max}: x[c,'1P'] + x[c,'1C'] >= 1;
@@ -628,7 +631,7 @@ subject to Condition112i4 {c in C_max}: x[c,'4P'] + x[c,'4C'] + x[c,'4S'] + x[c,
 
 
 # first discharge cargo
-subject to Condition112j {c in firstDisCargo}: x[c,'SLS'] + x[c,'SLP'] >= 1;
+subject to Condition112j {c in firstDisCargo, (u,v) in slopS cross slopP }: x[c,u] + x[c,v] >= 1;
 
 ##
 subject to Condition117a {c in C, t in QWT[c], p in P_last_loading}:  0.98*QW[c,t] <= qw[c,t,p] <= QW[c,t]*1.02;

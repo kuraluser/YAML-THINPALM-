@@ -200,7 +200,7 @@
       "deballast_percent": 0.5,
       "diff_cargo_slops": [
         "SLS",
-        "SLP"
+        "SPP"
       ],
       "diff_cargo_tanks": [
         [
@@ -227,7 +227,7 @@
       "gantt_chart_index": [
         "Time",
         "SLS",
-        "SLP",
+        "SPP",
         "5W",
         "5C",
         "1W",
@@ -283,9 +283,9 @@
       "loadable_config": false,
       "min_draft_limit": 10.67,
       "rob_density": {
-        "DRWT": 1,
-        "DSWTP": 1,
-        "FRWT": 1,
+        "DSWP": 1,
+        "DWP": 1,
+        "FWS": 1,
         "CFWT": 1,
         "FO2P": 0.98,
         "FO2S": 0.98,
@@ -308,7 +308,7 @@
         ],
         [
           "SLS",
-          "SLP"
+          "SPP"
         ],
         [
           "3P",

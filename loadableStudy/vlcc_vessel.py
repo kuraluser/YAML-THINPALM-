@@ -117,6 +117,8 @@ class Vessel:
                         vessel_info_['otherTankNames'].append(t_['shortName'])
                     
                 if t_['slopTank']:
+                    print(t_['shortName'], t_['slopTank'])
+                if t_['slopTank'] and t_['categoryId'] in [1]:
                     vessel_info_['slopTank'].append(t_['shortName'])
                     
                 
@@ -147,7 +149,7 @@ class Vessel:
                 vessel_info_['ullage30cm'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](0.3))*1.025,3)
                 
         vessel_info_['ullage16mVol'] = {}
-        for k_ in ['SLP', 'SLS']:
+        for k_ in vessel_info_['slopTank']: #['SLP', 'SLS']:
             k1_ = str(vessel_info_['tankName'][k_])
             vessel_info_['ullage16mVol'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](16)),3)
             
@@ -499,8 +501,10 @@ class Vessel:
                         asym_ = False
                         self.info['maxCargo'].append(k_)
             
-            ## config
-            self.info['notSym'] = [('SLS','SLP')]
+            ## config ------
+            slopP = [t_ for t_ in inputs.vessel.info['slopTank'] if t_[-1] == 'P'][0]
+            slopS = [t_ for t_ in inputs.vessel.info['slopTank'] if t_[-1] == 'S'][0]
+            self.info['notSym'] = [(slopP, slopS)]
             # self.info['notSym'] = [] #[inputs.config['diff_cargo_slops']]
             if asym_ and inputs.mode in ['Auto']:
                 #self.info['notSym'] += [('1P','1C'), ('2P','2C'), ('3P','3C'), ('4P','4C'), ('5P','5C')]

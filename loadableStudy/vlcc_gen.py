@@ -190,6 +190,17 @@ class Generate_plan:
                             self._process_ampl(result, num_plans=num_plans)
                             self._process_checking_plans(result)
                             
+                    if not result['succeed']:
+                        
+                        print('Rerun AMPL drop BM and upper trim....')
+                        drop_const = ['Condition21c', 'Constr16b']
+                        result = self._run_ampl(dat_file='input_discharge.dat', drop_const = drop_const) 
+                        
+                        # input("Press Enter to continue...")
+                        if result['succeed']:
+                            self._process_ampl(result, num_plans=num_plans)
+                            self._process_checking_plans(result)
+  
                 if not result['succeed']:
                         self.plans['message']['Optimization Error'] = result['message']
                         
@@ -316,11 +327,14 @@ class Generate_plan:
                     c4_.drop()
                     
                 if self.input.vessel.info['onboard']:
-                    if 'SLP' in self.input.vessel.info.get('notOnTop', []):
+                    
+                    slopP = [t_ for t_ in self.input.vessel.info['slopTank'] if t_[-1] == 'P'][0]
+                    if slopP in self.input.vessel.info.get('notOnTop', []):
                         slp_ = ampl.getConstraint('Condition112g1') # SLP must be used
                         slp_.drop()
                         
-                    if 'SLS' in self.input.vessel.info.get('notOnTop', []): # SLS must be used
+                    slopS = [t_ for t_ in self.input.vessel.info['slopTank'] if t_[-1] == 'S'][0]
+                    if slopS in self.input.vessel.info.get('notOnTop', []): # SLS must be used
                         sls_ = ampl.getConstraint('Condition112g2')
                         sls_.drop()
                     
@@ -414,7 +428,8 @@ class Generate_plan:
                 ship_status = ampl.getData('shipStatus').toList()
                 ballast_weight = ampl.getData('wtB').toList()
                 cargo_loaded = ampl.getData('cargoloaded').toList()
-                cargo_loaded_port = ampl.getData('cargoloadedport').toList()
+                # cargo_loaded_port = ampl.getData('cargoloadedport').toList()
+                cargo_loaded_port = ampl.getData('cargoOper').toList()
                 xx = ampl.getData('xx').toList()
                 
                 # self._other_AMPL_data(ampl)
@@ -469,11 +484,13 @@ class Generate_plan:
                                 c3_.drop()
                                 
                             if self.input.vessel.info['onboard']:
-                                if 'SLP' in self.input.vessel.info.get('notOnTop', []):
+                                slopP = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'P'][0]
+                                if slopP in self.input.vessel.info.get('notOnTop', []):
                                     slp_ = ampl.getConstraint('Condition112g1') # SLP must be used
                                     slp_.drop()
                                     
-                                if 'SLS' in self.input.vessel.info.get('notOnTop', []): # SLS must be used
+                                slopS = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'S'][0]
+                                if slopS in self.input.vessel.info.get('notOnTop', []): # SLS must be used
                                     sls_ = ampl.getConstraint('Condition112g2')
                                     sls_.drop()
                             
@@ -609,7 +626,7 @@ class Generate_plan:
                 ship_status = result['shipStatus']
                 ballast_weight = result['wtB']
                 cargo_loaded = result['cargoloaded']
-                cargo_loaded_port = result['cargoloadedport']
+                cargo_loaded_port = result['cargoloadedport'] ###### NEED TO CHANGE
                 xx = result['xx']
                 num_solutions = 1
 
@@ -770,7 +787,7 @@ class Generate_plan:
                     fillingRatio_ =  round(vol_/capacity_,DEC_PLACE)
                     
                     if fillingRatio_ > .98:
-                        print('**',i_[2], fillingRatio_)
+                        print('**', i_[3], i_[2], fillingRatio_)
                     
                     tankId_ = self.input.vessel.info['tankName'][i_[2]]
                     corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
@@ -1085,7 +1102,7 @@ class Generate_plan:
                         if t_[-1] in ['C']:
                             load_param['centreTank'].append(t_)
                             tank_num_ += 1
-                        elif t_ in ['SLS','SLP']:
+                        elif t_ in self.input.vessel.info['slopTank']: #['SLS','SLP']:
                             load_param['slopTank'].append(t_)
                             tank_num_ += 1
                         else:
@@ -1458,7 +1475,7 @@ class Generate_plan:
             slop_qty_ = {}
             
             for k_, v_ in ship_status_[str(port_-1)]['cargo'].items():
-                if k_ in ['SLS', 'SLP']:
+                if k_ in self.input.vessel.info['slopTank']: #['SLS', 'SLP']:
                     if v_[0]['parcel'] not in slop_qty_.keys():
                         slop_qty_[v_[0]['parcel']]  = 0.
                         
@@ -1470,7 +1487,13 @@ class Generate_plan:
                 self.plans['cargo_order'].append(self.input.loadable.info['cargoOrder'])
             
             ##--------------------------------------------------------------- 
-                cargo_ = cargo_status_[str(self.input.loadable.info['lastVirtualPort']-1)]
+                # cargo_ = cargo_status_[str(self.input.loadable.info['lastVirtualPort']-1)]
+                cargo_ = {}
+                for k_, v_ in cargo_status_.items():
+                    for k__, v__ in v_.items():
+                        if v__ > 0.:
+                            cargo_[k__] = v__
+
                 loading_hrs_ = {}
                 for k_, v_ in cargo_.items():
                     loading_hrs_[k_] = (v_/self.input.loadable.info['parcel'][k_]['SG']/self.loading_rate[p_][k_][0],
@@ -2627,7 +2650,14 @@ class Generate_plan:
             if len(self.plans['cargo_status'][sol]) > 0:
             
                 for k_, v_ in self.plans['cargo_status'][sol][virtual_].items():
-                    if v_ > 0.:
+                    load_ = 0
+                    if virtual_ not in ['0']:
+                        arr_dep_ = self.input.loadable.info['virtualArrDepPort'][str(int(virtual_))]
+                        load_ = [self.plans['cargo_status'][sol][a_][k_] for a_, b_ in self.input.loadable.info['virtualArrDepPort'].items() if b_ == arr_dep_]
+                        load_ = round(sum(load_),1)
+                        
+                    
+                    if load_ > 0.:
                         info_ = {}
                         info_["cargoId"] = int(self.input.loadable.info['parcel'][k_]['cargoId'])
                         info_["cargoNominationId"] = int(k_[1:])
@@ -2635,12 +2665,12 @@ class Generate_plan:
                         info_['abbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
                         info_['estimatedAPI'] = str(self.input.loadable.info['parcel'][k_]['api'])
                         info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])
-                        info_['loadableMT'] = str(v_)
+                        info_['loadableMT'] = str(load_)
                         info_['priority'] = int(self.input.loadable.info['parcel'][k_]['priority'])
                         info_['colorCode'] = self.input.loadable.info['parcel'][k_]['color']
                         intend_ = self.input.loadable.info['toLoadIntend'][k_]
                         info_['orderedQuantity'] = str(round(intend_,DEC_PLACE))
-                        info_['differencePercentage'] = str(round((v_-intend_)/intend_*100,2))
+                        info_['differencePercentage'] = str(round((load_-intend_)/intend_*100,2))
                         info_['loadingOrder'] = int(self.plans['cargo_order'][sol][k_])
                         info_["maxTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][1])
                         info_["minTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][0])
@@ -2664,7 +2694,7 @@ class Generate_plan:
                         for k1_, v1_ in v_.items():
                             data_[k_]  += v1_
                             
-                            if k1_ in ['SLS', 'SLP']:
+                            if k1_ in self.input.vessel.info['slopTank']: #['SLS', 'SLP']:
                                 if k_ not in slop_qty_.keys():
                                     slop_qty_[k_] = v1_
                                 else:
@@ -2675,42 +2705,49 @@ class Generate_plan:
                 
                 else:
                     for k_, v_ in self.plans['ship_status'][sol][virtual_]['cargo'].items(): 
-                        if k_ in ['SLS', 'SLP']:
+                        if k_ in self.input.vessel.info['slopTank']: #['SLS', 'SLP']:
                             if v_[0]['parcel'] not in slop_qty_.keys():
                                 slop_qty_[v_[0]['parcel']] = v_[0]['wt']
                             else:
                                 slop_qty_[v_[0]['parcel']] += v_[0]['wt']
                         
                
-                for k_, v_ in self.plans['cargo_status'][sol][virtual_].items():
-                    #print(k_, v_)
-                    
-                    info_ = {}
-                    info_["cargoId"] = int(self.input.loadable.info['parcel'][k_]['cargoId'])
-                    info_["dscargoNominationId"] = int(k_[1:])
-                    info_['cargoNominationId'] = int(self.input.loadable.info['parcel'][k_]['cargoNominationId'][1:])
-                    info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
-                    info_['abbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
-                    info_['estimatedAPI'] = str(self.input.loadable.info['parcel'][k_]['api'])
-                    info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])
-                    
-                    info_['dischargeMT'] = str(0.0)
-                    disch_ = 0
-                    if virtual_ not in ['0']:
-                        pre_ = str(int(virtual_)-1)
-                        disch_ = self.plans['cargo_status'][sol][pre_][k_] - v_
-                        info_['dischargeMT'] = str(round(disch_,1))
+                    for k_, v_ in self.plans['cargo_status'][sol][virtual_].items():
+                        #print(k_, v_)
                         
-                    info_['priority'] = int(self.input.loadable.info['parcel'][k_]['priority'])
-                    info_['colorCode'] = self.input.loadable.info['parcel'][k_]['color']
-                    
-                    info_['slopQuantity'] = str(round(slop_qty_.get(k_, 0.0),1))
-                    
-                    info_['dischargingRate'] = str(10000)
-                    info_['timeRequiredForDischarging'] = str(round(disch_/10000,1))
-                    info_['cowDetails'] = []
-                    
-                    plan_.append(info_)
+                        info_ = {}
+                        info_["cargoId"] = int(self.input.loadable.info['parcel'][k_]['cargoId'])
+                        info_["dscargoNominationId"] = int(k_[1:])
+                        if self.input.loadable.info['parcel'][k_]['cargoNominationId'][1:] not in ['None']:
+                            info_['cargoNominationId'] = int(self.input.loadable.info['parcel'][k_]['cargoNominationId'][1:])
+                        else:
+                            info_['cargoNominationId'] = None
+                            
+                        info_['cargoAbbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
+                        info_['abbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
+                        info_['estimatedAPI'] = str(self.input.loadable.info['parcel'][k_]['api'])
+                        info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])
+                        
+                        info_['dischargeMT'] = str(0.0)
+                        disch_ = 0
+                        if virtual_ not in ['0']:
+                            arr_dep_ = self.input.loadable.info['virtualArrDepPort'][str(int(virtual_))]
+                            disch_ = [self.plans['cargo_status'][sol][a_][k_] for a_, b_ in self.input.loadable.info['virtualArrDepPort'].items() if b_ == arr_dep_]
+                            disch_ = -sum(disch_)
+                            info_['dischargeMT'] = str(round(disch_,1))
+                            
+                        info_['priority'] = int(self.input.loadable.info['parcel'][k_]['priority'])
+                        info_['colorCode'] = self.input.loadable.info['parcel'][k_]['color']
+                        
+                        info_['slopQuantity'] = str(round(slop_qty_.get(k_, 0.0),1))
+                        
+                        info_['dischargingRate'] = str(10000)
+                        info_['timeRequiredForDischarging'] = str(round(disch_/10000,1))
+                        info_['cowDetails'] = []
+                        
+                        plan_.append(info_)
+                                    
+      
                                     
             
         elif category == 'dCargoStatus':
@@ -2735,7 +2772,10 @@ class Generate_plan:
                 info_['api'] = str(self.input.loadable.info['parcel'][v_[0]['parcel']]['api'])
                 
                 info_['dscargoNominationId'] = int(v_[0]['parcel'][1:])
-                info_['cargoNominationId'] = int(self.input.loadable.info['parcel'][v_[0]['parcel']]['cargoNominationId'][1:])
+                if self.input.loadable.info['parcel'][v_[0]['parcel']]['cargoNominationId'][1:] not in ['None']:
+                    info_['cargoNominationId'] = int(self.input.loadable.info['parcel'][v_[0]['parcel']]['cargoNominationId'][1:])
+                else:
+                    info_['cargoNominationId'] = None
                 # info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
                 
                 # vol_ = abs(v_[0]['wt'])/v_[0]['SG']
@@ -2859,7 +2899,8 @@ class Generate_plan:
                     info_['rdgUllage'] = str(v_[0]['rdgUllage'])
                    
                     info_['onboard'] = str(self.input.vessel.info['onboard'].get(k_,{}).get('wt',0.))
-                    info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else 0.
+                    #info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in ['SLS','SLP'] else 0.
+                    info_['slopQuantity'] = str(abs(v_[0]['wt'])) if k_ in self.input.vessel.info['slopTank'] else 0.
                     
                     info_['colorCode'] = self.input.loadable.info['commingleCargo']['colorCode']
                     info_['maxTankVolume'] = str(round(v_[0]['maxTankVolume'],3))
@@ -3026,7 +3067,11 @@ class Generate_plan:
 
     def _topping_seq(self, tanks):
         # fixed_order = ['SLS','SLP','5P','5C', '4P', '4C', '2P','2C', '1P','1C','3P', '3C']
-        fixed_order = ['SLS', 'SLP', '5P', '5C', '1P', '1C', '4P', '4C', '2P', '2C', '3P', '3C']
+        slopP = [t_ for t_ in self.input.vessel.info['slopTank'] if t_[-1] == 'P'][0]
+        slopS = [t_ for t_ in self.input.vessel.info['slopTank'] if t_[-1] == 'S'][0]
+        
+        fixed_order = [slopS, slopP, '5P', '5C', '1P', '1C', '4P', '4C', '2P', '2C', '3P', '3C']
+        print('topping order:', fixed_order)
         order_ = ['' for o_ in fixed_order]
         
         for t_ in tanks:
@@ -3041,7 +3086,7 @@ class Generate_plan:
         
         seq = []
         for t_ in tanks:
-            if t_ not in ['SLS', 'SLP']:
+            if t_ not in self.input.vessel.info['slopTank']: #['SLS', 'SLP']:
                 t__ = t_ if t_[-1] not in ['S'] else t_[:-1]+'P'
             else:
                 t__ = t_ 

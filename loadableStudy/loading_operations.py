@@ -17,7 +17,9 @@ from copy import deepcopy
 # INDEX = ['Time','SLS', 'SLP', '5W', '5C', '4W', '4C', '2W', '2C','1W','1C','3W','3C']
 # INDEX1 = ['LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S', 'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S', 'AWBP', 'AWBS', 'APT']
 # OPEN_TANKS = ['3C', '2C', '4C', '5C', '1C', '3W', '4W', '2W', '5W', '1W' ]
-OPEN_TANKS = ['1C', '1W', '2C', '2W', '3C','3W', '4C', '4W', '5C', '5W' , 'SLP', 'SLS']
+# OPEN_TANKS = ['1C', '1W', '2C', '2W', '3C','3W', '4C', '4W', '5C', '5W' , 'SLP', 'SLS']
+OPEN_TANKS = ['1C', '1W', '2C', '2W', '3C','3W', '4C', '4W', '5C', '5W' ]
+
 
 
 #1C, 1W, 2C, 2W, 3C, 3W, 4C, 4W, 5C and 5W
@@ -471,7 +473,7 @@ class LoadingOperations(object):
             plan_[tankName_].append(info_)
             
         
-        if tankName_[-1] == 'C' or tankName_ in ['SLS', 'SLP']:
+        if tankName_[-1] == 'C' or tankName_ in self.vessel.info['slopTank']: #['SLS', 'SLP']:
             tank1_ = tankName_ 
         else:
             tank1_ = tankName_[:-1] + 'W'
@@ -580,7 +582,7 @@ class LoadingOperations(object):
             for k_, v_ in p_.items(): #self.info['plans'][p__+1].items():
                 # set time 0
                 tank_ = k_
-                if tank_[-1] == 'C' or tank_ in ['SLS', 'SLP']:
+                if tank_[-1] == 'C' or tank_ in self.vessel.info['slopTank']: #['SLS', 'SLP']:
                     if len(v_) == 1:
                         df_['Initial'][tank_] = (v_[0]['cargo'], v_[0]['quantityM3'])
                     elif len(v_) == 2:
@@ -604,7 +606,8 @@ class LoadingOperations(object):
                         
             # open first tank ---------------------------------
             preload_one_tank_ = False
-            first_tank__ = [t_ for t_ in OPEN_TANKS if t_ in self.info['cargo_tank'][cargo_to_load_]] ### fixed
+            OPEN_TANKS_ = OPEN_TANKS + self.vessel.info['slopTank']
+            first_tank__ = [t_ for t_ in OPEN_TANKS_ if t_ in self.info['cargo_tank'][cargo_to_load_]] ### fixed
             first_tank_, t_ = False, 0
             while not first_tank_:
                 tank_ = first_tank__[t_]
@@ -627,7 +630,7 @@ class LoadingOperations(object):
                 
             if first_tank_[-1] in ['C']:
                 load_param['centreTank'].append(first_tank_)
-            elif first_tank_ in ['SLS','SLP']:
+            elif first_tank_ in self.vessel.info['slopTank']: #['SLS','SLP']:
                 load_param['slopTank'].append(first_tank_)
             else:
                 load_param['wingTank'].append(first_tank_)
@@ -689,7 +692,7 @@ class LoadingOperations(object):
                     if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
                         continue # not counting commingle tank
                     
-                    if t_[-1] == 'C' or t_ in ['SLS','SLP']:
+                    if t_[-1] == 'C' or t_ in self.vessel.info['slopTank']: #['SLS','SLP']:
                         df_['OpenAll'][t_] = (cargo_to_load_, cargo_loaded_per_tank_)
                     else:
                         df_['OpenAll'][t_] = (cargo_to_load_, 2*cargo_loaded_per_tank_)
@@ -705,7 +708,7 @@ class LoadingOperations(object):
                 
                 if t_[-1] in ['C']:
                     load_param['centreTank'].append(t_)
-                elif t_ in ['SLS','SLP']:
+                elif t_ in self.vessel.info['slopTank']: #['SLS','SLP']:
                     load_param['slopTank'].append(t_)
                 else:
                     load_param['wingTank'].append(t_)
@@ -735,7 +738,7 @@ class LoadingOperations(object):
                     if t_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
                         continue # not counting commingle tank
                     
-                    if t_[-1] == 'C' or t_ in ['SLS','SLP']:
+                    if t_[-1] == 'C' or t_ in self.vessel.info['slopTank']: #['SLS','SLP']:
                         df_['IncMax'][t_] = (cargo_to_load_, cargo_loaded_per_tank_)
                         df_inc_max_['IncMax'][t_] = cargo_loaded_per_tank_
                     else:
@@ -780,7 +783,7 @@ class LoadingOperations(object):
                     
                 if fill_tank_:
                     # print(k_)
-                    if k_[-1] == 'C' or k_ in ['SLS', 'SLP']:
+                    if k_[-1] == 'C' or k_ in self.vessel.info['slopTank']: #['SLS', 'SLP']:
                         if k_ == self.info['commingle'].get('tankName', None) and self.commingle_loading1:
                             print(k_, 'use own density instead')
                             # only consider loading of new cargo .... 
@@ -1271,7 +1274,7 @@ class LoadingOperations(object):
             for s__, s_ in enumerate(range(t__,t__+20)):
                 if s_+1 <= len(param['toppingSeq']):
                     for r_ in param['toppingSeq'][s_]:
-                        if r_ in ['SLS', 'SLP']:
+                        if r_ in self.vessel.info['slopTank']: #['SLS', 'SLP']:
                             rate_ = param['slopTank']
                         elif r_[-1] == 'C':
                             rate_ = param['centerTank']

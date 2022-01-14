@@ -23,6 +23,7 @@ param shipStatus{s in 1..Action_Amount.npool, c in C, t in T, p in P}; # amount 
 param volumeStatus{s in 1..Action_Amount.npool, c in C, t in T, p in P}; # volume percentage of cargo c in tank t, when the ship leaves port p.
 param cargoloaded{s in 1..Action_Amount.npool, c in C};
 param cargoloadedport{s in 1..Action_Amount.npool, c in C, p in P};
+param cargoOper{s in 1..Action_Amount.npool, c in C, p in P};
 param totloaded{s in 1..Action_Amount.npool};
 
 param wt{s in 1..Action_Amount.npool, c in C, p in P};
@@ -56,6 +57,7 @@ if solve_result = "solved" or solve_result_num = 403 then {
 	    let objective_value[i] := Action_Amount;
 	    let {c in C} cargoloaded[i,c] := sum{t in Tc[c], p in P_last_loading} qw[c,t,p];
         let {c in C, p in P} cargoloadedport[i,c,p] := sum{t in Tc[c]} qw[c,t,p];
+        let {c in C, p in P} cargoOper[i,c,p] := sum{t in Tc[c]} w[c,t,p];
 	    let totloaded[i] := sum{c in C, t in Tc[c], p in P_last_loading} qw[c,t,p];
 	    
 	    let {f in 1..Fr, p in 1..(NP-1)} ss[i,f,p] := BV_SF[f,p] + CD_SF[f,p]*(mean_draft[p]-base_draft[p]);

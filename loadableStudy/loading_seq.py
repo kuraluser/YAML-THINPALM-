@@ -261,7 +261,7 @@ class Loading_seq:
                 info1_, info2_ = {}, {}
                 for  k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items():
                     if v_ > 0:
-                        if k_[-1] in ['C'] or k_ in ['SLS', 'SLP']:
+                        if k_[-1] in ['C'] or k_ in self.plans.input.vessel.info['slopTank']:
                             rate_ = self.plans.input.loading.seq[cargo]['loadingRateM3Min'][k_]*60
                         else:
                             k1_ = k_[:-1]+'W'
@@ -283,9 +283,9 @@ class Loading_seq:
                 
                 for  k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items():
                     
-                    t_ = k_ if k_[-1] in ['C'] or k_ in ['SLS', 'SLP'] else k_[:-1]+'W'
+                    t_ = k_ if k_[-1] in ['C'] or k_ in self.plans.input.vessel.info['slopTank'] else k_[:-1]+'W'
                     if v_ > 0 and loadingRateM3Min[t_] > 0:
-                        if k_[-1] in ['C'] or k_ in ['SLS', 'SLP']:
+                        if k_[-1] in ['C'] or k_ in self.plans.input.vessel.info['slopTank']:
                             rate_ = loadingRateM3Min[k_]*60
                         else:
                             k1_ = k_[:-1]+'W'
@@ -304,7 +304,7 @@ class Loading_seq:
                 loadingRateM3Min = self.plans.input.loading.seq[cargo]['loadingRateM3Min'][1]
                 for  k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items():
                     if v_ > 0:
-                        if k_[-1] in ['C'] or k_ in ['SLS', 'SLP']:
+                        if k_[-1] in ['C'] or k_ in self.plans.input.vessel.info['slopTank']:
                             rate_ = loadingRateM3Min[k_]*60
                         else:
                             k1_ = k_[:-1]+'W'
@@ -557,7 +557,7 @@ class Loading_seq:
             info1_, info2_ = {}, {}
             for  k_, v_ in self.plans.input.loadable['toLoadCargoTank'][cargo].items():
                 if v_ > 0:
-                    if k_[-1] in ['C'] or k_ in ['SLS', 'SLP']:
+                    if k_[-1] in ['C'] or k_ in self.plans.input.vessel.info['slopTank']:
                         rate_ = self.plans.input.loading.seq[cargo]['staggerRate'].loc[k_,:].to_list()
                         r1_ = [r_  for r_ in rate_ if r_ not in [None]] # every 15min
                         rate_ = np.mean(r1_) 

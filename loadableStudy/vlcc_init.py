@@ -642,6 +642,8 @@ class Process_input(object):
     def write_dat_file(self, file = 'input.dat', IIS = True, lcg_port = None, weight = None, incDec_ballast = None):
         
         if not self.error and self.solver in ['AMPL']: #and self.mode not in ['FullManual']:
+            slopP = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'P'][0]
+            slopS = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'S'][0]
         
             with open(file, "w") as text_file:
                 
@@ -667,6 +669,14 @@ class Process_input(object):
 	                    if i_ not in self.vessel.info['tankLCG']['lcg_pw']:
 	                        str1 += i_ + ' '
 	                print(str1+';', file=text_file)
+                str1 = 'set slopP := '
+                str1 += slopP
+                print(str1+';', file=text_file) 
+                
+                str1 = 'set slopS := '
+                str1 += slopS
+                print(str1+';', file=text_file) 
+ 
  
                 print('# set of tanks compatible with cargo c',file=text_file)
                 for i_,j_ in self.loadable.info['parcel'].items():
@@ -914,9 +924,9 @@ class Process_input(object):
                     if self.config['loadableConfig']:
                         str1 += ''.join(e_+' ' for e_ in self.config['loadableConfig']['commingleTanks'])
                     elif self.loadable.info['commingleCargo']['slopOnly']:
-                        str1 += 'SLS SLP'
+                        str1 +=  slopS + ' ' + slopP
                     else:
-                        str1 += '2C 3C 4C SLS SLP'
+                        str1 += '2C 3C 4C' + ' ' + slopS + ' ' + slopP
                         
                 print(str1+';', file=text_file)
                 
@@ -969,7 +979,7 @@ class Process_input(object):
                     print('#upper loading bound for each tank',file=text_file)#  
                     str1 = 'param upperBound := ' 
                     for i_, j_ in self.vessel.info['cargoTanks'].items():
-                        if i_ in ['SLS', 'SLP']:
+                        if i_ in self.vessel.info['slopTank']: #['SLS', 'SLP']:
                             str1 += i_ + ' ' +  "{:.2f}".format(self.config['loadableConfig']['slopTankUpperLimit']/100)  + ' '
                         else:
                             str1 += i_ + ' ' +  "{:.2f}".format(self.config['loadableConfig']['cargoTankUpperLimit']/100) + ' '
