@@ -676,6 +676,7 @@ class Loadable:
         
         cargos_info_ = {}
         cargos_info_['cargoPort'] = {k_:{} for k_,v_ in inputs.port.info['idPortOrder'].items()}
+        cargos_info_['cargoPortEmpty'] = {k_:{} for k_,v_ in inputs.port.info['idPortOrder'].items()}
         cargos_info_['cargoRotation'] = {}
         
         
@@ -692,6 +693,10 @@ class Loadable:
             else:
                 cargos_info_['cargoPort'][port_][o_['sequenceNo']].append('P'+str(o_['dscargoNominationId']))
 
+            if port_ not in cargos_info_['cargoPortEmpty']:
+                cargos_info_['cargoPortEmpty'][port_] = {'P'+str(o_['dscargoNominationId']):o_['emptyMaxNoOfTanks']}
+            else:
+                cargos_info_['cargoPortEmpty'][port_]['P'+str(o_['dscargoNominationId'])] = o_['emptyMaxNoOfTanks']
                 
             # if len(cargos_info_['cargoPort'][port_]) > 1:
             #     if not inputs.cargo_rotation:
@@ -715,6 +720,7 @@ class Loadable:
         max_virtual_port_ = 0
         virtual_arr_dep_ = {}
         rotation_virtual_, rotation_cargo_, rotation_portOrder_ = [], [], []
+        emtpy_tank_ = {}
         
         
         print('cargo rotation:', cargos_info_['cargoRotation'])
@@ -788,18 +794,27 @@ class Loadable:
             cargos_info_['lastVirtualPort'] = max_virtual_port_
             cargos_info_['rotationVirtual'] = rotation_virtual_ # rotation virtual port
             # cargos_info_['rotationCargo']   = rotation_cargo_ # rotation virtual port
+            cargos_info_['emptyTank'] = []
+            for k_, v_ in cargos_info_['cargoPortEmpty'].items():
+                order_ = inputs.port.info['idPortOrder'][k_]
+                for k__, v__ in v_.items():
+                    if v__ in [True]:
+                        cargos_info_['emptyTank'].append((k__, virtual_port_[order_][k__]))
+                        
+            print('opt empty tank:', cargos_info_['emptyTank'])
             
             
         else:
+            exit()
         
-            for l_ in range(int(len_virtual_ports_/2)):
-                virtual_port__ = 2*(l_)
-                cargos_info_['virtualArrDepPort'][str(virtual_port__)] = str(l_+1)+'A'
-                cargos_info_['virtualArrDepPort'][str(virtual_port__+1)] = str(l_+1)+'D'
+            # for l_ in range(int(len_virtual_ports_/2)):
+            #     virtual_port__ = 2*(l_)
+            #     cargos_info_['virtualArrDepPort'][str(virtual_port__)] = str(l_+1)+'A'
+            #     cargos_info_['virtualArrDepPort'][str(virtual_port__+1)] = str(l_+1)+'D'
                 
-                cargos_info_['arrDepVirtualPort'][str(l_+1)+'A'] = str(virtual_port__)
-                cargos_info_['arrDepVirtualPort'][str(l_+1)+'D'] = str(virtual_port__+1)
-                max_virtual_port_ = len(cargos_info_['virtualArrDepPort'])-1
+            #     cargos_info_['arrDepVirtualPort'][str(l_+1)+'A'] = str(virtual_port__)
+            #     cargos_info_['arrDepVirtualPort'][str(l_+1)+'D'] = str(virtual_port__+1)
+            #     max_virtual_port_ = len(cargos_info_['virtualArrDepPort'])-1
             
         
         # sea water density ---------------------------------------------------------------------
@@ -876,6 +891,17 @@ class Loadable:
                     
                 cargos_info_['preloadOperation'][parcel_][tank_] = round(wt_,1)
                 cargos_info_['preload'][parcel_]  += round(wt_,1)
+        
+        # last_port_, plan_dsc_ = {}, {}
+        # for k_,v_ in cargos_info_['operation'].items():
+        #     last_port_[k_], plan_dsc_[k_]= 0, 0
+        #     for k__, v__ in v_.items():
+        #         plan_dsc_[k_] += v__
+        #         if last_port_[k_] < int(k__):
+        #             last_port_[k_] = k__
+                    
+            # if round(plan_dsc_[k_],1) != round()
+                    
         
         cargos_info_['ballastOperation'] = {}
         cargos_info_['initialBallast'] = {}
@@ -1180,7 +1206,6 @@ class Loadable:
             
         print('toCow: ',self.info['toCow'])
                 
-                   
             
         
         

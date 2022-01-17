@@ -237,7 +237,7 @@ set P_stable = P_stable0 diff fixBallastPort diff sameBallastPort; # stable port
 set NP1 default {NP}; # NP1 = {} for cargo left in last discharge port
 set P_stable1 =  P_stable diff NP1; # port with min draft requirement
 set P_stable2{C} default P_stable; 
-set P_opt default {};
+set P_opt within C cross 1..NP default {}; 
 set P_bm default {};
 
 set zeroListPort default {};
@@ -333,6 +333,7 @@ set firstDisCargo;
 
 param diffVol default 0.05;
 
+param maxEmptyTankWeight default 0;
 # stability - draft
 param displacementLimit{p in P}; # displacement limit derived from maximum permissible draft and hydrostatic table.
 param displacementLowLimit{p in P} default 0; # displacement limit lower bound
@@ -476,7 +477,9 @@ var est_trim{p in P}default 0;
 #####################
 # to maximize the amout of loaded cargoes in terms of total loaded amount + minimize the ballast amount.
 maximize Action_Amount:
-sum{c in C, t in Tc[c]} priority[c]*(sum{p in P_last_loading} qw[c,t,p]- sum{p in P_dis} w[c,t,p])-1*sum{t in TB, p in P}wB[t,p];
+sum{c in C, t in Tc[c]} priority[c]*(sum{p in P_last_loading} qw[c,t,p]- sum{p in P_dis} w[c,t,p])
+-1*sum{t in TB, p in P}wB[t,p]
+- maxEmptyTankWeight*sum{ (c, p) in P_opt, t in T} qwz[c,t,p];
 
 #####################
 #original
@@ -601,7 +604,8 @@ subject to Condition112d1 {c in C_equal, p in P_stable2[c], (u,v) in equalWeight
 
 # only for discharging
 subject to Condition112d5 {c in C_equal, p in P_stable2[c]}: qw[c,'3P',p] = qw[c,'3S',p];
-subject to Condition116a {c in C_loaded1, t in T, p in P_opt} : qw[c,t,p] <= 1e5*qwz[c,t,p];
+# qw > 0 ==> qwz == 1
+subject to Condition116a {(c, p)  in P_opt, t in T} : qw[c,t,p] <= 1e5*qwz[c,t,p];
 
 # diff cargos in slop tanks, except when only one cargo
 #subject to Condition112f {c in C}: x[c,'SLS'] + x[c,'SLP'] <= diffSlop;
@@ -704,7 +708,6 @@ subject to Constr13 {p in P_stable1}: displacementLowLimit[p]+0.001 <= displacem
 # deadweight constraint
 subject to Constr13a {p in P_stable}: sum{t in T} wC[t,p] + sum{t in TB} wB[t,p] + sum{t in OtherTanks} weightOtherTank[t,p] + deadweightConst <= deadweight;
 subject to Constr13b {p in P_last_loading}: sum{t in T} wC[t,p] <= cargoweight;
-
 ## New list constraint
 #  ballast
 subject to Constr15b1 {t in TB diff TB1, p in P_stable}: TB_tmom[t,p] = <<{s in 1..pwTCG-1} bTankTCG[s,t]; {s in 1..pwTCG} mTankTCG[s,t]>> wB[t,p];
@@ -715,8 +718,6 @@ subject to Constr15c2 {t in T1, p in P_stable}: T_tmom[t,p] = wC[t,p]*TCGt[t];
 
 subject to Constr153 {p in P_stable}: T_mom[p] = sum{t in T} T_tmom[t,p] + sum{t in TB } TB_tmom[t,p]  + sum{t in OtherTanks} weightOtherTank[t,p]*TCGtp[t,p] + deadweightConst*TCGdw;
 subject to Constr154 {p in P_stable}: -ListMOM <= T_mom[p] <= ListMOM;
-
-
 ## Trim constraint
 #  ballast
 subject to Constr16b1 {t in TB diff TB2, p in P_stable}: TB_lmom[t,p] = 1000 * (<<{s in 1..pwLCG-1} bTankLCG[s,t]; {s in 1..pwLCG} mTankLCG[s,t]>> wB[t,p]);
