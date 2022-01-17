@@ -428,8 +428,12 @@ class Generate_plan:
                 ship_status = ampl.getData('shipStatus').toList()
                 ballast_weight = ampl.getData('wtB').toList()
                 cargo_loaded = ampl.getData('cargoloaded').toList()
-                # cargo_loaded_port = ampl.getData('cargoloadedport').toList()
-                cargo_loaded_port = ampl.getData('cargoOper').toList()
+
+                if self.input.module in ['LOADABLE']:
+                    cargo_loaded_port = ampl.getData('cargoloadedport').toList()
+                else:
+                    cargo_loaded_port = ampl.getData('cargoOper').toList()
+
                 xx = ampl.getData('xx').toList()
                 
                 # self._other_AMPL_data(ampl)
@@ -1487,12 +1491,12 @@ class Generate_plan:
                 self.plans['cargo_order'].append(self.input.loadable.info['cargoOrder'])
             
             ##--------------------------------------------------------------- 
-                # cargo_ = cargo_status_[str(self.input.loadable.info['lastVirtualPort']-1)]
-                cargo_ = {}
-                for k_, v_ in cargo_status_.items():
-                    for k__, v__ in v_.items():
-                        if v__ > 0.:
-                            cargo_[k__] = v__
+                cargo_ = cargo_status_[str(self.input.loadable.info['lastVirtualPort']-1)]
+                #cargo_ = {}
+                #for k_, v_ in cargo_status_.items():
+                #    for k__, v__ in v_.items():
+                #        if v__ > 0.:
+                #            cargo_[k__] = v__
 
                 loading_hrs_ = {}
                 for k_, v_ in cargo_.items():
@@ -2650,14 +2654,15 @@ class Generate_plan:
             if len(self.plans['cargo_status'][sol]) > 0:
             
                 for k_, v_ in self.plans['cargo_status'][sol][virtual_].items():
-                    load_ = 0
-                    if virtual_ not in ['0']:
-                        arr_dep_ = self.input.loadable.info['virtualArrDepPort'][str(int(virtual_))]
-                        load_ = [self.plans['cargo_status'][sol][a_][k_] for a_, b_ in self.input.loadable.info['virtualArrDepPort'].items() if b_ == arr_dep_]
-                        load_ = round(sum(load_),1)
+                    if v_ > 0.:
+                    # load_ = 0
+                    #if virtual_ not in ['0']:
+                        #arr_dep_ = self.input.loadable.info['virtualArrDepPort'][str(int(virtual_))]
+                        #load_ = [self.plans['cargo_status'][sol][a_][k_] for a_, b_ in self.input.loadable.info['virtualArrDepPort'].items() if b_ == arr_dep_]
+                        #load_ = round(sum(load_),1)
                         
                     
-                    if load_ > 0.:
+                    #if load_ > 0.:
                         info_ = {}
                         info_["cargoId"] = int(self.input.loadable.info['parcel'][k_]['cargoId'])
                         info_["cargoNominationId"] = int(k_[1:])
@@ -2665,12 +2670,12 @@ class Generate_plan:
                         info_['abbreviation'] = self.input.loadable.info['parcel'][k_]['abbreviation']
                         info_['estimatedAPI'] = str(self.input.loadable.info['parcel'][k_]['api'])
                         info_['estimatedTemp'] = str(self.input.loadable.info['parcel'][k_]['temperature'])
-                        info_['loadableMT'] = str(load_)
+                        info_['loadableMT'] = str(v_)
                         info_['priority'] = int(self.input.loadable.info['parcel'][k_]['priority'])
                         info_['colorCode'] = self.input.loadable.info['parcel'][k_]['color']
                         intend_ = self.input.loadable.info['toLoadIntend'][k_]
                         info_['orderedQuantity'] = str(round(intend_,DEC_PLACE))
-                        info_['differencePercentage'] = str(round((load_-intend_)/intend_*100,2))
+                        info_['differencePercentage'] = str(round((v_-intend_)/intend_*100,2))
                         info_['loadingOrder'] = int(self.plans['cargo_order'][sol][k_])
                         info_["maxTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][1])
                         info_["minTolerence"] = str(self.input.loadable.info['parcel'][k_]['minMaxTol'][0])
