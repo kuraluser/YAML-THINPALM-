@@ -312,7 +312,7 @@ set specialBallastPort default {LP-1, LP}; # default LP-1
 set zeroBallastPort default {}; # default LP
 
 param minBallastAmt{t in TB} default 10;
-param minCargoAmt default 1000;
+param minCargoAmt default 1;
 
 ## cargo tank
 set slopS default {'SLS'};

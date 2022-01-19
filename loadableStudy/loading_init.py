@@ -466,6 +466,8 @@ class Process_input(object):
         
         if not self.error and self.solver in ['AMPL']:
             
+            slopP = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'P'][0]
+            slopS = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'S'][0]
             with open(file, "w") as text_file:
                 
                 ##
@@ -485,6 +487,13 @@ class Process_input(object):
                         str1 += i_ + ' '
                 print(str1+';', file=text_file)
                 
+                str1 = 'set slopP := '
+                str1 += slopP
+                print(str1+';', file=text_file) 
+                
+                str1 = 'set slopS := '
+                str1 += slopS
+                print(str1+';', file=text_file) 
                 ##
                 print('# set of tanks compatible with cargo c',file=text_file)
                 for i_,j_ in self.loadable['parcel'].items():
