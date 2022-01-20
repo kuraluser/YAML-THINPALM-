@@ -1339,10 +1339,8 @@ class Generate_plan:
                     vol2_ = wt2_/density_
                     
                     fillingRatio_ = round(vol_/capacity_,DEC_PLACE)
-                    print(parcel1_,parcel2_, k1_, fillingRatio_, round(wt1_/(wt1_+wt2_),2), round(wt2_/(wt1_+wt2_),2), round(api_,2), round(temp_,1), density_, round(weight_,3))
+                    print(parcel1_,parcel2_, k_, fillingRatio_, round(wt1_/(wt1_+wt2_),2), round(wt2_/(wt1_+wt2_),2), round(api_,2), round(temp_,1), density_, round(weight_,3))
                     
-                        
-                        
                     tcg_ = 0.
                     if k_ in self.input.vessel.info['tankTCG']['tcg']:
                         tcg_ = np.interp(vol_, self.input.vessel.info['tankTCG']['tcg'][k_]['vol'],
@@ -1354,7 +1352,7 @@ class Generate_plan:
                                          self.input.vessel.info['tankLCG']['lcg'][k_]['lcg'])
                         
                     
-                    tankId_ = self.input.vessel.info['tankName'][k1_]
+                    tankId_ = self.input.vessel.info['tankName'][k_]
                     corrUllage_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist(), 6)
                     
                     corrUllage1_ = round(self.input.vessel.info['ullage'][str(tankId_)](vol1_).tolist(), 6)
@@ -1497,7 +1495,6 @@ class Generate_plan:
                 #    for k__, v__ in v_.items():
                 #        if v__ > 0.:
                 #            cargo_[k__] = v__
-
                 loading_hrs_ = {}
                 for k_, v_ in cargo_.items():
                     loading_hrs_[k_] = (v_/self.input.loadable.info['parcel'][k_]['SG']/self.loading_rate[p_][k_][0],
@@ -2431,6 +2428,7 @@ class Generate_plan:
     
     ## for discharge study --------------------------------------------------------------------------------------
     def gen_json2(self, constraints, stability_values):
+
         data = {}
         data['message'] = None
         data['processId'] = self.input.process_id
