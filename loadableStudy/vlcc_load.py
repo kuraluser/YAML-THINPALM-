@@ -867,8 +867,9 @@ class Loadable:
         cargos_info_['preload'] = {}
         
         for d__, d_  in enumerate(inputs.discharge_json['arrivalPlan']['loadablePlanStowageDetails']):
-            wt_ = float(d_['quantity'])
-            if wt_ > 0:
+            wt_ = d_['quantity']
+            if wt_ not in [None] and float(wt_) > 0:
+                wt_ = float(wt_)
                 parcel_ = self.info['dscargoNominationId']['P' + str(d_['cargoNominationId'])]
                 tank_ = d_['tankId']
                 ## need to convert to tankName later
