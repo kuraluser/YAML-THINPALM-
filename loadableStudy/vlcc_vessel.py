@@ -116,7 +116,7 @@ class Vessel:
                     else:
                         vessel_info_['otherTankNames'].append(t_['shortName'])
                     
-                if t_['slopTank']:
+                if t_['slopTank'] and (t_['categoryId'] == 1):
                     print(t_['shortName'], t_['slopTank'])
                 if t_['slopTank'] and t_['categoryId'] in [1]:
                     vessel_info_['slopTank'].append(t_['shortName'])
@@ -153,12 +153,19 @@ class Vessel:
             k1_ = str(vessel_info_['tankName'][k_])
             vessel_info_['ullage16mVol'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](16)),3)
             
-        vessel_info_['ullage2mVol'] = {}
+        vessel_info_['sounding2mVol'] = {} # sounding 2m 
         for k_ in vessel_info_['cargoTanks']:
             k1_ = str(vessel_info_['tankName'][k_])
             u1_ = vessel_info_['ullageEmpty'][k1_] - 2
-            vessel_info_['ullage2mVol'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](u1_)),3)
+            vessel_info_['sounding2mVol'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](u1_)),3)
             ## to 3m for High vapor vargo
+        
+        vessel_info_['sounding30cmVol'] = {} # sounding 2m 
+        for k_ in vessel_info_['cargoTanks']:
+            k1_ = str(vessel_info_['tankName'][k_])
+            u1_ = vessel_info_['ullageEmpty'][k1_] - 0.3
+            vessel_info_['sounding30cmVol'][k_] = round(float(vessel_info_['ullageInvFunc'][k1_](u1_)),3)
+
          
         
         # self._get_ullage_corr(vessel_info_, vessel_json['ullageTrimCorrections'])

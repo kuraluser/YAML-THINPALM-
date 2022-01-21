@@ -173,7 +173,11 @@ class Generate_plan:
                         self._process_ampl(result, num_plans=num_plans)
                         self._process_checking_plans(result)
                         
-                        
+                    drop_const = ['Condition21c', 'Condition21b', 'Constr16b']
+                    result = self._run_ampl(dat_file='input_discharging.dat', drop_const = drop_const) 
+                    if result['succeed']:
+                        self._process_ampl(result, num_plans=num_plans)
+                        self._process_checking_plans(result)
                     if not result['succeed']:
                         self.plans['message']['Optimization Error'] = result['message']
                         

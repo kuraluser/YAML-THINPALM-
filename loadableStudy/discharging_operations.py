@@ -18,7 +18,10 @@ REDUCED_RATE = 1500
 
 # MAX_RATE = {1: 12000, 2:11129, 3:11553, 4:5829}
 
-INDEX = ['Time', '1C', '2C', '3C', '4C', '5C', '1P', '1S', '2P', '2S', '3P', '3S', '4P', '4S', '5P', '5S', 'SLP', 'SLS']
+
+#INDEX = ['Time', '1C', '2C', '3C', '4C', '5C', '1P', '1S', '2P', '2S', '3P', '3S', '4P', '4S', '5P', '5S', 'SLP', 'SLS']
+INDEX = ['Time', '1C', '2C', '3C', '4C', '5C', '1P', '1S', '2P', '2S', '3P', '3S', '4P', '4S', '5P', '5S']
+
         
 
 class DischargingOperations(object):
@@ -354,36 +357,6 @@ class DischargingOperations(object):
                 cargo_info_['tankToBallast'].append(k_)
                 
                 
-    # def _get_cow(self, cargo_info):
-        
-    #     NUM_COW = 5
-    #     cargo_info['cow_tanks'] = {}
-    #     cargo_info['drive_tanks'] = {}
-    #     n_cows_ = 0
-            
-    #     for k_, v_ in cargo_info['stripping_tanks'].items():
-    #         cargo_info['cow_tanks'][k_] = []
-            
-    #         if 'SLS' in v_ and 'SLP' in v_:
-    #             cargo_info['drive_tanks'][k_] = 'SLP'
-    #         elif 'SLS' in v_:
-    #             cargo_info['drive_tanks'][k_] = 'SLS'
-    #         elif 'SLP' in v_:
-    #             cargo_info['drive_tanks'][k_] = 'SLP'
-    #         else:
-    #             cargo_info['drive_tanks'][k_] = None
-                
-                
-                
-    #         # print(k_, v_)
-    #         for t_ in v_:
-    #             if t_[-1] not in ['C'] and t_ not in ['SLS', 'SLP']:
-    #                 if n_cows_ <= NUM_COW:
-    #                     cargo_info['cow_tanks'][k_] += [t_[0]+'P', t_[0]+'S']
-    #             else:
-    #                 if n_cows_ <= NUM_COW and t_ not in cargo_info['cow_tanks'][k_]:
-    #                     cargo_info['cow_tanks'][k_] += [t_]
-  
     def _gen_stripping(self):
         # INDEX = self.config["gantt_chart_index"]
         
@@ -394,7 +367,7 @@ class DischargingOperations(object):
         TIME_AIR_PURGE = 2 ## if required
         TIME_INITIAL = TIME_SEP + TIME_PUMP_WARM 
         TIME_INIT_RATE = 20
-        TIME_INC_RATE = 15# 15000m3/hr: 45mins 10000-15000m3/hr: 30mins 5000-10000m3/hr: 15mins
+        TIME_INC_RATE = 15 # 15000m3/hr: 45mins 10000-15000m3/hr: 30mins 5000-10000m3/hr: 15mins
 
         
         ## manually set which tanks to COW at each stage
@@ -402,11 +375,14 @@ class DischargingOperations(object):
         print('cow tanks', self.info['cow_tanks'])
         self.seq = {}
         
+        slopP = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'P'][0]
+        slopS = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'S'][0]
         start_time_ = 0 # 
         
+        INDEX_ = INDEX + [slopP, slopS]
         for p__, p_ in enumerate(self.info['cargo_plans'][:-1]):
             
-            df_ = pd.DataFrame(index=INDEX)
+            df_ = pd.DataFrame(index=INDEX_)
             
             df_['Initial'] = None
             df_['Initial']['Time'] = TIME_INITIAL
@@ -450,7 +426,7 @@ class DischargingOperations(object):
                         tanks_.append(k_)
                         
             total_tank_ = len(tanks_)
-            print(tanks_)
+            print('tanks to discharge:', tanks_)
             
             # ----------------------------------------------------
             direct_cargo_pump_ = []
@@ -488,7 +464,7 @@ class DischargingOperations(object):
             # increase to max rate ----------------------------------------------------------------
             df_['IncMax'] =  df_['InitialRate']
             df_['IncMax']['Time'] = TIME_INITIAL+TIME_INIT_RATE+TIME_INC_RATE # end time
-            df_inc_max_ = pd.DataFrame(index=INDEX)
+            df_inc_max_ = pd.DataFrame(index=INDEX_)
             df_inc_max_['VolRemoved'] = None
             
             max_rate_ = self.discharging_rate[p__+1]
@@ -761,7 +737,7 @@ class DischargingOperations(object):
         for t_ in self.seq[cargo]['tanks']:
             
             vol_ = [l_[1] for l_ in self.seq[cargo]['gantt'].loc[t_].to_list()]
-            min_vol_ = self.vessel.info['ullage2mVol'][t_]  # to shut indirect pump
+            min_vol_ = self.vessel.info['sounding2mVol'][t_]  # to shut indirect pump
             pump_ = self.vessel.info['tankCargoPump'][t_]
             
             i1_ = np.where(np.diff(vol_) == 0)[0]
@@ -788,7 +764,7 @@ class DischargingOperations(object):
             else:
                 # print('below 2m')
                 ifunc_ = interp1d(vol_, time_)
-                time1_ = int(ifunc_(self.vessel.info['ullage2mVol'][t_]).round())
+                time1_ = int(ifunc_(self.vessel.info['sounding2mVol'][t_]).round())
                 
                 if pump_ in end_time_:
                     t1_ = list(np.argwhere(np.array(vol_) ==  0.))
@@ -819,11 +795,16 @@ class DischargingOperations(object):
    
     def _cal_cow_strip(self, port, cargo_to_discharge, initial, tanks, max_rate):
         
-        STRIP_ORDER = ['1', '1C', '2', '2C', '3', '3C', '4', '4C', '5', '5C', 'SLP', 'SLS']
-        STRIP_LEVEL = {'1C':334.25, '2C':312.03, '3C':312, '4C':311.98, '5C':343.98,
-                       '1P':152.44, '1S':152.44, '2P':161.3, '2S':161.3, '3P':161.34, '3S':161.34,
-                       '4P':161.3, '4S':161.3, '5P':110.04, '5S':110.04, 'SLP':3.1, 'SLS':3.1}
+        slopP = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'P'][0]
+        slopS = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'S'][0]
         
+        INDEX_ = INDEX + [slopP, slopS]
+        
+        STRIP_ORDER_ = ['1', '1C', '2', '2C', '3', '3C', '4', '4C', '5', '5C']
+        
+        STRIP_ORDER = STRIP_ORDER_ +  [slopP, slopS]
+        STRIP_LEVEL = self.vessel.info['sounding30cmVol']
+       
         ##
         ####self.info['cow_tanks'] = {1: [], 2: ['1P', '3P', '3S', '1S'], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
         ### self.info['cow_tanks'] = {1: [], 2: [], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
@@ -832,11 +813,11 @@ class DischargingOperations(object):
         self.info['sorted_cow'] = {1: [], 2: [], 3: [], 4: [], 5:[], 6:[], 7:[], 8:[]}
         
         
-        df_ = pd.DataFrame(index=INDEX)
+        df_ = pd.DataFrame(index=INDEX_)
         strip_ = self.info['stripping_tanks'][port+1]
         strip_num_ = []
         for t_ in strip_:
-            if t_[-1] in ['C'] or t_ in ['SLS', 'SLP']:
+            if t_[-1] in ['C'] or t_ in self.vessel.info['slopTank']: #['SLS', 'SLP']:
                 strip_num_.append(t_)
             elif t_[:-1] not in strip_num_:
                 strip_num_.append(t_[:-1])
@@ -850,14 +831,14 @@ class DischargingOperations(object):
             tank_in_ = self.info['cargo_tank'][cargo_to_discharge]
             
             
-            if 'SLS' in tank_in_:
-                drive_tank_['tank'] = 'SLS'
-                drive_tank_['ullage16mVol'] = self.vessel.info['ullage16mVol']['SLS']
+            if slopS in tank_in_:
+                drive_tank_['tank'] = slopS
+                drive_tank_['ullage16mVol'] = self.vessel.info['ullage16mVol'][slopS]
                 
-            elif 'SLP' in tank_in_:
-                drive_tank_['tank'] = 'SLP'
-                drive_tank_['ullage16mVol'] = self.vessel.info['ullage16mVol']['SLP']
-                
+            elif slopP in tank_in_:
+                drive_tank_['tank'] = slopP
+                drive_tank_['ullage16mVol'] = self.vessel.info['ullage16mVol'][slopP]
+                 
             else:
                 print('Not supported yet!!')
                 raise Exception("Not supported cow_tank")
@@ -917,14 +898,14 @@ class DischargingOperations(object):
         elif len(strip_) > 0 and len(partial_) > 0:
             # reduce 2 stages for partial 
             # strip - 1 additional stage
-            if 'SLP' in [drive_tank_.get('tank', None)] and 'SLP' in strip_:
+            if slopP in [drive_tank_.get('tank', None)] and slopP in strip_:
                 exit()
             
                 
                 
                 
             total_stage_ = 2 + len(strip_num_) + 1
-            if 'SLS' in [drive_tank_.get('tank', None)] and 'SLS' in strip_:
+            if slopS in [drive_tank_.get('tank', None)] and slopS in strip_:
                 total_stage_ -= 1
 
 
@@ -1109,7 +1090,7 @@ class DischargingOperations(object):
                 if strip_tank_ in [drive_tank_.get('tank', None)]:
                     # print('Drive tank:', t_)
                     s4_ = 1
-                elif strip_tank_ in ['SLS', 'SLP']:
+                elif strip_tank_ in self.vessel.info['slopTank']: #['SLS', 'SLP']:
                     # finish discharging before reducing rate
                     pass
                 elif len(strip_tank_) == 1:
@@ -1124,7 +1105,7 @@ class DischargingOperations(object):
                     # print('Drive tank:', t_)
                     pass
                 
-                elif strip_tank_ in ['SLS', 'SLP']:
+                elif strip_tank_ in self.vessel.info['slopTank']: #['SLS', 'SLP']:
                     t4_ = strip_tank_
                     # no discharging for strip tank
                     parcel_ = df_['C'+str(s2_+s4_)][t4_][0]
@@ -1146,7 +1127,7 @@ class DischargingOperations(object):
             ss_ = s2_ - 1 + s4_
             for s1_, s2_ in enumerate(range(ss_, 1, -1)):
                 rate_ = discharging_rate_[s2_-2]
-                tanks_ = [t4_ for t4_ in tanks if df_['C'+str(s2_)][t4_][1] > 0. and t4_ not in  [drive_tank_.get('tank', None), 'SLS', 'SLP']]
+                tanks_ = [t4_ for t4_ in tanks if df_['C'+str(s2_)][t4_][1] > 0. and t4_ not in  [drive_tank_.get('tank', None)]+self.vessel.info['slopTank']]
                 discharging_rate_per_tank_ = rate_/len(tanks_)
                 add_time_ = df_['C'+str(s2_)]['Time'] - df_['C'+str(s2_-1)]['Time']
                 
@@ -1169,6 +1150,10 @@ class DischargingOperations(object):
         
     def _get_ballast_requirements(self):
         
+        slopP = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'P'][0]
+        slopS = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'S'][0]
+        
+        INDEX_ = INDEX + [slopP, slopS]
         # INDEX = self.config["gantt_chart_index"]
         INDEX1 = self.config["gantt_chart_ballast_index"]
         
@@ -1208,7 +1193,7 @@ class DischargingOperations(object):
                 
                 
             # get loading info        
-            ddf_ = pd.DataFrame(index=INDEX)
+            ddf_ = pd.DataFrame(index=INDEX_)
             
             if c__ == 0:
                 col_ = 'Initial' + str(c__+1)
