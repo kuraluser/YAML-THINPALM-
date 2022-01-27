@@ -954,19 +954,22 @@ class Process_input(object):
                 print('# initial ballast ',file=text_file)#
                 str1 = 'param initBallast := '
                 for k_, v_ in self.discharging.info['ballast'][0].items():
-                    str1 += str(k_) + ' ' + "{:.3f}".format(v_[0]['quantityMT'])  + ' '
+                    if k_ not in self.vessel.info['banBallast']:
+                        str1 += str(k_) + ' ' + "{:.3f}".format(v_[0]['quantityMT'])  + ' '
                 print(str1+';', file=text_file)
                 
                 print('# inc initial ballast ',file=text_file)##
                 str1 = 'set incTB := '
                 for k_ in self.loadable.info['incInitBallast']:
-                    str1 += str(k_) + ' '
+                    if k_ not in self.vessel.info['banBallast']:
+                        str1 += str(k_) + ' '
                 print(str1+';', file=text_file)
                 
                 print('# dec initial ballast ',file=text_file)##
                 str1 = 'set decTB := '
                 for k_ in self.loadable.info['decInitBallast']:
-                    str1 += str(k_) + ' '
+                    if k_ not in self.vessel.info['banBallast']:
+                        str1 += str(k_) + ' '
                 print(str1+';', file=text_file)
                 
                                
