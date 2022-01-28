@@ -56,11 +56,7 @@ class Process_input(object):
                                   "loadingMachinesInUses":data['loading']['loadingInformation']["machineryInUses"]["loadingMachinesInUses"]
                                   }
         
-        self.loading_information = {"loadingRates":data['loading']['loadingInformation']["loadingRates"],
-                                    "berthDetails":data['loading']['loadingInformation']['berthDetails'],
-                                    "loadingSequences":data['loading']['loadingInformation']["loadingSequences"],
-                                    "machineryInUses":data['loading']['loadingInformation']["machineryInUses"]
-                                    }
+        self.loading_information = data['loading']['loadingInformation']
         
         
         self.config = data['config']
