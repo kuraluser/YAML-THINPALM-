@@ -258,7 +258,10 @@ class Check_plans:
                             for qq_ in  [*self.input.loadable.info['toDischargePort1']]:
                                 qw_[qq_] =  cur_plan_['ship_status'][0][str(qq_)]['cargo']
                             
-                            self.input.write_dat_file(lcg_port = lcg_port_, weight = qw_)
+                            self.input.lcg_port, self.input.weight = lcg_port_, qw_
+                            
+                            self.input.write_dat_file(lcg_port = lcg_port_, weight = qw_, IIS = False)
+
                             
                              # collect plan from AMPL
                             gen_output_ = Generate_plan(self.input)

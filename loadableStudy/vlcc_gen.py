@@ -180,19 +180,38 @@ class Generate_plan:
                             self._process_ampl(result, num_plans=num_plans)
                             self._process_checking_plans(result)
                         
-
                     if not result['succeed']:
                         self.plans['message']['Optimization Error'] = result['message']
                         
             elif self.input.module in ['DISCHARGE']:
                 # print('Rerun for loading module')
                 if self.input.solver in ['AMPL']:
-                    print('Rerun AMPL drop BM ....')
+                    
                     if not result['succeed']:
-                        self.input.write_dat_file(drop_BM = True, IIS = False)
+                        print('##**Rerun AMPL drop upper BM ....')
+                        self.input.write_dat_file(drop_BM = True, IIS = False, lcg_port = self.input.lcg_port, weight = self.input.weight)
+                        # input("Press Enter to continue...")
                         result = self._run_ampl(dat_file='input_discharge.dat') 
                         
+                        if result['succeed']:
+                            self._process_ampl(result, num_plans=num_plans)
+                            self._process_checking_plans(result)
+                            
+                    if not result['succeed']:
+                        # relax increase and decrease ballast:
+                        print('##**Rerun AMPL relax increase and decrease ballast....')
+                        
+                        if self.input.vessel_id in [1]:
+                            self.input.write_dat_file(IIS = False,incDec_ballast = ['LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S',
+                                                                        'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S'],
+                                                      lcg_port = self.input.lcg_port, weight = self.input.weight) # relax list mom to 100000
+                        elif self.vessel_id in [2]:
+                            self.input.write_dat_file(IIS = False,incDec_ballast = ['FPT'],
+                                                      lcg_port = self.input.lcg_port, weight = self.input.weight) # relax list mom to 100000
+
+                        result = self._run_ampl(dat_file='input_discharge.dat') 
                         # input("Press Enter to continue...")
+                        
                         if result['succeed']:
                             self._process_ampl(result, num_plans=num_plans)
                             self._process_checking_plans(result)
@@ -201,8 +220,8 @@ class Generate_plan:
                         
                         print('Rerun AMPL drop BM and upper trim....')
                         drop_const = ['Condition21c', 'Constr16b']
-                        result = self._run_ampl(dat_file='input_discharge.dat', drop_const = drop_const) 
-                        
+                        result = self._run_ampl(dat_file='input_discharge.dat', drop_const = drop_const,
+                                                lcg_port = self.input.lcg_port, weight = self.input.weight)                        
                         # input("Press Enter to continue...")
                         if result['succeed']:
                             self._process_ampl(result, num_plans=num_plans)
@@ -295,7 +314,7 @@ class Generate_plan:
                             
                         
             elif self.input.module in ['DISCHARGE']:
-                model_ = 'model_1i.mod'
+                model_ = 'model_5i.mod'
                 # model_ = 'model_1ii.mod'
                 dat_file = 'input_discharge.dat'
                 

@@ -714,6 +714,8 @@ class Loading_seq:
                 info_['cargoAbbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
                 info_['abbreviation'] = self.plans.input.loading.info['commingle'].get('abbreviation', None)
                 
+                info_['abbreviation1'] = self.plans.input.loading.info['abbreviation'][v_[0]['parcel'][0]]
+                info_['abbreviation2'] = self.plans.input.loading.info['abbreviation'][v_[0]['parcel'][1]]
                 
                 info_['quantity1MT'] = str(round(abs(v_[0]['wt1']),1))
                 info_['quantity2MT'] = str(round(abs(v_[0]['wt2']),1))

@@ -66,6 +66,10 @@ class Process_input1(object):
         
         self.cargo_rotation = []
         
+        ## for reballast
+        self.lcg_port = None
+        self.weight = None
+        
     def prepare_dat_file(self, ballast_weight=1000):
         
         # prepare dat file for AMPL
@@ -130,48 +134,117 @@ class Process_input1(object):
             
         print('inter_port:', inter_port_)
         
-        self.full_discharge = True
+        # self.full_discharge = True
         self.ave_trim = {}
         # self._set_trim(trim_upper, trim_lower)
         ballast_ = sum([v_ for k_, v_ in self.vessel.info['initBallast']['wt'].items()])
         weight_ = sum([v1_ for k_, v_ in self.loadable.info['preloadOperation'].items() for k1_, v1_ in v_.items()])
-        for p_ in range(1, self.loadable.info['lastVirtualPort']+1):  # exact to virtual
+        arr_weight_, arr_ballast_ = weight_, ballast_
         
+        auto_discharge_ = np.zeros(self.loadable.info['lastVirtualPort']+1)
+        auto_discharge1_ = np.zeros(self.loadable.info['lastVirtualPort']+1)
+        auto_cargo_discharge_ = {}
+        
+        print(self.loadable.info['preload'])
+        for p_ in range(1, self.loadable.info['lastVirtualPort']+1):  # exact to virtual
+            print('port:', p_, "-----------------------------------------------")
             port__ = self.loadable.info['virtualArrDepPort'][str(p_)] # 1D, 2D
             port_, arr_dep_ = int(port__[:-1]), port__[-1] # convert virtual port to exact port
             port_code_ = self.port.info['portOrder'][str(port_)]
             
+            if arr_dep_ == 'A':
+                arr_weight_, arr_ballast_ = weight_, ballast_
+                
+                      
             
-            # if p_ in self.loadable.info['rotationVirtual'][:-1]:
-            #     # cargo rotation
-            #     self.trim_upper[str(p_)] = trim_upper + 1e-4
-            #     self.trim_lower[str(p_)] = trim_lower - 1e-4
             
-            cargo_to_load_ = self.loadable.info['toDischargePort'][p_]  - self.loadable.info['toDischargePort'][p_-1] 
+            discharge_cargos_ = self.loadable.info['virtualPort1'].get(str(p_), [])
+            
+            if len(discharge_cargos_) > 1:
+                self.error['Multiple discharge error'] = ['Not tested yet!!']
+                return
+            
+            disc_mode_ =  {1:'balance', 2:'manual', 3:'remaining'}
+            for d_ in discharge_cargos_:
+                mode_ = self.loadable.info['mode'][d_][str(p_)]
+                print('discharge cargos:', str(p_), d_, 'auto mode:', mode_, disc_mode_[mode_])
+                
+                if mode_ in [1]:
+                    vp_ = self.loadable.info['arrDepVirtualPort'][str(port_+1)+'A']
+                    # amt to discharge
+                    to_discharge_ = self.loadable.info['toDischargePort'][int(vp_)]
+                    to_discharge_ += auto_discharge1_[int(vp_)] # cum amt discharge
+                    
+                    next_port_ = self.port.info['portOrder'][str(port_+1)]
+                    draft_limit_ = self.port.info['portRotation'][next_port_]['maxDraft']
+                    displacement_limit_ = np.interp(draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
+                    print('displacement_limit:', displacement_limit_)
+                    
+                    misc_weight_ = 0.0
+                    for k1_, v1_ in self.vessel.info['onhand'].items():
+                        misc_weight_ += v1_.get(str(port_+1) + 'A',{}).get('wt',0.)
+                    
+                    cargo_to_load_ = displacement_limit_ - cont_weight_ - misc_weight_ - lightweight_  - arr_weight_ - arr_ballast_
+                    cargo_to_load_ = cargo_to_load_/(1-self.ballast_percent)
+                    
+                    if ballast_- self.ballast_percent*cargo_to_load_ > ballast_weight_:
+                        print('Ballast overloaded')
+                        cargo_to_load_ = displacement_limit_ - cont_weight_ - misc_weight_ - lightweight_  - arr_weight_ - ballast_weight_
+                    
+                    est_discharge_= round(cargo_to_load_ - to_discharge_,1)
+                    
+                    if -to_discharge_ > self.loadable.info['preload'][d_]:
+                        self.error['Discharge error'] = ['Balance cannot meet draft limit!!']
+                        return
+                    
+                    if d_ not in auto_cargo_discharge_:
+                        auto_cargo_discharge_[d_] = {str(p_): est_discharge_}
+                    else:
+                        auto_cargo_discharge_[d_][str(p_)] = est_discharge_
+                        
+                    
+                    auto_discharge_[int(p_)] +=  est_discharge_
+                    auto_discharge1_ = np.cumsum(auto_discharge_)
+                    print('balance', 'confirm', to_discharge_, 'extra est:', est_discharge_)
+                    
+                elif mode_ in [3]:
+                     # Remaining or entire
+                    discharged_ = [v_ for k_, v_ in auto_cargo_discharge_.get(d_,{}).items()] + \
+                                      [v_ for k_, v_ in self.loadable.info['operation'].get(d_,{}).items()]
+                        
+                    to_discharge_ = round(-self.loadable.info['preload'][d_] - sum(discharged_),1)
+                    
+                    if d_ not in auto_cargo_discharge_:
+                        auto_cargo_discharge_[d_] = {str(p_): to_discharge_}
+                    else:
+                        auto_cargo_discharge_[d_][str(p_)] = to_discharge_
+                        
+                    auto_discharge_[int(p_)] +=  to_discharge_
+                    auto_discharge1_ = np.cumsum(auto_discharge_)
+                    
+                    print('remaining or entire',  to_discharge_)
+                    
+                    
+                    
+                    
+            # estimate cargo to discharge and ballast amt needed to balance        
+            cargo_to_load_ = self.loadable.info['toDischargePort'][p_]  - self.loadable.info['toDischargePort'][p_-1] + \
+                             auto_discharge1_[p_]  - auto_discharge1_[p_-1]
+                             
             ballast_ = min(ballast_weight_,ballast_- self.ballast_percent*cargo_to_load_)
+            print('cargo_to_load_', cargo_to_load_, 'ballast_', ballast_)
             
-            # ballast_ = ballast_weight_ if port_ < self.port.info['lastLoadingPort'] else 1000
-            # arr_dep_ = ARR_DEP_[p_%2]
-            # print(p_,port_,arr_dep_,ballast_)
-            # get misc weight
-            misc_weight_ = 0.0
-            for k1_, v1_ in self.vessel.info['onhand'].items():
-                misc_weight_ += v1_.get(str(port_)+arr_dep_,{}).get('wt',0.)
-#                
-#            # get estimate cargo weight
-            cargo_weight_  = max(0., weight_ + self.loadable.info['toDischargePort'][p_])
+#           # cargo remaing onboard
+            cargo_weight_  = max(0., weight_ + self.loadable.info['toDischargePort'][p_] + auto_discharge1_[p_])
 #            print(str(port_)+arr_dep_, cargo_weight_)
     
-
-
-            if p_ == self.loadable.info['lastVirtualPort'] and cargo_weight_ > 100:
-                # last port dep
-                self.full_discharge = False
-                # self.trim_lower[str(self.loadable.info['lastVirtualPort'])] = - 1e-4
-                # self.trim_upper[str(self.loadable.info['lastVirtualPort'])] = 1e-4
-                
-                
-                
+            misc_weight_ = 0.0
+            for k1_, v1_ in self.vessel.info['onhand'].items():
+                misc_weight_ += v1_.get(port__,{}).get('wt',0.)
+            # if p_ == self.loadable.info['lastVirtualPort'] and cargo_weight_ > 100:
+            #     # last port dep
+            #     self.full_discharge = False
+               
             
 ##            ballast_weight_ = 20000
             est_deadweight_ = min(cont_weight_ + misc_weight_ + cargo_weight_ + ballast_, max_deadweight_)
@@ -184,14 +257,11 @@ class Process_input1(object):
             #     print('last virtual port:', p_, min_draft_limit_)
                 
             
-             ## lower bound displacement
+            ## lower bound displacement
             lower_draft_limit_ = min_draft_limit_ #max(self.ports.draft_airdraft[p_], min_draft_limit_)
             lower_displacement_limit_ = np.interp(lower_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
             ###
             est_draft__ =  np.interp(est_displacement_,  self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
-            # print(p_, cargo_weight_, ballast_, est_draft__, est_displacement_, lower_displacement_limit_)
-            # print(self.trim_lower.get(str(p_),-0.0001), self.trim_upper.get(str(p_),0.0001))
-            
             # correct displacement to port seawater density
             lower_displacement_limit_  = lower_displacement_limit_*seawater_density_/1.025
             
@@ -200,35 +270,28 @@ class Process_input1(object):
             # print(port__,d1_,seawater_density_,disp1_,lower_displacement_limit_)
             # trim_ = self.trim_lower.get(str(p_),.0)
             if est_draft__ > lower_draft_limit_:
+                print('Est draft > min required for propeller immersion')
                 est_displacement_ = max(lower_displacement_limit_, est_displacement_)   
                 
-                # if p_ in inter_port_:
-                #     self.trim_lower[str(p_)] = 4.0
-                #     self.trim_upper[str(p_)] = 6.0
-                #     print('trim limits at port:', p_, self.trim_lower[str(p_)], self.trim_upper[str(p_)])
-                #     self.ave_trim[str(p_)] = 5.0
+                if p_ in inter_port_:
+                    self.trim_lower[str(p_)] = 4.0
+                    self.trim_upper[str(p_)] = 6.0
+                    self.ave_trim[str(p_)] = 5.0
+                    print('inter_port ave trim', self.ave_trim[str(p_)])
                     
                
             else:
-                # if p_ in inter_port_:
-                #     self.trim_lower[str(p_)] = 4.0
-                #     self.trim_upper[str(p_)] = 6.0
-                #     print('trim limits at port:', p_, self.trim_lower[str(p_)], self.trim_upper[str(p_)])
-                #     self.ave_trim[str(p_)] = 5.0
                     
-                # else:
-                    
-                    est_draft__ = min_draft_limit_ - 1.5 # max trim = 3m 
-                    self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 2.5, 2.95
-                    lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
-                    print(p_, round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
-                    self.ave_trim[str(p_)] = 3.0
+                est_draft__ = min_draft_limit_ - 1.5 # max trim = 3m 
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 2.5, 2.95
+                lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
+                print(p_, round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
+                self.ave_trim[str(p_)] = 3.0
                 
              
            
             ## upper bound displacement
             upper_draft_limit_ = min(loadline_, float(self.port.info['portRotation'][port_code_]['maxDraft'])) - 0.001
-                
             upper_displacement_limit_ = np.interp(upper_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
             # correct displacement to port seawater density
             upper_displacement_limit_  = upper_displacement_limit_*seawater_density_/1.025
@@ -242,7 +305,8 @@ class Process_input1(object):
             est_draft_ = np.interp(est_displacement_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
             
             # base draft for BM and SF
-            trim_ = 0.5*(self.trim_lower.get(str(p_),0.0) + self.trim_upper.get(str(p_),0.0))
+            # trim_ = 0.5*(self.trim_lower.get(str(p_),0.0) + self.trim_upper.get(str(p_),0.0))
+            trim_ = self.ave_trim.get(str(p_), 0.0)
             
             if self.vessel_id in [1]:
                 base_draft__ = int(np.floor(est_draft_+trim_/2))
@@ -287,9 +351,10 @@ class Process_input1(object):
             self.bm_trim_corr[str(p_)] = trim_corr__
             
         print('base draft:', self.base_draft)
+        self.auto_cargo_discharge = auto_cargo_discharge_
         
         
-    def write_dat_file(self, file = 'input_discharge.dat', IIS = True, lcg_port = None, weight = None, drop_BM = False):
+    def write_dat_file(self, file = 'input_discharge.dat', IIS = True, lcg_port = None, weight = None, drop_BM = False, incDec_ballast = None):
         
         if not self.error and self.solver in ['AMPL']: #and self.mode not in ['FullManual']:
         
@@ -429,7 +494,6 @@ class Process_input1(object):
                         str1 += '('+ i_[0] + ',' + i_[1] +') '
                         
                     print(str1+';', file=text_file)
-
                 print('# cargo density @ low temperature (in t/m3)',file=text_file)#  
                 str1 = 'param densityCargo_High  := ' 
                 for i_,j_ in self.loadable.info['parcel'].items():
@@ -455,9 +519,60 @@ class Process_input1(object):
                     str1 = '[' + str(i_) + ', *] := '
                     for k_,v_ in j_.items():
                         if int(k_) > 0:
-                            str1 += str(k_) + ' ' + "{:.1f}".format(round(v_-1,1)) + ' '
+                            if v_ < 0:
+                                str1 += str(k_) + ' ' + "{:.1f}".format(round(v_,1)) + ' '
+                            elif self.loadable.info['mode'][i_][k_] in [3]:
+                                str1 += str(k_) + ' ' + "{:.1f}".format(round(-self.loadable.info['preload'][i_],1)) + ' '
+                            else:
+                                str1 += str(k_) + ' ' + "{:.1f}".format(round(self.auto_cargo_discharge[i_][k_],1)) + ' '
                     print(str1, file=text_file)
                 print(';', file=text_file)
+                
+                
+                print('# discharge sets')
+                str1 = 'set manual := ' 
+                for k_, v_ in self.loadable.info['mode'].items():
+                    for k1_, v1_ in  v_.items():
+                        if v1_ in [2]:
+                            for k3_ in self.loadable.info['preloadOperation'][k_]:
+                                str1 += '(' + k_ + ',' + k3_ +','+ k1_ + ')' + ' '
+                            
+                print(str1+';', file=text_file)
+                str1 = 'set balance := ' 
+                for k_, v_ in self.loadable.info['mode'].items():
+                    for k1_, v1_ in  v_.items():
+                        if v1_ in [1]:
+                            for k3_ in self.loadable.info['preloadOperation'][k_]:
+                                str1 += '(' + k_ + ',' + k3_ +','+ k1_ + ')' + ' '
+                print(str1+';', file=text_file)
+                str1 = 'set remain := ' 
+                for k_, v_ in self.loadable.info['mode'].items():
+                    for k1_, v1_ in  v_.items():
+                        if v1_ in [3]:
+                            for k3_ in self.loadable.info['preloadOperation'][k_]:
+                                str1 += '(' + k_ + ',' + k3_ +','+ k1_ + ')' + ' '
+                print(str1+';', file=text_file)
+                
+                str1 = 'set manual1 := ' 
+                for k_, v_ in self.loadable.info['mode'].items():
+                    for k1_, v1_ in  v_.items():
+                        if v1_ in [2]:
+                            str1 += '(' + k_ + ',' + k1_ + ')' + ' '
+                            
+                print(str1+';', file=text_file)
+                str1 = 'set balance1 := ' 
+                for k_, v_ in self.loadable.info['mode'].items():
+                    for k1_, v1_ in  v_.items():
+                        if v1_ in [1]:
+                            str1 += '(' + k_ + ',' + k1_ + ')' + ' '
+                print(str1+';', file=text_file)
+                str1 = 'set remain1 := ' 
+                for k_, v_ in self.loadable.info['mode'].items():
+                    for k1_, v1_ in  v_.items():
+                        if v1_ in [3]:
+                            str1 += '(' + k_ + ',' + k1_ + ')' + ' '
+                print(str1+';', file=text_file)
+                
                 
              
                 print('# loading ports',file=text_file)#  
@@ -707,6 +822,14 @@ class Process_input1(object):
                     if i_ not in tb_list_:
                         str1 += i_ + ' '
                 print(str1+';', file=text_file)
+                
+                
+                if incDec_ballast:
+                    print('# ballast tanks which can be ballast or deballast anytime',file=text_file)#  
+                    str1 = 'set TB3 := '
+                    for i_ in incDec_ballast:
+                        str1 += i_ + ' '
+                    print(str1+';', file=text_file)
                 
                 print('# ballast tanks with non-pw lcg details',file=text_file)#  
                 tb_list_ = list(self.vessel.info['tankLCG']['lcg_pw'].keys()) + self.vessel.info['banBallast']

@@ -677,15 +677,16 @@ class Loadable:
         cargos_info_ = {}
         cargos_info_['cargoPort'] = {k_:{} for k_,v_ in inputs.port.info['idPortOrder'].items()}
         cargos_info_['cargoPortEmpty'] = {k_:{} for k_,v_ in inputs.port.info['idPortOrder'].items()}
+        cargos_info_['dischAmtPort'] = {k_:{} for k_,v_ in inputs.port.info['idPortOrder'].items()}
         cargos_info_['cargoRotation'] = {}
         
         
         for o__, o_ in enumerate(inputs.discharge_json['cargoOperation']):
             # cargos_info_['cargoLastLoad']['P'+str(o_['cargoNominationId'])].append(inputs.port.info['idPortOrder'][str(o_['portId'])])
             
-            if o_['dischargingMode'] not in [2]:
-                inputs.error['Discharging Mode Error'] = ['Only manual mode is supported now!!']
-                return
+            # if o_['dischargingMode'] not in [2]:
+            #     inputs.error['Discharging Mode Error'] = ['Only manual mode is supported now!!']
+            #     return
             
             port_ = str(o_['portId']) + '2'
             if o_['sequenceNo'] not in cargos_info_['cargoPort'][port_].keys():
@@ -695,8 +696,11 @@ class Loadable:
 
             if port_ not in cargos_info_['cargoPortEmpty']:
                 cargos_info_['cargoPortEmpty'][port_] = {'P'+str(o_['dscargoNominationId']):o_['emptyMaxNoOfTanks']}
+                cargos_info_['dischAmtPort'][port_] = {'P'+str(o_['dscargoNominationId']): float(o_['quantity'])}
+                
             else:
                 cargos_info_['cargoPortEmpty'][port_]['P'+str(o_['dscargoNominationId'])] = o_['emptyMaxNoOfTanks']
+                cargos_info_['dischAmtPort'][port_]['P'+str(o_['dscargoNominationId'])] = float(o_['quantity'])
                 
             # if len(cargos_info_['cargoPort'][port_]) > 1:
             #     if not inputs.cargo_rotation:
@@ -715,12 +719,12 @@ class Loadable:
         
         
         cargos_info_['virtualArrDepPort'], cargos_info_['arrDepVirtualPort']  = {},{}
-        virtual_port_ = {}
+        virtual_port_, virtual_port1_ = {}, {}
         arr_dep_virtual_port_ = {}
         max_virtual_port_ = 0
         virtual_arr_dep_ = {}
         rotation_virtual_, rotation_cargo_, rotation_portOrder_ = [], [], []
-        emtpy_tank_ = {}
+        # emtpy_tank_ = {}
         
         
         print('cargo rotation:', cargos_info_['cargoRotation'])
@@ -755,6 +759,14 @@ class Loadable:
                         v_ += 1
                         for c_ in b_:
                             virtual_port_[str(k_)][c_] = str(v_)
+                            
+                            if str(v_) not in virtual_port1_:
+                                virtual_port1_[str(v_)] = [c_]
+                            else:
+                                virtual_port1_[str(v_)].append(c_)
+                                
+                            
+                            
                             if v_ not in rotation_virtual__:
                                 rotation_virtual__.append(v_)
                     # k__ = c__
@@ -766,16 +778,25 @@ class Loadable:
                     max_virtual_port_ = v_ if v_ > max_virtual_port_ else max_virtual_port_
                     
                 else:
+                    exit()
                     # v_ = 2*int(k_)-1 + k__
-                    virtual_port_[str(k_)] = str(v_+1)
-                    arr_dep_virtual_port_[str(k_)+'A'] = str(v_)
-                    arr_dep_virtual_port_[str(k_)+'D'] = str(v_+1)
+                    # virtual_port_[str(k_)] = str(v_+1)
                     
-                    virtual_arr_dep_[str(v_)] = str(k_)+'A'
-                    virtual_arr_dep_[str(v_+1)] = str(k_)+'D'
+                    # # if str(v_) not in virtual_port1_:
+                    # #     virtual_port1_[str(v_)] = [c_]
+                    # # else:
+                    # #     virtual_port1_[str(v_)].append(c_)
+                                
                     
-                    v_ += 1
-                    max_virtual_port_ = v_ if v_ > max_virtual_port_ else max_virtual_port_
+                    
+                    # arr_dep_virtual_port_[str(k_)+'A'] = str(v_)
+                    # arr_dep_virtual_port_[str(k_)+'D'] = str(v_+1)
+                    
+                    # virtual_arr_dep_[str(v_)] = str(k_)+'A'
+                    # virtual_arr_dep_[str(v_+1)] = str(k_)+'D'
+                    
+                    # v_ += 1
+                    # max_virtual_port_ = v_ if v_ > max_virtual_port_ else max_virtual_port_
                     
                 v_ += 1
                 
@@ -789,6 +810,8 @@ class Loadable:
                 
             print(virtual_port_)    
             cargos_info_['virtualPort'] = virtual_port_
+            cargos_info_['virtualPort1'] = virtual_port1_
+            
             cargos_info_['arrDepVirtualPort'] = arr_dep_virtual_port_
             cargos_info_['virtualArrDepPort'] = virtual_arr_dep_
             cargos_info_['lastVirtualPort'] = max_virtual_port_
@@ -826,6 +849,8 @@ class Loadable:
        
         cargos_info_['operation'] = {k_:{}  for k_,v_ in self.info['parcel'].items()}
         cargos_info_['toDischarge'] = {k_:0 for k_,v_ in self.info['parcel'].items()}
+        cargos_info_['mode'] = {k_:{} for k_,v_ in self.info['parcel'].items()}
+        
         
         
         cargos_info_['lastVirtualPort'] = max_virtual_port_# departure of last discharge port included
@@ -849,6 +874,7 @@ class Loadable:
            
             cargos_info_['toDischargePort'][int(virtual_order_)] -= round(qty_,1)
             cargos_info_['operation'][parcel_][virtual_order_] = -round(qty_,1)
+            cargos_info_['mode'][parcel_][virtual_order_] = o_['dischargingMode']
             
             
         cargos_info_['numParcel'] = len(self.info['parcel'])
