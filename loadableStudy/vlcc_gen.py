@@ -220,8 +220,7 @@ class Generate_plan:
                         
                         print('Rerun AMPL drop BM and upper trim....')
                         drop_const = ['Condition21c', 'Constr16b']
-                        result = self._run_ampl(dat_file='input_discharge.dat', drop_const = drop_const,
-                                                lcg_port = self.input.lcg_port, weight = self.input.weight)                        
+                        result = self._run_ampl(dat_file='input_discharge.dat', drop_const = drop_const) 
                         # input("Press Enter to continue...")
                         if result['succeed']:
                             self._process_ampl(result, num_plans=num_plans)

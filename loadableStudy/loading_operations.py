@@ -1125,6 +1125,9 @@ class LoadingOperations(object):
                             
                             while time_left_ <= time_left_eduction:
                                 time_left_ += time_interval_
+                                if str(int(stage_[10:])-1) in ['0']:
+                                    print('Cannot reduce eduction stage!!')
+                                    break
                                 stage_ = stage_[:10] + str(int(stage_[10:])-1)
                                 fixed_ballast__.append(stage_)
                                 fixed_ballast_.append(stage_+str(c__+1))
