@@ -396,7 +396,7 @@ class Loadable:
         
         ## infeasible check
         min_cargo_ = sum([v_ for k_, v_ in cargos_info_['toLoadMin'].items()])
-        if float(inputs.cargoweight) < min_cargo_:
+        if float(inputs.cargoweight) < min_cargo_ - 0.1:
             inputs.error['Min Tolerance Error'] = ['Min cargo tolerance is more than loadable quantity!!']
         
     def _set_commingle_info(self, inputs, cargos_info_):
