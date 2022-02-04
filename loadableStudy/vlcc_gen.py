@@ -205,7 +205,7 @@ class Generate_plan:
                             self.input.write_dat_file(IIS = False,incDec_ballast = ['LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S',
                                                                         'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S'],
                                                       lcg_port = self.input.lcg_port, weight = self.input.weight) # relax list mom to 100000
-                        elif self.vessel_id in [2]:
+                        elif self.input.vessel_id in [2]:
                             self.input.write_dat_file(IIS = False,incDec_ballast = ['FPT'],
                                                       lcg_port = self.input.lcg_port, weight = self.input.weight) # relax list mom to 100000
 
