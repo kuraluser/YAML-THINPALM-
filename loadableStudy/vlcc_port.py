@@ -86,17 +86,19 @@ class Port:
                 ports_info_['tide'][str(portId_)] = float(detail_['tideHeight'])
                 ports_info_['portRotationId'][str(p_['id'])] = portId_
                 ports_info_['portRotationId1'][str(portId_)] = p_['id']
-                
-                if inputs.module in ['DISCHARGE']:
-                    ports_info_['cowType'][str(portId_)]  = p_.get('cowDetails',{}).get('type',0)
-                
-                
+
                 ports_info_['portRotation'][code_] = {}
                 ports_info_['portRotation'][code_]['order'] = p_['portOrder']
                 ports_info_['portRotation'][code_]['maxDraft'] = float(p_['maxDraft'])
                 ports_info_['portRotation'][code_]['portId'] = portId_
                 ports_info_['portRotation'][code_]['seawaterDensity'] = float(p_['seaWaterDensity']) if p_['seaWaterDensity'] not in ["",None] else 1.025
                 ports_info_['portRotation'][code_]['portRotationId'] = p_['id']
+                
+                if inputs.module in ['DISCHARGE']:
+                    ports_info_['portRotation'][code_]['cowAllowed']  = p_.get('cow', True)
+                    ports_info_['portRotation'][code_]['freshCrudeOil']  = p_.get('freshCrudeOil', False)
+                    ports_info_['portRotation'][code_]['freshCrudeOilTime']  = p_.get('freshCrudeOil', 1)
+                    
                 
                 
                 # if inputs.module == 'LOADABLE':

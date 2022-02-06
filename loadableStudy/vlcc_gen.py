@@ -513,12 +513,12 @@ class Generate_plan:
                                 c3_.drop()
                                 
                             if self.input.vessel.info['onboard']:
-                                slopP = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'P'][0]
+                                slopP = [t_ for t_ in self.input.vessel.info['slopTank'] if t_[-1] == 'P'][0]
                                 if slopP in self.input.vessel.info.get('notOnTop', []):
                                     slp_ = ampl.getConstraint('Condition112g1') # SLP must be used
                                     slp_.drop()
                                     
-                                slopS = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'S'][0]
+                                slopS = [t_ for t_ in self.input.vessel.info['slopTank'] if t_[-1] == 'S'][0]
                                 if slopS in self.input.vessel.info.get('notOnTop', []): # SLS must be used
                                     sls_ = ampl.getConstraint('Condition112g2')
                                     sls_.drop()
@@ -2471,6 +2471,7 @@ class Generate_plan:
         
         # self.cow_tanks = []
         self.cow_tanks_remain = list(self.input.loadable.info['toCow'])
+        self.strip_tanks = []
         # all loading port
         path_ = [self.input.port.info['portOrder'][str(i_+1)]  for i_ in range(self.input.port.info['numPort'])]
         # print(path_)
@@ -2525,14 +2526,52 @@ class Generate_plan:
                 # get loadableQuantityCommingleCargoDetails
                 # plan_['departureCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'D', 'commingleStatus')
                 plan_['cowTanks'] = []
-                nonempty_tanks_ = [i_['tankShortName'] for i_ in plan_['departureCondition']["dischargePlanStowageDetails"]]
+                nonempty_tanks_ = [i_['tankShortName'] for i_ in plan_['departureCondition']["dischargePlanStowageDetails"]] + \
+                                  [i_['tankShortName'] for i_ in plan_['departureCondition']["dischargeQuantityCommingleCargoDetails"]]
                 empty_tanks_ = set(self.input.vessel.info['cargoTanks'].keys()) - set(nonempty_tanks_)
+                
+                cow_allow_ = self.input.port.info['portRotation'][p_]['cowAllowed']
+                strip_tanks_ = [] # current port 
+                # cow_allow_ = False
                 # print(empty_tanks_)
                 for t_ in empty_tanks_:
-                    if t_ in self.cow_tanks_remain:
+                    if t_ not in self.strip_tanks:
+                        self.strip_tanks.append(t_)
+                        strip_tanks_.append(t_)
+                         
+                    if t_ in self.cow_tanks_remain and cow_allow_:
                         plan_['cowTanks'].append(t_)
                         self.cow_tanks_remain.remove(t_)
-                        
+                
+                discharge_rate_ = 10000 ## fixed
+                last_port_ = self.input.port.info['portOrder'][str(len(path_))] == p_      
+                num_cargo_ = len(plan_['departureCondition']["dischargeQuantityCargoDetails"])
+                if num_cargo_ == 1:
+                    discharge_rate_ = discharge_rate_*0.9
+                elif num_cargo_ == 2:
+                    discharge_rate_ = discharge_rate_*0.85
+                else:
+                    discharge_rate_ = discharge_rate_*0.8
+                    
+                if self.input.vessel.info['slopTank'][0] in strip_tanks_ or self.input.vessel.info['slopTank'][1] in strip_tanks_:
+                    empty_slop_ = True
+                else:
+                    empty_slop_ = False
+                    
+                for d__, d_ in enumerate(plan_['departureCondition']["dischargeQuantityCargoDetails"]):
+                    parcel_ = 'P'+ str(d_['dscargoNominationId'])
+                    strip_ = [t_ for t_ in strip_tanks_ if t_ in self.input.loadable.info['preloadOperation'][parcel_].keys()]
+                    strip_ = len(strip_) > 0
+                    
+                    density_ = self.input.loadable.info['parcel'][parcel_]['maxtempSG']
+                    time_ = float(d_['dischargeMT'])/density_/discharge_rate_
+                    
+                    plan_['departureCondition']["dischargeQuantityCargoDetails"][d__]['dischargingRate'] = str(round(discharge_rate_,1))
+                    plan_['departureCondition']["dischargeQuantityCargoDetails"][d__]['timeRequiredForDischarging'] = str(round(time_,1))
+                   
+                                        
+                    
+ 
                 
                 plan['dischargePlanPortWiseDetails'].append(plan_)
                 
@@ -2767,11 +2806,11 @@ class Generate_plan:
                         info_['priority'] = int(self.input.loadable.info['parcel'][k_]['priority'])
                         info_['colorCode'] = self.input.loadable.info['parcel'][k_]['color']
                         
-                        info_['slopQuantity'] = str(round(slop_qty_.get(k_, 0.0),1))
+                        # info_['slopQuantity'] = str(round(slop_qty_.get(k_, 0.0),1))
                         
-                        info_['dischargingRate'] = str(10000)
-                        info_['timeRequiredForDischarging'] = str(round(disch_/10000,1))
-                        info_['cowDetails'] = []
+                        # info_['dischargingRate'] = str(10000)
+                        # info_['timeRequiredForDischarging'] = str(round(disch_/10000,1))
+                        # info_['cowDetails'] = []
                         
                         plan_.append(info_)
                                     

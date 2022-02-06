@@ -29,7 +29,8 @@ class Process_input1(object):
                               'cargoOperation': data['discharge']['cargoNominationOperationDetails'],
                               'commingleCargo': data['discharge'].get('commingleCargos',[]),
                               'arrivalPlan': data['discharge'].get('loadablePlanPortWiseDetails',{}),
-                              'cowHistory': data['discharge'].get('cowHistory', [])
+                              'cowHistory': data['discharge'].get('cowHistory', []),
+                              "cowDetails": data['discharge'].get('cowDetails', []),
                               }
 
         
@@ -86,6 +87,7 @@ class Process_input1(object):
             self.vessel._set_preloaded(self) # change tankId to tankName for preloaded
             
             self.loadable._get_COW(self) # get COW
+        if not self.error:
             self.get_stability_param()
             
         

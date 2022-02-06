@@ -1196,31 +1196,35 @@ class Loadable:
         
         cow_history_ = inputs.discharge_json['cowHistory']
         
-        if cow_history_ not in [None]:
-            dateList_ = [l_["voyageEndDate"] for l_ in cow_history_]
-            tanks_ = [inputs.vessel.info['tankId'][l_["tankId"]] for l_ in cow_history_]
-            ind_ = sorted(range(len(dateList_)), key = dateList_.__getitem__)
+        # if cow_history_ not in [None]:
+        #     dateList_ = [l_["voyageEndDate"] for l_ in cow_history_]
+        #     tanks_ = [inputs.vessel.info['tankId'][l_["tankId"]] for l_ in cow_history_]
+        #     ind_ = sorted(range(len(dateList_)), key = dateList_.__getitem__)
         
-        else:
-            dateList_,tanks_,ind_ = [], [], []
+        # else:
+        #     dateList_,tanks_,ind_ = [], [], []
         
         
         self.info['toCow'] = ['3C']
-        available_tanks_ = ['1', '1C', '2', '2C', '3', '4', '4C', '4', '4C', '5', '5C'] + inputs.vessel.info['slopTank']
+        available_tanks_ = ['1', '1C', '2', '2C', '3', '4', '4C', '5', '5C'] + inputs.vessel.info['slopTank']
         
-        for i_ in range(len(ind_)):
-            t_ = tanks_[ind_[i_]]
-            if t_[-1] in ['C'] or t_ in inputs.vessel.info['slopTank']:
-                pass
-            else:
-                t_ = t_[0]
-            if t_ in available_tanks_:    
-                available_tanks_.remove(t_)
+        # for i_ in range(len(ind_)):
+        #     t_ = tanks_[ind_[i_]]
+        #     if t_[-1] in ['C'] or t_ in inputs.vessel.info['slopTank']:
+        #         pass
+        #     else:
+        #         t_ = t_[0]
+        #     if t_ in available_tanks_:    
+        #         available_tanks_.remove(t_)
             
         # print(available_tanks_)
+        percent_ = inputs.discharge_json.get('cowDetails', {}).get('percentage', 100)
+        
+        if percent_ not in [100]:
+            inputs.error['Cow Error'] = ['Less than 100% COW not tested yet!!']
         
         num_ = 1
-        while num_ <= 4:
+        while num_ <= 16:
             t_ = available_tanks_.pop(0)
             if t_[-1] in ['C'] or t_ in inputs.vessel.info['slopTank']:
                 t_ = [t_]
