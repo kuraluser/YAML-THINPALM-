@@ -193,7 +193,7 @@ class Process_input1(object):
                         print('Ballast overloaded')
                         cargo_to_load_ = displacement_limit_ - cont_weight_ - misc_weight_ - lightweight_  - arr_weight_ - ballast_weight_
                     
-                    est_discharge_= round(cargo_to_load_ - to_discharge_,1)
+                    est_discharge_= min(0, round(cargo_to_load_ - to_discharge_,1))
                     
                     if -to_discharge_ > self.loadable.info['preload'][d_]:
                         self.error['Discharge error'] = ['Balance cannot meet draft limit!!']

@@ -627,15 +627,15 @@ subject to Condition112a1 {(u,v) in symmetricVolTank, p in P_last_loading}: sum{
 subject to Condition112a2 {(u,v) in symmetricVolTank, p in P_last_loading}:     -diffVol <= sum{c in C}qw[c,u,p]/densityCargo_Low[c]/capacityCargoTank[u] - sum{c in C}qw[c,v,p]/densityCargo_Low[c]/capacityCargoTank[v];
 
 # equal weight in 1W, 2W, 4W, 5W
-#subject to Condition112d1 {c in C_equal, p in P_stable2[c]}: qw[c,'1P',p] = qw[c,'1S',p];
-#subject to Condition112d2 {c in C_equal, p in P_stable2[c]}: qw[c,'2P',p] = qw[c,'2S',p];
-#subject to Condition112d3 {c in C_equal, p in P_stable2[c]}: qw[c,'4P',p] = qw[c,'4S',p];
-#subject to Condition112d4 {c in C_equal, p in P_stable2[c]}: qw[c,'5P',p] = qw[c,'5S',p];
+subject to Condition112d1 {c in C_equal, p in P_stable2[c]: Vcp[c,p] < 0}: qw[c,'1P',p] = qw[c,'1S',p];
+subject to Condition112d2 {c in C_equal, p in P_stable2[c]: Vcp[c,p] < 0}: qw[c,'2P',p] = qw[c,'2S',p];
+subject to Condition112d3 {c in C_equal, p in P_stable2[c]: Vcp[c,p] < 0}: qw[c,'4P',p] = qw[c,'4S',p];
+subject to Condition112d4 {c in C_equal, p in P_stable2[c]: Vcp[c,p] < 0}: qw[c,'5P',p] = qw[c,'5S',p];
 
-subject to Condition112d1 {c in C_equal, p in P_stable2[c], (u,v) in equalWeightTank}: qw[c,u,p] = qw[c,v,p];
+#subject to Condition112d1 {c in C_equal, p in P_stable2[c], (u,v) in equalWeightTank}: qw[c,u,p] = qw[c,v,p];
 
 # only for discharging
-subject to Condition112d5 {c in C_equal, p in P_stable2[c]}: qw[c,'3P',p] = qw[c,'3S',p];
+subject to Condition112d5 {c in C_equal, p in P_stable2[c]: Vcp[c,p] < 0}: qw[c,'3P',p] = qw[c,'3S',p];
 # qw > 0 ==> qwz == 1
 subject to Condition116a {(c, p)  in P_opt, t in T} : qw[c,t,p] <= 1e5*qwz[c,t,p];
 

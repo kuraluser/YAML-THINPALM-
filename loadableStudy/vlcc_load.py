@@ -1219,21 +1219,32 @@ class Loadable:
             
         # print(available_tanks_)
         percent_ = inputs.discharge_json.get('cowDetails', {}).get('percentage', 100)
+        mode_ = inputs.discharge_json.get('cowDetails', {}).get('type', -1)
         
-        if percent_ not in [100]:
+        if percent_ not in [100] and mode_ == 1:
             inputs.error['Cow Error'] = ['Less than 100% COW not tested yet!!']
         
-        num_ = 1
-        while num_ <= 16:
-            t_ = available_tanks_.pop(0)
-            if t_[-1] in ['C'] or t_ in inputs.vessel.info['slopTank']:
-                t_ = [t_]
-                num_ += 1
-            else:
-                t_ = [t_+'P', t_+'S']
-                num_ += 2
-                
-            self.info['toCow'] += t_
+        if mode_ == 1:
+            ## auto mode
+            num_ = 1
+            while num_ <= 16:
+                t_ = available_tanks_.pop(0)
+                if t_[-1] in ['C'] or t_ in inputs.vessel.info['slopTank']:
+                    t_ = [t_]
+                    num_ += 1
+                else:
+                    t_ = [t_+'P', t_+'S']
+                    num_ += 2
+                    
+                self.info['toCow'] += t_
+        elif mode_ == 2:
+            tanks_ = inputs.discharge_json.get('cowDetails', {}).get('tanks', "")
+            
+            for t_ in tanks_.split(','):
+                if t_ not in self.info['toCow'] + [""]:
+                    self.info['toCow'].append(t_)
+                    
+ 
             
         print('toCow: ',self.info['toCow'])
                 
