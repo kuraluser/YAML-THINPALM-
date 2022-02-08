@@ -99,6 +99,7 @@ class Loading_seq:
         # info["timeStart"] = ''
         # info["timeEnd"] = ''
         info["toLoadicator"] = False
+        info["jumpStep"] = False
         info['loadablePlanPortWiseDetails'] = []
         info["cargoValves"] = []
         info["ballastValves"] = []
@@ -113,6 +114,7 @@ class Loading_seq:
         if info['stage'] == 'initialCondition':
             # print('----', info['stage'])
             info["toLoadicator"] = True
+            info["jumpStep"] = True
             plan_ = {'time': str(int(info["timeStart"])), 
                      "loadableQuantityCommingleCargoDetails":[],
                      "loadablePlanStowageDetails":[],
@@ -320,6 +322,7 @@ class Loading_seq:
                 info["simCargoLoadingRatePerTankM3_Hr"].append(info2_)
             
             info["toLoadicator"] = True            
+            info["jumpStep"] = True
             info['simIniDeballastingRateM3_Hr'] = {}
             info['simIniBallastingRateM3_Hr'] = {}
             info['iniDeballastingRateM3_Hr'] = {}
@@ -591,6 +594,7 @@ class Loading_seq:
             
             
             info["toLoadicator"] = True
+            info["jumpStep"] = True
             pre_port_ = self.pre_port
             
             for k_, v_ in self.plans.input.loadable['stages'].items():

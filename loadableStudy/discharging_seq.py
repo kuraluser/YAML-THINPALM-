@@ -45,6 +45,7 @@ class Discharging_seq:
         # info["timeStart"] = ''
         # info["timeEnd"] = ''
         info["toLoadicator"] = False
+        info["jumpStep"] = False
         info['dischargePlanPortWiseDetails'] = []
         info["cargoValves"] = []
         info["ballastValves"] = []
@@ -68,6 +69,7 @@ class Discharging_seq:
         if info['stage'] == 'initialCondition':
             # print('----', info['stage'])
             info["toLoadicator"] = True
+            info["jumpStep"] = True
             start_ = int(0 + start_time_ + self.delay)
             end_   = int(0 + start_time_ + self.delay)
             info["timeStart"] = str(start_)
@@ -259,7 +261,8 @@ class Discharging_seq:
             info["cargoDischargingRatePerTankM3_Hr"].append(info1_)
             info["simCargoDischargingRatePerTankM3_Hr"].append(info2_)
             
-            info["toLoadicator"] = True            
+            info["toLoadicator"] = True      
+            info["jumpStep"] = True
             info['simIniDeballastingRateM3_Hr'] = {}
             info['simIniBallastingRateM3_Hr'] = {}
             info['iniDeballastingRateM3_Hr'] = {}
@@ -536,6 +539,7 @@ class Discharging_seq:
             info["cargoDischargingRateM3_Hr"] = {}
             
             info["toLoadicator"] = True
+            info["jumpStep"] = True
             pre_port_ = self.pre_port
             
             for k_, v_ in self.plans.input.loadable.info['stages'].items():
