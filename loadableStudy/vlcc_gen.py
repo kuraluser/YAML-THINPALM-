@@ -250,7 +250,7 @@ class Generate_plan:
                         print('For small ballast amt ...')
                         self.input.write_ampl(listMOM = True, IIS = self.IIS) # relax list mom to 100000
                         drop_const = ['Condition21c']
-                        result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const, IIS = self.IIS) 
+                        result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
                          
                         # input("Press Enter to continue...")
                         if result['succeed']:

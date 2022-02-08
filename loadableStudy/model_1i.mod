@@ -664,9 +664,9 @@ subject to Condition114c {(u,v) in loadingPort}: sum{t in TB}xB[t,u] >= sum{t in
 subject to Condition114d2 {t in TB, (u,v) in depArrPort2}: wB[t,u] = wB[t,v]; # fixed ROB
 subject to Condition114d1 {t in TB diff TB3, (u,v) in depArrPort1}: wB[t,u] >= wB[t,v]; # non-zero ROB
 # rotation loading ports
-subject to Condition114e1 {t in TB, (u,v) in rotatingPort1}:  -wB[t,u] +  wB[t,v] <= 1e6*(1-zBa1[t]);
-subject to Condition114e2 {t in TB, (u,v) in rotatingPort1}:    wB[t,u] -  wB[t,v] <= 1e6*(1-zBb1[t]);
-subject to Condition114e3 {t in TB}: zBa1[t] + zBb1[t] = 1;
+subject to Condition114e1 {t in TB diff TB3, (u,v) in rotatingPort1}:  -wB[t,u] +  wB[t,v] <= 1e6*(1-zBa1[t]);
+subject to Condition114e2 {t in TB diff TB3, (u,v) in rotatingPort1}:    wB[t,u] -  wB[t,v] <= 1e6*(1-zBb1[t]);
+subject to Condition114e3 {t in TB diff TB3}: zBa1[t] + zBb1[t] = 1;
 
 subject to Condition114e4 {t in TB, (u,v) in rotatingPort2}:  -wB[t,u] +  wB[t,v] <= 1e6*(1-zBa2[t]);
 subject to Condition114e5 {t in TB, (u,v) in rotatingPort2}:    wB[t,u] -  wB[t,v] <= 1e6*(1-zBb2[t]);
