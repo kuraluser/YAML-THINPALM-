@@ -162,9 +162,9 @@ class Process_input1(object):
             
             discharge_cargos_ = self.loadable.info['virtualPort1'].get(str(p_), [])
             
-            if len(discharge_cargos_) > 1:
-                self.error['Multiple discharge error'] = ['Not tested yet!!']
-                return
+            # if len(discharge_cargos_) > 2:
+            #     self.error['Multiple discharge error'] = ['Not tested yet!!']
+            #     return
             
             disc_mode_ =  {1:'balance', 2:'manual', 3:'remaining'}
             for d_ in discharge_cargos_:
@@ -195,7 +195,7 @@ class Process_input1(object):
                     
                     est_discharge_= min(0, round(cargo_to_load_ - to_discharge_,1))
                     
-                    if -to_discharge_ > self.loadable.info['preload'][d_]:
+                    if -est_discharge_ > self.loadable.info['preload'][d_]:
                         self.error['Discharge error'] = ['Balance cannot meet draft limit!!']
                         return
                     
