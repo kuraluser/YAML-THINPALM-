@@ -2499,7 +2499,9 @@ class Generate_plan:
                 
                 plan_['arrivalCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'A']]
                 
-                plan_['arrivalCondition']["dischargeQuantityCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'dTotal')
+                # plan_['arrivalCondition']["dischargeQuantityCargoDetails"] = self._get_status(s_, str(p__+1)+'A', 'dTotal')
+                plan_['arrivalCondition']["dischargeQuantityCargoDetails"] = []
+
                 # get loadablePlanStowageDetails
                 plan_['arrivalCondition']["dischargePlanStowageDetails"] = self._get_status(s_, str(p__+1)+'A', 'dCargoStatus')
                 # get loadablePlanBallastDetails
@@ -2812,6 +2814,12 @@ class Generate_plan:
                         # info_['timeRequiredForDischarging'] = str(round(disch_/10000,1))
                         # info_['cowDetails'] = []
                         
+                        portId_ = self.input.port.info['portOrderId'][port[:-1]]
+                        
+                        for a_, b_ in self.input.loadable.info['cargoPort'][portId_].items():
+                            if k_ in b_:
+                                info_['sequenceNum'] = str(a_)
+                                break
                         plan_.append(info_)
                                     
       

@@ -316,6 +316,7 @@ class Process_input1(object):
                 base_draft__ = int(np.floor(est_draft_))
                 
             base_draft_ = base_draft__ if p_  == 1 else min(base_draft__, self.base_draft[str(p_-1)])
+            base_draft_ = min(22,base_draft_)
             self.base_draft[str(p_)] = base_draft_
             # print(p_,trim_,base_draft_)
             
