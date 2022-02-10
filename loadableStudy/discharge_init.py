@@ -526,7 +526,7 @@ class Process_input1(object):
                             elif self.loadable.info['mode'][i_][k_] in [3]:
                                 str1 += str(k_) + ' ' + "{:.1f}".format(round(-self.loadable.info['preload'][i_],1)) + ' '
                             else:
-                                str1 += str(k_) + ' ' + "{:.1f}".format(round(self.auto_cargo_discharge[i_][k_],1)) + ' '
+                                str1 += str(k_) + ' ' + "{:.1f}".format(round(self.auto_cargo_discharge.get(i_,{}).get(k_,0.0),1)) + ' '
                     print(str1, file=text_file)
                 print(';', file=text_file)
                 

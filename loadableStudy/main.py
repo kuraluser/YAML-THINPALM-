@@ -394,7 +394,7 @@ async def task_handler(data: dict, background_tasks: BackgroundTasks):
     return {'processId': gID,  'status': '4', 'result': None}
 
 
-@app.get("/status/")
+@app.get("/status")
 async def status_handler(userId: dict):
     query = users.select().where(users.c.id == userId['processId'])
     # out = {'processId': userId['processId'], 'status':None, 'result': None}
@@ -411,9 +411,10 @@ async def status_handler(userId: dict):
     
     return out
 
-@app.post("/loadicator_results/")
+@app.post("/loadicator_results", status_code=HTTPStatus.ACCEPTED)
 async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
     
+#    print('loadicator_results')
     if data.get('loadableStudyProcessId', None):
         process_id_ = data['loadableStudyProcessId']
         
@@ -422,15 +423,16 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
         
     else:
         process_id_ = data['processId']
-#        print(process_id_)
+    print(process_id_)
         
     
     query = users.select().where(users.c.id == process_id_)
+    print(query)
     # out = {'processId': data['processId'], 'status':None, 'result': None}
     #out['status'] = await database.fetch_val(query,column=3)
     result = await database.fetch_val(query,column=2)
     
-    # print(result['message'])
+    print(result['message'])
     limits = result['message']
     
     module_ = data.get('module', 'LOADABLE')
