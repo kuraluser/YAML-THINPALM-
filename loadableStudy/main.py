@@ -427,12 +427,12 @@ async def loadicator_handler(data: dict, background_tasks: BackgroundTasks):
         
     
     query = users.select().where(users.c.id == process_id_)
-    print(query)
+#    print(query)
     # out = {'processId': data['processId'], 'status':None, 'result': None}
     #out['status'] = await database.fetch_val(query,column=3)
     result = await database.fetch_val(query,column=2)
     
-    print(result['message'])
+#    print(result['message'])
     limits = result['message']
     
     module_ = data.get('module', 'LOADABLE')
