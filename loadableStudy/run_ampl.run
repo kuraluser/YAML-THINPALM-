@@ -27,7 +27,7 @@ param cargoOper{s in 1..Action_Amount.npool, c in C, p in P};
 param totloaded{s in 1..Action_Amount.npool};
 
 param wt{s in 1..Action_Amount.npool, c in C, p in P};
-param wtB{s in 1..Action_Amount.npool, t in TB, p in P}; # weight of seawater in each ballast tank at each port
+param wtB{s in 1..Action_Amount.npool, t in TB, p in P union P0}; # weight of seawater in each ballast tank at each port
 param xx{s in 1..Action_Amount.npool, c in C, t in T};
 param objective_value{s in 1..Action_Amount.npool};
 param ballast_value{s in 1..Action_Amount.npool};
@@ -51,7 +51,7 @@ if solve_result = "solved" or solve_result_num = 403 then {
 	    let {c in C, t in T, p in P} shipStatus[i,c,t,p]:= qw[c,t,p];
 	    let {c in C, t in T, p in P} volumeStatus[i,c,t,p]:= qty[c,t,p]/capacityCargoTank[t];
 	    let {c in C, p in P} wt[i,c,p]:=sum{t in Tc[c]}w[c,t,p];
-	    let {t in TB, p in P} wtB[i,t,p]:=wB[t,p];
+	    let {t in TB, p in P union P0} wtB[i,t,p]:=wB[t,p];
 	    let {c in C, t in T} xx[i,c,t] := x[c,t];
 		
 	    let objective_value[i] := Action_Amount;

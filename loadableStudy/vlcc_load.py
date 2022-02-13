@@ -349,8 +349,8 @@ class Loadable:
                         cargos_info_['ballastOperation'][tank_].append({'qty':qty_, 'order':order_})
                         
             cargos_info_['zeroListPorts'] = []
-            if inputs.port.info['firstPortBunker']:
-                cargos_info_['zeroListPorts'] = ['1', '2']
+            # if inputs.port.info['firstPortBunker']:
+            #    cargos_info_['zeroListPorts'] = ['1', '2']
                 # initial_ballast_ = {'LFPT':4800, 'WB1P':9000, 'WB1S':9000, 'WB2P':9000, 'WB2S':9000,
                 #  'WB3P':9000, 'WB3S':9000, 'WB4P':8900, 'WB4S':8900, 'WB5P':7600, 'WB5S':7600} ## config
                 
@@ -1243,9 +1243,7 @@ class Loadable:
             for t_ in tanks_.split(','):
                 if t_ not in self.info['toCow'] + [""]:
                     self.info['toCow'].append(t_)
-                    
- 
-            
+
         print('toCow: ',self.info['toCow'])
                 
             

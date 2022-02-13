@@ -155,6 +155,7 @@ set Pbar := P_org union P;
 set P_load := 1 .. LP ; # set of loading ports
 set P_dis := LP+1 .. NP ; # set of discharging ports
 set P_last_loading := {LP} ; # the last loading port
+set P0 default {};
 
 param firstloadingPort default 1;
 
@@ -218,7 +219,7 @@ set toBallastTank default {};
 set toDeballastTank default {};
 param ballastLimit{p in Pbar} default 1e6;
 set TB0 default TB; #{'LFPT', 'WB1P', 'WB1S', 'WB2P', 'WB2S', 'WB3P', 'WB3S', 'WB4P', 'WB4S', 'WB5P', 'WB5S' };
-
+set TBinit default TB; 
 
 param densitySeaWater{p in Pbar} default 1.025; # density of water @ high temperature
 param densityBallast{p in Pbar} default 1.025; # density of water @ high temperature
@@ -267,7 +268,7 @@ param V_locked{c in C_locked, t in T_locked, p in P} = W_locked[c,t,p]/densityCa
 
 ## other tanks
 set OtherTanks; # set of other tanks, e.g. fuel tanks, water tanks,
-param  weightOtherTank{t in OtherTanks, p in P} default 0; # weight of each tank
+param  weightOtherTank{t in OtherTanks, p in Pbar} default 0; # weight of each tank
 
 param maxTankUsed default 100;
 param intended default 1e6; 
@@ -276,7 +277,7 @@ param intended default 1e6;
 #set CargoSolid; # solidifying cargo
 
 param capacityBallastTank{t in TB}; # capacity of each ballast tank
-param upperBoundB1{t in TB} default 0.99; #upper loading bound for each ballast tank
+param upperBoundB1{t in TB} default 0.98; #upper loading bound for each ballast tank
 param lowerBoundB1{t in TB} default 0; #lower loading bound for each ballast tank
 param initBallast {t in TB} default 0; # initial ballast
 param finalBallast {t in TB} default 0; # final ballast
@@ -312,7 +313,7 @@ set specialBallastPort default {LP-1, LP}; # default LP-1
 set zeroBallastPort default {}; # default LP
 
 param minBallastAmt{t in TB} default 10;
-param minCargoAmt default 500;
+param minCargoAmt default 1000;
 
 ## cargo tank
 set slopS default {'SLS'};
@@ -335,14 +336,14 @@ param diffVol default 0.05;
 
 param maxEmptyTankWeight default 0;
 # stability - draft
-param displacementLimit{p in P}; # displacement limit derived from maximum permissible draft and hydrostatic table.
-param displacementLowLimit{p in P} default 0; # displacement limit lower bound
+param displacementLimit{p in Pbar}; # displacement limit derived from maximum permissible draft and hydrostatic table.
+param displacementLowLimit{p in Pbar} default 0; # displacement limit lower bound
 
 # stability - list
 #param upListMOM; # upperbound on the tranversal moment
 #param lowListMOM; # lowerbound on the tranversal moment
 param TCGt{t in AllTanks} default 0; #tank TCG
-param TCGtp{t in OtherTanks, p in P} default 0;
+param TCGtp{t in OtherTanks, p in Pbar} default 0;
 param ListMOM default 500; # upper and lower limits of tcg mom
 param TCGdw default 0; # TCG deadweight constant
 
@@ -352,14 +353,14 @@ param bTankTCG{p in 1..pwTCG-1, t in T union TB} default 0; # need update input 
 
 # stability - trim
 param LCGt{t in AllTanks}; #tank LCG
-param LCGtport{t in T, p in P} default 0; # more accurate LCG
+param LCGtport{t in T, p in Pbar} default 0; # more accurate LCG
 param LCGship;
 param LCGdw default 0;
-param LCGtp{t in OtherTanks, p in P} default 0;
+param LCGtp{t in OtherTanks, p in Pbar} default 0;
 #param TrimMOM default 1;
-param trim_upper{p in P} default 0.0001;
-param trim_lower{p in P} default -0.0001;
-param ave_trim {p in P} default 0.5*(trim_lower[p]+trim_upper[p]);
+param trim_upper{p in Pbar} default 0.0001;
+param trim_lower{p in Pbar} default -0.0001;
+param ave_trim {p in Pbar} default 0.5*(trim_lower[p]+trim_upper[p]);
 
 param pwLCG default 0;
 param mTankLCG{p in 1..pwLCG,   t in T union TB} default 0; # need update input based on tcg details
@@ -376,8 +377,8 @@ param bMTC{p in 1..pwMTC-1}  default 0;
 
 
 # stability - Draft 
-param base_draft{p in P} default 0;
-param draft_corr{p in P} default 0;
+param base_draft{p in Pbar} default 0;
+param draft_corr{p in Pbar} default 0;
 
 param pwDraft default 0;
 param mDraft{p in 1..pwDraft} default 0;
@@ -404,17 +405,17 @@ param LCG_fr {f in Frames} default 0;
 param lowerSFlimit{f in Frames} default -100000;
 param upperSFlimit{f in Frames} default 100000;
 
-param BV_SF {f in 1..Fr, p in P} default 0;
-param CD_SF {f in 1..Fr, p in P} default 0;
-param CT_SF {f in 1..Fr, p in P} default 0;
+param BV_SF {f in 1..Fr, p in Pbar} default 0;
+param CD_SF {f in 1..Fr, p in Pbar} default 0;
+param CT_SF {f in 1..Fr, p in Pbar} default 0;
 
 # Bn
 param lowerBMlimit{f in Frames} default -100000;
 param upperBMlimit{f in Frames} default 100000;
 
-param BV_BM {f in 1..Fr, p in P} default 0;
-param CD_BM {f in 1..Fr, p in P} default 0;
-param CT_BM {f in 1..Fr, p in P} default 0;
+param BV_BM {f in 1..Fr, p in Pbar} default 0;
+param CD_BM {f in 1..Fr, p in Pbar} default 0;
+param CT_BM {f in 1..Fr, p in Pbar} default 0;
 
 param numSolutions integer default 3;
 param runtimeLimit integer default 60;
@@ -445,31 +446,31 @@ var zBa2{TB} binary;
 var zBb2{TB} binary;
 
 
-var yB{t in TB,p in P} = wB[t,p]/densityBallast[p]; # volume of water (w.r.t. low density) planned to be added into ballast tank t at port p
+var yB{t in TB,p in Pbar} = wB[t,p]/densityBallast[p]; # volume of water (w.r.t. low density) planned to be added into ballast tank t at port p
 
-var TB_tmom{t in TB, p in P} default 0; # TMom TB
-var TB_lmom{t in TB, p in P} default 0; # TMom TB
+var TB_tmom{t in TB, p in Pbar} default 0; # TMom TB
+var TB_lmom{t in TB, p in Pbar} default 0; # TMom TB
 
-var T_tmom{t in T, p in P} default 0; # TMom T
-var T_mom{p in P} default 0; # TCG Mom
-var L_mom{p in P} default 0; # LCG Mom
-var LCBp {p in P} default 0; 
-var MTCp {p in P} default 0; 
+var T_tmom{t in T, p in Pbar} default 0; # TMom T
+var T_mom{p in Pbar} default 0; # TCG Mom
+var L_mom{p in Pbar} default 0; # LCG Mom
+var LCBp {p in Pbar} default 0; 
+var MTCp {p in Pbar} default 0; 
 # extra amout (w.r.t. metric tone) of cargo c that the tank can take in
 #var extraWeight{c in C, t in T} = x[c,t]*min((upperBound[t]*capacityCargoTank[t]-sum{p in P_last_loading}q[c,t,p]*densityCargo_Low[c]/density_up[c])*density_up[c],(min(1,highDensityOn*densityCargoTank[t]/densityCargo_High[c])*capacityCargoTank[t]-sum{p in P_last_loading}q[c,t,p]*densityCargo_Low[c]/densityCargo_High[c])*densityCargo_High[c]); 
 
 var delta{c in C diff C_locked, p in P_dis} binary;
 
 # BM and SF
-var displacement{p in P} >=0; # displacement
-var displacement1{p in P} >=0; # displacement corrected for seawater density
-var mean_draft{p in P} default 0;
-var wn{f in Frames, p in P} >= 0;
-var mn{f in Frames, p in P};
-var wC{t in T, p in P} >= 0;
-var SS{f in Frames, p in P} default 0;
-var SB{f in Frames, p in P} default 0;
-var est_trim{p in P}default 0;
+var displacement{p in Pbar} >=0; # displacement
+var displacement1{p in Pbar} >=0; # displacement corrected for seawater density
+var mean_draft{p in Pbar} default 0;
+var wn{f in Frames, p in Pbar} >= 0;
+var mn{f in Frames, p in Pbar};
+var wC{t in T, p in Pbar} >= 0;
+var SS{f in Frames, p in Pbar} default 0;
+var SB{f in Frames, p in Pbar} default 0;
+var est_trim{p in Pbar}default 0;
 
 
 
@@ -566,10 +567,10 @@ subject to Constr8 {c in C, t in Tc[c], p in P_last_loading}: qw2f[c,t,p]/1000 -
 #subject to Constr6a {c in C diff C_loaded diff C_locked, t in Tc[c], p in P_last_loading:highDensityOn*densityCargoTank[t]/densityCargo_High[c]<=1}: (q[c,t,p] + tolerance*x[c,t])*densityCargo_Low[c]/densityCargo_High[c] <= upperHighDensity[c,t]*capacityCargoTank[t]*x[c,t];
 
 ## ballast capacity constraint
-subject to Constr11 {t in TB, p in P_stable}: yB[t,p] <= upperBoundB1[t]*capacityBallastTank[t]*xB[t,p];
+subject to Constr11 {t in TB, p in P_stable union P0}: yB[t,p] <= upperBoundB1[t]*capacityBallastTank[t]*xB[t,p];
 
 ## ballast capacity constraint
-subject to Constr12 {t in TB, p in P_stable}: lowerBoundB1[t]*capacityBallastTank[t]*xB[t,p] <= yB[t,p];
+subject to Constr12 {t in TB, p in P_stable union P0}: lowerBoundB1[t]*capacityBallastTank[t]*xB[t,p] <= yB[t,p];
 
 ## max num of tanks available
 #subject to Constr12a: sum {t in T, c in C} x[c,t] <= maxTankUsed;
@@ -647,15 +648,15 @@ subject to Condition112b1 {t in T, c in C diff C_loaded diff C_locked, p in P_la
 subject to Condition112b2 {t in T, c in C diff C_loaded diff C_locked, p in P_last_loading}: qw[c,t,p] <= 1e5*x[c,t]; # link xB and wB
 
 ## ballast requirement
-subject to Condition113d1 {t in TB, p in P_stable}: wB[t,p] >= minBallastAmt[t]*xB[t,p]; # loaded min ballast 
-subject to Condition113d2 {t in TB, p in P_stable}: wB[t,p] <= 1e4*xB[t,p]; # loaded min ballast 
-subject to Condition113d3 {t in minTB, p in P_stable}: wB[t,p] >= minBallastAmt[t]; # loaded min ballast 
+subject to Condition113d1 {t in TB, p in P_stable union P0}: wB[t,p] >= minBallastAmt[t]*xB[t,p]; # loaded min ballast 
+subject to Condition113d2 {t in TB, p in P_stable union P0}: wB[t,p] <= 1e4*xB[t,p]; # loaded min ballast 
+subject to Condition113d3 {t in minTB, p in P_stable union P0}: wB[t,p] >= minBallastAmt[t]; # loaded min ballast 
 
 
 # initial ballast condition
-subject to Condition114a1 {t in incTB}: initBallast[t] <= wB[t,firstloadingPort];
-subject to Condition114a2 {t in decTB}: initBallast[t] >= wB[t,firstloadingPort];
-subject to Condition114a3 {t in TB}:  initBallast[t] = wB[t,0];
+subject to Condition114a1 {t in incTB}: wB[t,0] <= wB[t,firstloadingPort];
+subject to Condition114a2 {t in decTB}: wB[t,0] >= wB[t,firstloadingPort];
+subject to Condition114a3 {t in TBinit}:  initBallast[t] = wB[t,0];
 # decreasing ballast except last loading port
 subject to Condition114b {t in TB, (u,v) in loadingPortNotLast}: wB[t,u] >= wB[t,v];
 # decreasing ballast tank
@@ -680,6 +681,11 @@ subject to Condition114g1 {p in loadPort inter P_stable}: sum{t in TB0} wB[t,p] 
 # ballast amt
 subject to Condition114g2 {p in dischargePort inter P_stable}: sum{t in TB} wB[t,p-1] + ballastPercent*dischargePortAmt[p] >= sum{t in TB} wB[t,p];
 
+# equal weight ballast
+subject to Condition114j1 {p in P0}: wB['WB1P',p] = wB['WB1S',p];
+subject to Condition114j2 {p in P0}: wB['WB2P',p] = wB['WB2S',p];
+subject to Condition114j3 {p in P0}: wB['WB3P',p] = wB['WB3S',p];
+subject to Condition114j4 {p in P0}: wB['WB4P',p] = wB['WB4S',p];
 
 # departure of last loading port
 subject to Condition114h {t in lastLoadingPortBallastBan, p in specialBallastPort}: xB[t, p] = 0;
@@ -694,44 +700,44 @@ subject to Condition115 {p in P}: sum{t in toDeballastTank} wB[t,p-1] - sum{t in
 
 ### ship stabilty ------------------------------------------------------------
 # assume the ship satisfies all the stability conditions when entering the first port, and ballast tank allocation will be refreshed before leaving each port.
-subject to Constr17a {t in T, p in P}: wC[t,p] = sum{c in C} qw[c,t,p] + onboard[t];
+subject to Constr17a {t in T, p in P union P0}: wC[t,p] = sum{c in C} qw[c,t,p] + onboard[t];
 
 
 ## draft constraint
 # displacement
-subject to Constr13c1 {p in P}: displacement[p] = sum{t in T} wC[t,p] + sum{t in TB} wB[t,p] + sum{t in OtherTanks} weightOtherTank[t,p] + lightWeight + deadweightConst;
-subject to Constr13c2 {p in P}: displacement1[p] = displacement[p]*1.025/densitySeaWater[p];
+subject to Constr13c1 {p in P union P0}: displacement[p] = sum{t in T} wC[t,p] + sum{t in TB} wB[t,p] + sum{t in OtherTanks} weightOtherTank[t,p] + lightWeight + deadweightConst;
+subject to Constr13c2 {p in P union P0}: displacement1[p] = displacement[p]*1.025/densitySeaWater[p];
 
 # loading and unloading port
-subject to Constr13 {p in P_stable1}: displacementLowLimit[p]+0.001 <= displacement[p] <= displacementLimit[p]-0.001;
+subject to Constr13 {p in P_stable1 union P0}: displacementLowLimit[p]+0.001 <= displacement[p] <= displacementLimit[p]-0.001;
 
 # deadweight constraint
 subject to Constr13a {p in P_stable}: sum{t in T} wC[t,p] + sum{t in TB} wB[t,p] + sum{t in OtherTanks} weightOtherTank[t,p] + deadweightConst <= deadweight;
 subject to Constr13b {p in P_last_loading}: sum{t in T} wC[t,p] <= cargoweight;
 ## New list constraint
 #  ballast
-subject to Constr15b1 {t in TB diff TB1, p in P_stable}: TB_tmom[t,p] = <<{s in 1..pwTCG-1} bTankTCG[s,t]; {s in 1..pwTCG} mTankTCG[s,t]>> wB[t,p];
-subject to Constr15b2 {t in TB1, p in P_stable}: TB_tmom[t,p] = wB[t,p]*TCGt[t];
+subject to Constr15b1 {t in TB diff TB1, p in P_stable union P0}: TB_tmom[t,p] = <<{s in 1..pwTCG-1} bTankTCG[s,t]; {s in 1..pwTCG} mTankTCG[s,t]>> wB[t,p];
+subject to Constr15b2 {t in TB1, p in P_stable union P0}: TB_tmom[t,p] = wB[t,p]*TCGt[t];
 # cargo
-subject to Constr15c1 {t in T diff T1, p in P_stable}: T_tmom[t,p] = <<{s in 1..pwTCG-1} bTankTCG[s,t]; {s in 1..pwTCG} mTankTCG[s,t]>> wC[t,p]; 
-subject to Constr15c2 {t in T1, p in P_stable}: T_tmom[t,p] = wC[t,p]*TCGt[t];
+subject to Constr15c1 {t in T diff T1, p in P_stable union P0}: T_tmom[t,p] = <<{s in 1..pwTCG-1} bTankTCG[s,t]; {s in 1..pwTCG} mTankTCG[s,t]>> wC[t,p]; 
+subject to Constr15c2 {t in T1, p in P_stable union P0}: T_tmom[t,p] = wC[t,p]*TCGt[t];
 
-subject to Constr153 {p in P_stable}: T_mom[p] = sum{t in T} T_tmom[t,p] + sum{t in TB } TB_tmom[t,p]  + sum{t in OtherTanks} weightOtherTank[t,p]*TCGtp[t,p] + deadweightConst*TCGdw;
-subject to Constr154 {p in P_stable}: -ListMOM <= T_mom[p] <= ListMOM;
+subject to Constr153 {p in P_stable union P0}: T_mom[p] = sum{t in T} T_tmom[t,p] + sum{t in TB } TB_tmom[t,p]  + sum{t in OtherTanks} weightOtherTank[t,p]*TCGtp[t,p] + deadweightConst*TCGdw;
+subject to Constr154 {p in P_stable union P0}: -ListMOM <= T_mom[p] <= ListMOM;
 ## Trim constraint
 #  ballast
-subject to Constr16b1 {t in TB diff TB2, p in P_stable}: TB_lmom[t,p] = 1000 * (<<{s in 1..pwLCG-1} bTankLCG[s,t]; {s in 1..pwLCG} mTankLCG[s,t]>> wB[t,p]);
-subject to Constr16b2 {t in TB2, p in P_stable}: TB_lmom[t,p] = wB[t,p]*LCGt[t];
+subject to Constr16b1 {t in TB diff TB2, p in P_stable union P0}: TB_lmom[t,p] = 1000 * (<<{s in 1..pwLCG-1} bTankLCG[s,t]; {s in 1..pwLCG} mTankLCG[s,t]>> wB[t,p]);
+subject to Constr16b2 {t in TB2, p in P_stable union P0}: TB_lmom[t,p] = wB[t,p]*LCGt[t];
 
 #subject to Constr161 {p in P_stable}: L_mom[p] = sum{t in T} wC[t,p]*LCGt[t] + sum{t in TB} TB_lmom[t,p] + sum{t in OtherTanks} weightOtherTank[t,p]*LCGtp[t,p] + lightWeight*LCGship + deadweightConst*LCGdw;
-subject to Constr161 {p in P_stable}: L_mom[p] = sum{t in T} wC[t,p]*LCGtport[t,p] + sum{t in TB} TB_lmom[t,p] + sum{t in OtherTanks} weightOtherTank[t,p]*LCGtp[t,p] + lightWeight*LCGship + deadweightConst*LCGdw;
+subject to Constr161 {p in P_stable union P0}: L_mom[p] = sum{t in T} wC[t,p]*LCGtport[t,p] + sum{t in TB} TB_lmom[t,p] + sum{t in OtherTanks} weightOtherTank[t,p]*LCGtp[t,p] + lightWeight*LCGship + deadweightConst*LCGdw;
 
-subject to Constr163 {p in P_stable}: LCBp[p] = (<<{s in 1..pwLCB-1} bLCB[s]; {s in 1..pwLCB} mLCB[s]>> displacement1[p])*densitySeaWater[p]/1.025  + adjLCB;
+subject to Constr163 {p in P_stable union P0}: LCBp[p] = (<<{s in 1..pwLCB-1} bLCB[s]; {s in 1..pwLCB} mLCB[s]>> displacement1[p])*densitySeaWater[p]/1.025  + adjLCB;
 
-subject to Constr164 {p in P_stable}: MTCp[p] = (<<{s in 1..pwMTC-1} bMTC[s]; {s in 1..pwMTC} mMTC[s]>> displacement1[p])*densitySeaWater[p]/1.025 + adjMTC ;
+subject to Constr164 {p in P_stable union P0}: MTCp[p] = (<<{s in 1..pwMTC-1} bMTC[s]; {s in 1..pwMTC} mMTC[s]>> displacement1[p])*densitySeaWater[p]/1.025 + adjMTC ;
 
-subject to Constr16a {p in P_stable}: MTCp[p]*trim_lower[p]*100 <= L_mom[p] - LCBp[p] ;
-subject to Constr16b {p in P_stable}: L_mom[p] - LCBp[p] <= MTCp[p]*trim_upper[p]*100;
+subject to Constr16a {p in P_stable union P0}: MTCp[p]*trim_lower[p]*100 <= L_mom[p] - LCBp[p] ;
+subject to Constr16b {p in P_stable union P0}: L_mom[p] - LCBp[p] <= MTCp[p]*trim_upper[p]*100;
 
 ## SF and BM 
 

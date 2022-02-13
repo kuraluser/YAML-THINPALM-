@@ -1397,9 +1397,46 @@ class Generate_plan:
                     
                     self.initial_cargo_weight[k_] = [info_]
                     
+        if self.input.module in ['LOADABLE']:    
+            initial_ballast_weight_ = {} 
+            density_ = 1.025
+            init_ballast_ = ballast_weight_['0']
+            
+            # add ballast for first arrival port
+            for i_, j_ in init_ballast_.items():
+                
+                capacity_ =  self.input.vessel.info['ballastTanks'][i_]['capacityCubm']
+                wt_ = j_[0]['wt']
+                vol_ = wt_/density_
+                
+                tcg_ = 0.
+                if i_ in self.input.vessel.info['tankTCG']['tcg']:
+                    tcg_ = np.interp(vol_, self.input.vessel.info['tankTCG']['tcg'][i_]['vol'],
+                                          self.input.vessel.info['tankTCG']['tcg'][i_]['tcg'])
+                
+                lcg_ = 0.
+                if i_ in self.input.vessel.info['tankLCG']['lcg']:
+                    lcg_ = np.interp(vol_, self.input.vessel.info['tankLCG']['lcg'][i_]['vol'],
+                                          self.input.vessel.info['tankLCG']['lcg'][i_]['lcg'])
+                    
+                tankId_ = self.input.vessel.info['tankName'][i_]     
+                try:
+                    corrLevel_ = self.input.vessel.info['ullage'][str(tankId_)](vol_).tolist()
+                except:
+                    print(i_, vol_, ': correctLevel not available!!')
+                    corrLevel_ = 0.
+                
+                initial_ballast_weight_[i_] = [{'wt': round(wt_,DEC_PLACE),
+                                                'SG':density_,
+                                                'fillRatio': round(wt_/density_/capacity_,DEC_PLACE),
+                                                'tcg':tcg_, 'lcg':lcg_,
+                                                'corrLevel':round(corrLevel_,3),
+                                                'maxTankVolume':capacity_,
+                                                'vol':vol_}]
+            self.initial_ballast_weight = initial_ballast_weight_
             
             
-        if self.input.module not in ['LOADING']:
+        elif self.input.module not in ['LOADING']:
                                 
             initial_ballast_weight_ = {} 
             density_ = 1.025

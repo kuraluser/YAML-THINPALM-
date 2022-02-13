@@ -181,7 +181,7 @@ class Process_input(object):
                     ## 328 "Commingle can be done with maximum two cargoes"
                     
                     for k__, k_ in enumerate(l_['rules']):
-                        # print(k_['ruleTemplateId'])
+                        #print(k_['ruleTemplateId'])
                         v_ =  RULES.get(k_['ruleTemplateId'], None)
                         # print(k_['ruleTemplateId'], v_)
                         if v_ in ["cargoTankUpperLimit", "cargoTankLowerLimit", 
@@ -318,7 +318,7 @@ class Process_input(object):
             self.infeasible_analysis()
         
         
-    def get_stability_param(self, ballast_weight_ = 91800, sf_bm_frac = 0.95, trim_upper = 0, trim_lower = 0, trim_load = 1):
+    def get_stability_param(self, ballast_weight_ = 92000, sf_bm_frac = 0.85, trim_upper = 0, trim_lower = 0, trim_load = 1):
         
         # ARR_DEP_ = {0:'A', 1:'D'}
 #        self.trim_range = [-0.1,0.1]
@@ -410,7 +410,7 @@ class Process_input(object):
         
         ballast_ = sum([v_ for k_, v_ in self.vessel.info['initBallast']['wt'].items()])
         
-        for p_ in range(1, self.loadable.info['lastVirtualPort']+1):  # exact to virtual
+        for p_ in range(0, self.loadable.info['lastVirtualPort']+1):  # exact to virtual
         
             port__ = self.loadable.info['virtualArrDepPort'][str(p_)] # 1D, 2D
             port_, arr_dep_ = int(port__[:-1]), port__[-1] # convert virtual port to exact port
@@ -453,12 +453,20 @@ class Process_input(object):
             if est_draft__ > lower_draft_limit_:
                 est_displacement_ = max(lower_displacement_limit_, est_displacement_)   
             else: 
-            
-                est_draft__ = min_draft_limit_ - 1.5 # max trim = 3m 
-                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 0.5, 2.95
+                ## est_draft__ + 0.1 = mid_draft_
+                est_draft__ = min_draft_limit_ - 1.25 - 0.1 # max trim = 3m 
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 2.5, 2.95
                 lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
-                print(p_, round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
-  
+                print(p_, round(est_draft__,2), round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
+                
+                
+                lower_draft_limit_ = est_draft__ #max(self.ports.draft_airdraft[p_], min_draft_limit_)
+                lower_displacement_limit_ = np.interp(lower_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
+                print(round(lower_displacement_limit_), est_displacement_)
+                lower_displacement_limit_ = min(est_displacement_, lower_displacement_limit_)
+                # correct displacement to port seawater density
+                lower_displacement_limit_  = lower_displacement_limit_*seawater_density_/1.025
+
             
             ## upper bound displacement
             upper_draft_limit_ = min(loadline_, self.port.info['portRotation'][port_code_]['maxDraft']) - 0.001
@@ -479,13 +487,6 @@ class Process_input(object):
             upper_displacement_limit_  = upper_displacement_limit_*seawater_density_/1.025
             
             est_displacement_ = min(est_displacement_, upper_displacement_limit_)
-##            print(est_displacement_)
-#            
-##            LCB_ = np.interp(est_displacement_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['lcb'])
-##            MTC_ = np.interp(est_displacement_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['mtc'])
-##            
-##            self.trim_lower[port_[:-1]] = est_displacement_*LCB_ + self.trim_range[0]*100*MTC_
-##            self.trim_upper[port_[:-1]] = est_displacement_*LCB_ + self.trim_range[1]*100*MTC_
 #            
             # print(p_, lower_displacement_limit_,est_displacement_,upper_displacement_limit_)
             self.displacement_lower[str(p_)] = lower_displacement_limit_
@@ -494,8 +495,15 @@ class Process_input(object):
             est_draft_ = np.interp(est_displacement_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
             
             # base draft for BM and SF
-            trim_ = 0.5*(self.trim_lower.get(str(p_),0.) + self.trim_upper.get(str(p_),0.))
-            base_draft_ = int(np.floor(est_draft_+trim_/2))
+            trim_ = 0.5*(self.trim_lower.get(str(p_),0.0) + self.trim_upper.get(str(p_),0.0))
+            # trim_ = self.ave_trim.get(str(p_), 0.0)
+            
+            if self.vessel_id in [1]:
+                base_draft__ = int(np.floor(est_draft_+trim_/2))
+            elif self.vessel_id in [2]:
+                base_draft__ = int(np.floor(est_draft_))
+                
+            base_draft_ = base_draft__ if p_  == 0 else max(base_draft__, self.base_draft[str(p_-1)])
             self.base_draft[str(p_)] = base_draft_
             # print(p_,trim_,base_draft_)
             
@@ -642,6 +650,7 @@ class Process_input(object):
     def write_dat_file(self, file = 'input.dat', IIS = True, lcg_port = None, weight = None, incDec_ballast = None):
         
         if not self.error and self.solver in ['AMPL']: #and self.mode not in ['FullManual']:
+            
             slopP = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'P'][0]
             slopS = [t_ for t_ in self.vessel.info['slopTank'] if t_[-1] == 'S'][0]
         
@@ -669,6 +678,7 @@ class Process_input(object):
 	                    if i_ not in self.vessel.info['tankLCG']['lcg_pw']:
 	                        str1 += i_ + ' '
 	                print(str1+';', file=text_file)
+                    
                 str1 = 'set slopP := '
                 str1 += slopP
                 print(str1+';', file=text_file) 
@@ -676,7 +686,6 @@ class Process_input(object):
                 str1 = 'set slopS := '
                 str1 += slopS
                 print(str1+';', file=text_file) 
- 
  
                 print('# set of tanks compatible with cargo c',file=text_file)
                 for i_,j_ in self.loadable.info['parcel'].items():
@@ -828,6 +837,11 @@ class Process_input(object):
                 print('# the last loading port',file=text_file)#  
                 str1 = 'param LP := ' + str(self.loadable.info['lastVirtualPort']-1) # to virtual ports
                 print(str1+';', file=text_file)
+                
+                print('# initial port',file=text_file)#  
+                str1 = 'set P0 :=  0' 
+                print(str1+';', file=text_file)
+                
     
                 print('# cargo density @ low temperature (in t/m3)',file=text_file)#  
                 str1 = 'param densityCargo_High  := ' 
@@ -1115,7 +1129,7 @@ class Process_input(object):
                 for i_, j_ in self.vessel.info['onhand'].items():
                     str1 = '['+ i_ + ',*] = '
                     for k_, v_ in j_.items():
-                        if k_ not in ['1A']:
+                        if k_ not in ['0A']:
                             for k1_, v1_ in self.loadable.info['virtualArrDepPort'].items():
                                 if v1_ == k_:
                                     wt_ = j_[k_]['wt']
@@ -1161,13 +1175,20 @@ class Process_input(object):
                     if i_ not in tb_list_:
                         str1 += i_ + ' '
                 print(str1+';', file=text_file)
+                
                 if incDec_ballast:
                     print('# ballast tanks which can be ballast or deballast anytime',file=text_file)#  
                     str1 = 'set TB3 := '
                     for i_ in incDec_ballast:
                         str1 += i_ + ' '
                     print(str1+';', file=text_file)
- 
+                    
+                    
+                if self.vessel_id in [1]:
+                    str1 = 'set TBinit := APT AWBP AWBS'
+                elif self.vessel_id in [2]:
+                    str1 = 'set TBinit := APT WB6P WB6S'
+                print(str1+';', file=text_file)     
     #            
                 # density of seawater
                 print('# density of seawater ',file=text_file)#
@@ -1204,8 +1225,8 @@ class Process_input(object):
                 
                 print('# initial ballast ',file=text_file)#
                 str1 = 'param initBallast := '
-                for k_, v_ in self.vessel.info['initBallast']['wt'].items():
-                    str1 += str(k_) + ' ' + "{:.4f}".format(v_)  + ' '
+                # for k_, v_ in self.vessel.info['initBallast']['wt'].items():
+                #     str1 += str(k_) + ' ' + "{:.4f}".format(v_)  + ' '
                 print(str1+';', file=text_file)
                 
                 print('# inc initial ballast ',file=text_file)#
@@ -1383,12 +1404,13 @@ class Process_input(object):
                         str1 += i_ + ' ' +  "{:.4f}".format(j_['lcg']) + ' '
                 print(str1+';', file=text_file)   
                 print('# LCGs for cargo tanks', file=text_file)
+                
                 str1 = 'param LCGtport := '
                 print(str1, file=text_file)
                 for i_, j_ in self.vessel.info['cargoTanks'].items():
                     str1 = '['+ i_ + ',*] = '
                     for k1_,v1_ in self.loadable.info['virtualArrDepPort'].items():
-                        if v1_ != '1A':
+                        if v1_ not in  ['0A']:
                             if lcg_port in [None]:
                                 lcg_ = j_['lcg']
                             else:
@@ -1467,7 +1489,7 @@ class Process_input(object):
                     str1 = '['+ i_ + ',*] = '
                     for k_, v_ in j_.items():
                         tcg_ = j_[k_]['tcg']
-                        if k_ not in ['1A']:
+                        if k_ not in ['0A']:
                             for k1_,v1_ in self.loadable.info['virtualArrDepPort'].items():
                                 if v1_ == k_:
                                     str1 += str(k1_) + ' ' + "{:.4f}".format(tcg_) + ' '
@@ -1482,7 +1504,7 @@ class Process_input(object):
                     str1 = '['+ i_ + ',*] = '
                     for k_, v_ in j_.items():
                         lcg_ = j_[k_]['lcg']
-                        if k_ not in ['1A']:
+                        if k_ not in ['0A']:
                             for k1_,v1_ in self.loadable.info['virtualArrDepPort'].items():
                                 if v1_ == k_:
                                     str1 += str(k1_) + ' ' + "{:.4f}".format(lcg_) + ' '
@@ -1544,6 +1566,13 @@ class Process_input(object):
                 str1 = 'param base_draft := '
                 for i_, j_ in self.base_draft.items():
                     str1 += str(i_) + ' ' +  "{:.2f}".format(j_) + ' '
+                print(str1+';', file=text_file)
+                
+                print('# draft corr', file=text_file)
+                str1 = 'param draft_corr := '
+                for k_, v_ in self.trim_upper.items():
+                    if v_ > 0.5:
+                        str1 += str(k_) + ' ' +  "0.1" + ' '
                 print(str1+';', file=text_file)
                 
                 print('# slopes of draft curve', file=text_file)
