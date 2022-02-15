@@ -64,6 +64,7 @@ class Process_input(object):
         self.solver = self.config['solver'] #_SOLVER_ ## config
         
         self.vessel_id   = data['loading']['vesselId']
+        self.port_code  = data['loading'].get('portCode', "")
         self.process_id = data['processId']
         self.information_id = data['loading']['loadingInformation']['loadingInfoId']
         

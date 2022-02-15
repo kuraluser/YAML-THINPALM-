@@ -53,6 +53,7 @@ class Process_input(object):
         self.solver = self.config['solver'] #_SOLVER_ ## config
         
         self.vessel_id   = int(data['discharging']['vesselId'])
+        self.port_code  = data['discharging'].get('portCode', "")
         self.process_id = data['processId']
         self.information_id = data['discharging']['infoId']
         
@@ -79,6 +80,7 @@ class Process_input(object):
         
         if not self.discharging.error:
             self.discharging._gen_stripping()
+        if not self.discharging.error:
             self.discharging._get_ballast_requirements()
             self.get_param()
         else:

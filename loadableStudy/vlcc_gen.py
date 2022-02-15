@@ -1610,6 +1610,10 @@ class Generate_plan:
         data['dischargingInfoId'] = self.input.information_id
         data['hasLoadicator'] = self.input.has_loadicator
         
+        data['vesselCode'] = self.input.vessel_id
+        data['portCode'] = self.input.port_code
+        data['deadweightconstant'] = str(self.input.vessel.info['deadweightConst']['weight'])
+        data['provisionalconstant'] = str(0.0)
         # self.plans['ship_status'] = []
         
         if len(self.plans['ship_status']) == 0:
@@ -1827,6 +1831,10 @@ class Generate_plan:
         data['loadingInfoId'] = self.input.information_id
         data['hasLoadicator'] = self.input.has_loadicator
         
+        data['vesselCode'] = self.input.vessel_id
+        data['portCode'] = self.input.port_code
+        data['deadweightconstant'] = str(self.input.vessel.info['deadweightConst']['weight'])
+        data['provisionalconstant'] = str(0.0)
         # data['user'] = self.input.user
         # data['role'] = self.input.role
         # data['hasLoadicator'] = self.input.has_loadicator
