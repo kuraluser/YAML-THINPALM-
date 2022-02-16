@@ -2728,7 +2728,16 @@ class Generate_plan:
                     plan_['departureCondition']["loadableQuantityCommingleCargoDetails"] = self._get_status(s_, str(p__+1)+'D', 'commingleStatus')
                     plan_['departureCondition']["stabilityParameters"] = stability_values[s_][self.input.loadable.info['arrDepVirtualPort'][str(p__+1)+'D']]
                 
-                
+                id_ = self.input.port.info['portRotation'][p_]['portId'] 
+                loadingHr_ = 0.
+                for c__, c_ in enumerate(self.input.loadable.info['cargoPort'][str(id_)]):
+                    cargo_id_ = int(c_[1:])
+                    for u__, u_ in enumerate(plan_['departureCondition']["loadableQuantityCargoDetails"]):
+                        if u_['cargoNominationId'] == cargo_id_:
+                            loadingHr_ += float(u_['timeRequiredForLoading'])
+                            break
+                        
+                plan_['timeRequiredForLoading'] = str(round(loadingHr_,2))       
                 plan['loadablePlanPortWiseDetails'].append(plan_)
                 
                 
