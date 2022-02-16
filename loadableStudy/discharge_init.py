@@ -91,7 +91,7 @@ class Process_input1(object):
             self.get_stability_param()
             
         
-    def get_stability_param(self, ballast_weight_ = 91800, sf_bm_frac = 0.95, trim_upper = 3.0, trim_lower = 2.5):
+    def get_stability_param(self, ballast_weight_ = 92000, sf_bm_frac = 0.95, trim_upper = 3.0, trim_lower = 2.5):
         
         self.ballast_percent = self.config['ballast_percent'] #0.4 
         if self.loadable.info['lastVirtualPort'] == 1:
@@ -193,7 +193,7 @@ class Process_input1(object):
                         print('Ballast overloaded')
                         cargo_to_load_ = displacement_limit_ - cont_weight_ - misc_weight_ - lightweight_  - arr_weight_ - ballast_weight_
                     
-                    est_discharge_= min(0, round(cargo_to_load_ - to_discharge_,1))
+                    est_discharge_= min(0,round(cargo_to_load_ - to_discharge_,1))
                     
                     if -est_discharge_ > self.loadable.info['preload'][d_]:
                         self.error['Discharge error'] = ['Balance cannot meet draft limit!!']
@@ -277,18 +277,27 @@ class Process_input1(object):
                 
                 if p_ in inter_port_:
                     self.trim_lower[str(p_)] = 4.0
-                    self.trim_upper[str(p_)] = 6.0
+                    self.trim_upper[str(p_)] = 5.95
                     self.ave_trim[str(p_)] = 5.0
                     print('inter_port ave trim', self.ave_trim[str(p_)])
                     
                
             else:
                     
-                est_draft__ = min_draft_limit_ - 1.5 # max trim = 3m 
-                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 2.5, 2.95
+                low_trim_ = min(2.9, 2*(min_draft_limit_ - est_draft__)) #2.5
+                ## est_draft__ + 0.1 = mid_draft_
+                est_draft__ = min_draft_limit_ - low_trim_/2 - 0.1 # max trim = 3m 
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = low_trim_, 2.95
                 lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
-                print(p_, round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
+                print(p_, round(est_draft__,2), round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
                 self.ave_trim[str(p_)] = 3.0
+                
+                lower_draft_limit_ = est_draft__ #max(self.ports.draft_airdraft[p_], min_draft_limit_)
+                lower_displacement_limit_ = np.interp(lower_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
+                print(round(lower_displacement_limit_), est_displacement_)
+                lower_displacement_limit_ = min(est_displacement_, lower_displacement_limit_)
+                # correct displacement to port seawater density
+                lower_displacement_limit_  = lower_displacement_limit_*seawater_density_/1.025
                 
              
            

@@ -155,6 +155,7 @@ set Pbar := P_org union P;
 set P_load := 1 .. LP ; # set of loading ports
 set P_dis := LP+1 .. NP ; # set of discharging ports
 set P_last_loading := {LP} ; # the last loading port
+set P0 default {};
 
 param firstloadingPort default 1;
 

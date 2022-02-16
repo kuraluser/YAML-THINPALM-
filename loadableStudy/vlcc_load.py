@@ -7,7 +7,7 @@ Created on Fri Nov 20 10:59:03 2020
 DEC_PLACE = 3
 import numpy as np
 import itertools
-
+from math import ceil
 from datetime import datetime
 
 class Loadable:
@@ -396,7 +396,7 @@ class Loadable:
         
         ## infeasible check
         min_cargo_ = sum([v_ for k_, v_ in cargos_info_['toLoadMin'].items()])
-        if float(inputs.cargoweight) < min_cargo_ - 0.1:
+        if float(inputs.cargoweight) < min_cargo_- 0.1:
             inputs.error['Min Tolerance Error'] = ['Min cargo tolerance is more than loadable quantity!!']
         
     def _set_commingle_info(self, inputs, cargos_info_):
@@ -677,10 +677,47 @@ class Loadable:
         cargos_info_ = {}
         cargos_info_['cargoPort'] = {k_:{} for k_,v_ in inputs.port.info['idPortOrder'].items()}
         cargos_info_['cargoPortEmpty'] = {k_:{} for k_,v_ in inputs.port.info['idPortOrder'].items()}
-        cargos_info_['dischAmtPort'] = {k_:{} for k_,v_ in inputs.port.info['idPortOrder'].items()}
+        cargos_info_['blDischAmtPort'] = {k_:{} for k_,v_ in inputs.port.info['idPortOrder'].items()}
         cargos_info_['cargoRotation'] = {}
+        cargos_info_['blFigure'] = {}
         
+        for o__, o_ in enumerate(inputs.discharge_json['cargoNomination']):
+            cargos_info_['blFigure']['P'+str(o_['id'])] = float(o_['quantity'])
+            
+            
+        ## get preloaded/ship figure
+        cargos_info_['preloadOperation'] = {}
+        cargos_info_['preload'] = {}
         
+        for d__, d_  in enumerate(inputs.discharge_json['arrivalPlan']['loadablePlanStowageDetails']):
+            wt_ = d_['quantity']
+            if wt_ not in [None] and float(wt_) > 0:
+                wt_ = float(wt_)
+                parcel_ = self.info['dscargoNominationId']['P' + str(d_['cargoNominationId'])]
+                tank_ = d_['tankId']
+                ## need to convert to tankName later
+                if parcel_ not in cargos_info_['preloadOperation']:
+                    cargos_info_['preloadOperation'][parcel_] = {}
+                    cargos_info_['preload'][parcel_]  = 0
+                    
+                cargos_info_['preloadOperation'][parcel_][tank_] = round(wt_,1)
+                cargos_info_['preload'][parcel_]  += round(wt_,1)
+            
+        for d__, d_  in enumerate(inputs.discharge_json['arrivalPlan']['loadableQuantityCommingleCargoDetails']):
+            wt_ = float(d_['quantity'])
+            if wt_ > 0:
+                parcel_ = self.info['dscargoNominationId']['PNone']
+                tank_ = d_['tankId']
+                ## need to convert to tankName later
+                if parcel_ not in cargos_info_['preloadOperation']:
+                    cargos_info_['preloadOperation'][parcel_] = {}
+                    cargos_info_['preload'][parcel_]  = 0
+                    
+                cargos_info_['preloadOperation'][parcel_][tank_] = round(wt_,1)
+                cargos_info_['preload'][parcel_]  += round(wt_,1)
+            
+        
+        # 1 balance 2 manual 3 remaining/entire
         for o__, o_ in enumerate(inputs.discharge_json['cargoOperation']):
             # cargos_info_['cargoLastLoad']['P'+str(o_['cargoNominationId'])].append(inputs.port.info['idPortOrder'][str(o_['portId'])])
             
@@ -688,19 +725,22 @@ class Loadable:
             #     inputs.error['Discharging Mode Error'] = ['Only manual mode is supported now!!']
             #     return
             
-            port_ = str(o_['portId']) + '2'
-            if o_['sequenceNo'] not in cargos_info_['cargoPort'][port_].keys():
-                cargos_info_['cargoPort'][port_][o_['sequenceNo']] = ['P'+str(o_['dscargoNominationId'])]
+            if o_['dischargingMode']  in [2] and float(o_['quantity']) == 0.:
+                pass
             else:
-                cargos_info_['cargoPort'][port_][o_['sequenceNo']].append('P'+str(o_['dscargoNominationId']))
-
-            if port_ not in cargos_info_['cargoPortEmpty']:
-                cargos_info_['cargoPortEmpty'][port_] = {'P'+str(o_['dscargoNominationId']):o_['emptyMaxNoOfTanks']}
-                cargos_info_['dischAmtPort'][port_] = {'P'+str(o_['dscargoNominationId']): float(o_['quantity'])}
-                
-            else:
-                cargos_info_['cargoPortEmpty'][port_]['P'+str(o_['dscargoNominationId'])] = o_['emptyMaxNoOfTanks']
-                cargos_info_['dischAmtPort'][port_]['P'+str(o_['dscargoNominationId'])] = float(o_['quantity'])
+                port_ = str(o_['portId']) + '2'
+                if o_['sequenceNo'] not in cargos_info_['cargoPort'][port_].keys():
+                    cargos_info_['cargoPort'][port_][o_['sequenceNo']] = ['P'+str(o_['dscargoNominationId'])]
+                else:
+                    cargos_info_['cargoPort'][port_][o_['sequenceNo']].append('P'+str(o_['dscargoNominationId']))
+    
+                if port_ not in cargos_info_['cargoPortEmpty']:
+                    cargos_info_['cargoPortEmpty'][port_] = {'P'+str(o_['dscargoNominationId']):o_['emptyMaxNoOfTanks']}
+                    cargos_info_['blDischAmtPort'][port_] = {'P'+str(o_['dscargoNominationId']): float(o_['quantity'])}
+                    
+                else:
+                    cargos_info_['cargoPortEmpty'][port_]['P'+str(o_['dscargoNominationId'])] = o_['emptyMaxNoOfTanks']
+                    cargos_info_['blDischAmtPort'][port_]['P'+str(o_['dscargoNominationId'])] = float(o_['quantity'])
                 
             # if len(cargos_info_['cargoPort'][port_]) > 1:
             #     if not inputs.cargo_rotation:
@@ -860,21 +900,26 @@ class Loadable:
         # assume discharging only port
         #
         for o__, o_ in enumerate(inputs.discharge_json['cargoOperation']):
-            parcel_ = 'P'+str(o_['dscargoNominationId'])
-            qty_ = float(o_['quantity']) #if o_['operationId'] == 1 else -o_['quantity'] 
-            port_ = str(o_['portId']) + '2'
-            order_ = inputs.port.info['idPortOrder'][port_]
-           
-            cargos_info_['toDischarge'][parcel_] += qty_
-            
-            if virtual_port_.get(str(order_), {}):
-                virtual_order_ = virtual_port_[str(order_)][parcel_]
+            if o_['dischargingMode']  in [2] and float(o_['quantity']) == 0.:
+                pass
             else:
-                virtual_order_ = 2*(int(order_)-1) + 1
-           
-            cargos_info_['toDischargePort'][int(virtual_order_)] -= round(qty_,1)
-            cargos_info_['operation'][parcel_][virtual_order_] = -round(qty_,1)
-            cargos_info_['mode'][parcel_][virtual_order_] = o_['dischargingMode']
+                parcel_ = 'P'+str(o_['dscargoNominationId'])
+                qty_ = float(o_['quantity']) # bl figure
+                ship_fig_ = cargos_info_['preload'][parcel_]
+                qty_ = min(1.0,qty_/cargos_info_['blFigure'][parcel_])*ship_fig_
+                port_ = str(o_['portId']) + '2'
+                order_ = inputs.port.info['idPortOrder'][port_]
+               
+                cargos_info_['toDischarge'][parcel_] += qty_
+                
+                if virtual_port_.get(str(order_), {}):
+                    virtual_order_ = virtual_port_[str(order_)][parcel_]
+                else:
+                    virtual_order_ = 2*(int(order_)-1) + 1
+               
+                cargos_info_['toDischargePort'][int(virtual_order_)] -= ceil(qty_ *10)/10 #round(qty_,1)
+                cargos_info_['operation'][parcel_][virtual_order_] = -ceil(qty_ *10)/10 #round(qty_,1)
+                cargos_info_['mode'][parcel_][virtual_order_] = o_['dischargingMode']
             
             
         cargos_info_['numParcel'] = len(self.info['parcel'])
@@ -882,53 +927,6 @@ class Loadable:
         cargos_info_['toDischargePort'] = np.cumsum(cargos_info_['toDischargePort'])
         
         cargos_info_['manualOperation'] = {}
-        
-        
-        
-        # if inputs.discharge_json['arrivalPlan']['loadableQuantityCommingleCargoDetails']:
-        #     inputs.error['Cargo Error'] = ['Commingle cargo not supported!!']
-        #     return
-            
-        cargos_info_['preloadOperation'] = {}
-        cargos_info_['preload'] = {}
-        
-        for d__, d_  in enumerate(inputs.discharge_json['arrivalPlan']['loadablePlanStowageDetails']):
-            wt_ = d_['quantity']
-            if wt_ not in [None] and float(wt_) > 0:
-                wt_ = float(wt_)
-                parcel_ = self.info['dscargoNominationId']['P' + str(d_['cargoNominationId'])]
-                tank_ = d_['tankId']
-                ## need to convert to tankName later
-                if parcel_ not in cargos_info_['preloadOperation']:
-                    cargos_info_['preloadOperation'][parcel_] = {}
-                    cargos_info_['preload'][parcel_]  = 0
-                    
-                cargos_info_['preloadOperation'][parcel_][tank_] = round(wt_,1)
-                cargos_info_['preload'][parcel_]  += round(wt_,1)
-            
-        for d__, d_  in enumerate(inputs.discharge_json['arrivalPlan']['loadableQuantityCommingleCargoDetails']):
-            wt_ = float(d_['quantity'])
-            if wt_ > 0:
-                parcel_ = self.info['dscargoNominationId']['PNone']
-                tank_ = d_['tankId']
-                ## need to convert to tankName later
-                if parcel_ not in cargos_info_['preloadOperation']:
-                    cargos_info_['preloadOperation'][parcel_] = {}
-                    cargos_info_['preload'][parcel_]  = 0
-                    
-                cargos_info_['preloadOperation'][parcel_][tank_] = round(wt_,1)
-                cargos_info_['preload'][parcel_]  += round(wt_,1)
-        
-        # last_port_, plan_dsc_ = {}, {}
-        # for k_,v_ in cargos_info_['operation'].items():
-        #     last_port_[k_], plan_dsc_[k_]= 0, 0
-        #     for k__, v__ in v_.items():
-        #         plan_dsc_[k_] += v__
-        #         if last_port_[k_] < int(k__):
-        #             last_port_[k_] = k__
-                    
-            # if round(plan_dsc_[k_],1) != round()
-                    
         
         cargos_info_['ballastOperation'] = {}
         cargos_info_['initialBallast'] = {}
@@ -1243,7 +1241,9 @@ class Loadable:
             for t_ in tanks_.split(','):
                 if t_ not in self.info['toCow'] + [""]:
                     self.info['toCow'].append(t_)
-
+                    
+            
+            
         print('toCow: ',self.info['toCow'])
                 
             
