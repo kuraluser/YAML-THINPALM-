@@ -186,7 +186,8 @@ def loadicator1(data, limits):
             
             if data['module'] == 'LOADING':
                 limit_draft_ = limits['limits']['draft']['maxDraft']
-                limit_air_draft_ = limits['limits']['maxAirDraft']
+                # limit_air_draft_ = limits['limits']['maxAirDraft']
+                limit_air_draft_ = limits['limits']['airDraft'][str(data['portId'])]
             elif data['module'] == 'DISCHARGING': 
                 limit_draft_ = limits['limits']['draft'][str(data['portId'])]
                 limit_air_draft_ = limits['limits']['airDraft'][str(data['portId'])]
