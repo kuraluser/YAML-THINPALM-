@@ -318,7 +318,7 @@ class Process_input(object):
             self.infeasible_analysis()
         
         
-    def get_stability_param(self, ballast_weight_ = 92000, sf_bm_frac = 0.85, trim_upper = 0, trim_lower = 0, trim_load = 1):
+    def get_stability_param(self, ballast_weight_ = 92000, sf_bm_frac = 0.95, trim_upper = 0, trim_lower = 0, trim_load = 1, reduce_disp_limit = 0):
         
         # ARR_DEP_ = {0:'A', 1:'D'}
 #        self.trim_range = [-0.1,0.1]
@@ -464,7 +464,7 @@ class Process_input(object):
                 lower_draft_limit_ = est_draft__ #max(self.ports.draft_airdraft[p_], min_draft_limit_)
                 lower_displacement_limit_ = np.interp(lower_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
                 print(round(lower_displacement_limit_), est_displacement_)
-                lower_displacement_limit_ = min(est_displacement_, lower_displacement_limit_)
+                lower_displacement_limit_ = min(est_displacement_, lower_displacement_limit_)  - reduce_disp_limit
                 # correct displacement to port seawater density
                 lower_displacement_limit_  = lower_displacement_limit_*seawater_density_/1.025
 
@@ -474,7 +474,7 @@ class Process_input(object):
             est_sag_ = float(self.loadable_json['loadableQuantity'].get('estSagging', 0.0))
             port_draft_ = self.port.info['portRotation'][port_code_]['maxDraft'] - 0.25*est_sag_/100
             
-            print('port_draft_', port_draft_)
+            # print('port_draft_', port_draft_)
             
             upper_draft_limit_ = min(loadline_, port_draft_) - 0.001
 
@@ -1269,11 +1269,14 @@ class Process_input(object):
                 print(str1+';', file=text_file)
                 
                 print('# loading ports not last ',file=text_file)#
+                loadingPortNotLast_ = []
                 str1 = 'set loadingPortNotLast := '
                 for k__, k_  in enumerate(self.vessel.info['loading']):
                     if k__ < len(self.vessel.info['loading'])-2:
                         str1 += '('+ str(k_)  + ',' + str(self.vessel.info['loading'][k__+1]) + ') '
+                        loadingPortNotLast_.append(k_)
                 print(str1+';', file=text_file)
+
                 
                 print('# departure arrival ports non-empty and empty ROB',file=text_file) # same weight
                 depArrPort2, same_ballast = [], []
@@ -1337,10 +1340,12 @@ class Process_input(object):
                 print(str1+';', file=text_file)
                 
                 print('# first loading Port',file=text_file)#
-                str1 = 'param firstloadingPort := ' + self.loadable.info['arrDepVirtualPort']['1D']
-                print(str1+';', file=text_file)
-                
-                
+                if len(loadingPortNotLast_) == 0:
+                    str1 = 'param firstloadingPort := 0'
+                    print(str1+';', file=text_file)
+                else:
+                    str1 = 'param firstloadingPort := ' + self.loadable.info['arrDepVirtualPort']['1D']
+                    print(str1+';', file=text_file)
                 
                 print('# capacity of ballast tanks', file=text_file)
                 str1 = 'param capacityBallastTank := ' 
