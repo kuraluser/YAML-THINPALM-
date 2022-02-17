@@ -480,7 +480,10 @@ var est_trim{p in Pbar}default 0;
 maximize Action_Amount:
 sum{c in C, t in Tc[c]} priority[c]*(sum{p in P_last_loading} qw[c,t,p]- sum{p in P_dis} w[c,t,p])
 -1*sum{t in TB, p in P}wB[t,p]
-- maxEmptyTankWeight*sum{ (c, p) in P_opt, t in T} qwz[c,t,p];
+- maxEmptyTankWeight*sum{ (c, p) in P_opt, t in T} qwz[c,t,p] +
+sum{c in C, t in {'1C', '1P', '1S', '5C', '5P', '5S'} union slopS union slopP} priority[c]*(sum{p in P_last_loading} qw[c,t,p]- sum{p in P_dis} w[c,t,p])
+;
+
 
 #####################
 #original

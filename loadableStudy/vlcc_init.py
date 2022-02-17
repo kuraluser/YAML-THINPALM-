@@ -453,12 +453,13 @@ class Process_input(object):
             if est_draft__ > lower_draft_limit_:
                 est_displacement_ = max(lower_displacement_limit_, est_displacement_)   
             else: 
+                
+                low_trim_ = min(2.9, 2*(min_draft_limit_ - est_draft__)) #2.5
                 ## est_draft__ + 0.1 = mid_draft_
-                est_draft__ = min_draft_limit_ - 1.25 - 0.1 # max trim = 3m 
-                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = 2.5, 2.95
+                est_draft__ = min_draft_limit_ - low_trim_/2 - 0.1 # max trim = 3m 
+                self.trim_lower[str(p_)], self.trim_upper[str(p_)] = low_trim_, 2.95
                 lower_displacement_limit_ = np.interp(est_draft__, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
                 print(p_, round(est_draft__,2), round(self.trim_lower[str(p_)],2), round(self.trim_upper[str(p_)],2))
-                
                 
                 lower_draft_limit_ = est_draft__ #max(self.ports.draft_airdraft[p_], min_draft_limit_)
                 lower_displacement_limit_ = np.interp(lower_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
@@ -469,7 +470,14 @@ class Process_input(object):
 
             
             ## upper bound displacement
-            upper_draft_limit_ = min(loadline_, self.port.info['portRotation'][port_code_]['maxDraft']) - 0.001
+            
+            est_sag_ = float(self.loadable_json['loadableQuantity'].get('estSagging', 0.0))
+            port_draft_ = self.port.info['portRotation'][port_code_]['maxDraft'] - 0.25*est_sag_/100
+            
+            print('port_draft_', port_draft_)
+            
+            upper_draft_limit_ = min(loadline_, port_draft_) - 0.001
+
             # check uplimit not exceeed for min load
             est_displacement_wo_ballast_ =  self.loadable.info['toLoadMinPort'][p_]  + cont_weight_ + misc_weight_ + lightweight_
             est_draft_wo_ballast_ =  np.interp(est_displacement_wo_ballast_, self.vessel.info['hydrostatic']['displacement'], self.vessel.info['hydrostatic']['draft'])
