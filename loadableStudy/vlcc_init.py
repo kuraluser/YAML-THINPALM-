@@ -346,14 +346,26 @@ class Process_input(object):
         min_draft_limit_  = self.config['min_draft_limit']
         loadline_ = self.vessel.info['draftCondition']['draftExtreme']
         self.limits['draft']['loadline'] = loadline_
-        self.limits['draft'] = {**self.limits['draft'], **{k_[:-1]:v_  for k_, v_ in self.port.info['maxDraft'].items()}}
+        # self.limits['draft'] = {**self.limits['draft'], **{k_[:-1]:v_  for k_, v_ in self.port.info['maxDraft'].items()}}
         self.limits['operationId'] = {k_:str(v_)[-1] for k_, v_ in self.port.info['portRotationId'].items()}
         self.limits['seawaterDensity'] = {k_[:-1]:v_  for k_, v_ in self.port.info['seawaterDensity'].items()} 
         self.limits['tide'] = {k_[:-1]:v_  for k_, v_ in self.port.info['tide'].items()}  
         self.limits['id'] = self.loadable_id
         self.limits['vesselId'] = self.vessel_id
         self.limits['voyageId'] = self.voyage_id
-        self.limits['airDraft'] = {k_[:-1]:v_  for k_, v_ in self.port.info['maxAirDraft'].items()} 
+        # self.limits['airDraft'] = {k_[:-1]:v_  for k_, v_ in self.port.info['maxAirDraft'].items()} 
+        self.limits['airDraft'] = {}
+        for p_ in range(1, len(self.port.info['portOrderId'])+1):
+            # print(p_)
+            cur_ = self.port.info['portOrderId'][str(p_)]
+            if p_ < len(self.port.info['portOrderId']):
+                next_ =  self.port.info['portOrderId'][str(p_+1)]
+                self.limits['airDraft'][cur_[:-1]] = min(self.port.info['maxAirDraft'][cur_], self.port.info['maxAirDraft'][next_])
+                self.limits['draft'][cur_[:-1]] = min(self.port.info['maxDraft'][cur_], self.port.info['maxDraft'][next_])
+            else:
+                self.limits['airDraft'][cur_[:-1]] = self.port.info['maxAirDraft'][cur_]
+                self.limits['draft'][cur_[:-1]] = self.port.info['maxDraft'][cur_]
+
         self.limits['sfbm'] = self.sf_bm_frac
         self.limits['feedback'] = {'feedbackLoop': self.feedbackLoop,'feedbackLoopCount':self.feedbackLoopCount}
         self.limits['portOrderId'] = self.port.info['portOrderId']
