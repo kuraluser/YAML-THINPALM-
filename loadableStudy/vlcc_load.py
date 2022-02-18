@@ -20,6 +20,8 @@ class Loadable:
         cargos_info_['sg'] = []
         cargos_info_['maxPriority'] = 0
         cargos_info_['priority'] = {i_:[] for i_ in range(10)}
+        cargos_info_['condensateCargo'] = []
+        cargos_info_['hrvpCargo'] = []
         
         data_ = inputs.loadable_json['cargoNomination'] if inputs.module == 'LOADABLE' else inputs.discharge_json['cargoNomination']
         
@@ -97,9 +99,13 @@ class Loadable:
             cargos_info_['parcel'][cargo_id_]['hrvpCargo']  = c_.get('isHrvpCargo', False)
             
             # cargos_info_['parcel'][cargo_id_]['condensateCargo'] = True
-            if cargos_info_['parcel'][cargo_id_]['condensateCargo']:
-                inputs.error['Cargo Error'] = ['Condensate cargo not supported yet!! Cargo history not available!!']
+            # if cargos_info_['parcel'][cargo_id_]['condensateCargo']:
+            #     inputs.error['Cargo Error'] = ['Condensate cargo not supported yet!! Cargo history not available!!']
                 
+            if c_.get('isCondensateCargo',False):
+                cargos_info_['condensateCargo'].append(cargo_id_)
+
+            
             # cargos_info_['parcel'][cargo_id_]['hrvpCargo'] = True
             cargos_info_['parcel'][cargo_id_]['banTank'] = []
             if cargos_info_['parcel'][cargo_id_]['hrvpCargo'] and inputs.config['loadableConfig']:

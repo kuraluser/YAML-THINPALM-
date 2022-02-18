@@ -41,8 +41,8 @@ class Process_input(object):
                               'commingleCargo': data['loadable'].get('commingleCargos',[]),
                               'loadingPlan': data['loadable'].get('loadingPlan',{}), # 
                               'ballastPlan': data['loadable'].get('ballastPlan',{}), # 
-                              'planDetails': data.get('loadablePlanPortWiseDetails',[]) # for full and manual modes
-                              }
+                              'planDetails': data.get('loadablePlanPortWiseDetails',[]), # for full and manual modes
+                              'voyageHistory': data['loadable'].get('voyageCargoHistories',{}) }
         
         self.rules_json = data['loadable'].get("loadableStudyRuleList", [])
         
@@ -316,6 +316,7 @@ class Process_input(object):
             self.vessel._get_onboard(self) # Arrival condition
             self.get_stability_param()
             self.infeasible_analysis()
+            self.get_voyage_history()
         
         
     def get_stability_param(self, ballast_weight_ = 92000, sf_bm_frac = 0.95, trim_upper = 0, trim_lower = 0, trim_load = 1, reduce_disp_limit = 0):
@@ -585,6 +586,35 @@ class Process_input(object):
             for p__ in p_[:-1]:
                 self.trim_upper[str(p__)] = trim_load_upper_ + 1e-4
                 self.trim_lower[str(p__)] = max(0.0001, trim_load_lower_ - 1e-4)
+                
+    def get_voyage_history(self):
+        
+        hist_ = self.loadable_json['voyageHistory']
+        self.condensate_cargo_tank = []
+        
+        if hist_:
+            id_ = [h_['voyageId'] for h_ in hist_]
+            id_ = sorted((e_,i_) for i_, e_ in enumerate(id_))
+            hist_ = [h_ for h__, h_ in enumerate(hist_) if h__ in [id_[0][1], id_[1][1]]]
+            # print(hist_)
+            
+            for h__, h_ in enumerate(hist_):
+                condensate_cargo_ = [c_['id'] for c__, c_ in enumerate(h_['cargoNominations']) if c_['isCondensateCargo']]
+                for c__, c_ in  enumerate(condensate_cargo_):
+                    for p__, p_ in enumerate(h_['planStowageDetails']):
+                        if p_['cargoNominationId'] == c_:
+                            tank_ = self.vessel.info['tankId'][p_['tankId']]
+                            if tank_ not in self.condensate_cargo_tank:
+                                self.condensate_cargo_tank.append(tank_)
+                        
+                # print(self.condensate_cargo_tank)       
+            # print(self.condensate_cargo_tank)
+            if self.condensate_cargo_tank:
+                for  c__, c_ in  enumerate(self.loadable.info['condensateCargo']):
+                    self.vessel.info['banCargo'][c_] += self.condensate_cargo_tank
+                    
+                    
+                    
                 
                
                 
