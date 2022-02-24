@@ -91,7 +91,7 @@ class Process_input1(object):
             self.get_stability_param()
             
         
-    def get_stability_param(self, ballast_weight_ = 92000, sf_bm_frac = 0.95, trim_upper = 3.0, trim_lower = 2.5):
+    def get_stability_param(self, ballast_weight_ = 92000, sf_bm_frac = 0.95, trim_upper = 3.0, trim_lower = 2.5, reduce_disp_limit = 0):
         
         self.ballast_percent = self.config['ballast_percent'] #0.4 
         if self.loadable.info['lastVirtualPort'] == 1:
@@ -295,7 +295,7 @@ class Process_input1(object):
                 lower_draft_limit_ = est_draft__ #max(self.ports.draft_airdraft[p_], min_draft_limit_)
                 lower_displacement_limit_ = np.interp(lower_draft_limit_, self.vessel.info['hydrostatic']['draft'], self.vessel.info['hydrostatic']['displacement'])
                 print(round(lower_displacement_limit_), est_displacement_)
-                lower_displacement_limit_ = min(est_displacement_, lower_displacement_limit_)
+                lower_displacement_limit_ = min(est_displacement_, lower_displacement_limit_) - reduce_disp_limit
                 # correct displacement to port seawater density
                 lower_displacement_limit_  = lower_displacement_limit_*seawater_density_/1.025
                 

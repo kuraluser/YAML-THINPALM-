@@ -198,14 +198,38 @@ class Generate_plan:
                 if self.input.solver in ['AMPL']:
                     
                     if not result['succeed']:
-                        print('##**Rerun AMPL drop upper BM ....')
-                        self.input.write_dat_file(drop_BM = True, IIS = False, lcg_port = self.input.lcg_port, weight = self.input.weight)
+                        # case 0: -----------------------------------------------
+                        print('##**Rerun AMPL reduce lower displacement limit ....')
                         # input("Press Enter to continue...")
+                        self.input.get_stability_param(reduce_disp_limit = 2000)
+                        self.input.write_dat_file(drop_BM = True, IIS = False, lcg_port = self.input.lcg_port, weight = self.input.weight)
                         result = self._run_ampl(dat_file='input_discharge.dat') 
                         
                         if result['succeed']:
                             self._process_ampl(result, num_plans=num_plans)
                             self._process_checking_plans(result)
+                    
+                    
+                    if not result['succeed']:
+                        print('##**Rerun AMPL drop upper BM ....')
+                        # input("Press Enter to continue...")
+                        self.input.write_dat_file(drop_BM = True, IIS = False, lcg_port = self.input.lcg_port, weight = self.input.weight)
+                        result = self._run_ampl(dat_file='input_discharge.dat') 
+                        
+                        if result['succeed']:
+                            self._process_ampl(result, num_plans=num_plans)
+                            self._process_checking_plans(result)
+
+                    if not result['succeed']:
+                        print('##**Rerun AMPL drop upper BM ....')
+                        # input("Press Enter to continue...")
+                        self.input.write_dat_file(drop_BM = True, IIS = False, lcg_port = self.input.lcg_port, weight = self.input.weight)
+                        result = self._run_ampl(dat_file='input_discharge.dat') 
+                        
+                        if result['succeed']:
+                            self._process_ampl(result, num_plans=num_plans)
+                            self._process_checking_plans(result)
+                            
                             
                     if not result['succeed']:
                         # relax increase and decrease ballast:
@@ -914,8 +938,10 @@ class Generate_plan:
                                 obj_ = [round(l_[1],1)  for l_ in result['obj'] if l_[0] == p_+1][0]
                             else:
                                 cargoweight_, obj_ = 1,1
-                            
-                            if (fillingRatio_ > 0.98 or obj_ < cargoweight_)  and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto'] and len(self.commingled_ratio) == 0:
+
+                            #if (round(fillingRatio_,3) > 0.98 or obj_ < cargoweight_)  and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto'] and len(self.commingled_ratio) == 0:
+                            if (round(fillingRatio_,3) > 0.98)  and self.input.module in ['LOADABLE'] and self.input.mode in ['Auto'] and len(self.commingled_ratio) == 0:
+
                                 print('Need to regenerate commingle plans!!')
                                 self.commingled_ratio = {parcel1_:round(wt1_/(wt1_+wt2_),2), 
                                                          parcel2_:round(wt2_/(wt1_+wt2_),2)}

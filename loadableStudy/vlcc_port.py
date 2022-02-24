@@ -120,7 +120,7 @@ class Port:
                     
                 if p_['portOrder'] == 2 and p_['operationId'] not in [1] and ports_info_['firstPortBunker']:
                     ports_info_['firstPortBunker'] = True
-                    inputs.error['Port Operation Error'] = ['One of the first two ports must be a loading port!!']
+                    # inputs.error['Port Operation Error'] = ['One of the first two ports must be a loading port!!']
                     
                     
                 

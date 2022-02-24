@@ -42,7 +42,7 @@ class Process_input(object):
                               'loadingPlan': data['loadable'].get('loadingPlan',{}), # 
                               'ballastPlan': data['loadable'].get('ballastPlan',{}), # 
                               'planDetails': data.get('loadablePlanPortWiseDetails',[]), # for full and manual modes
-                              'voyageHistory': data['loadable'].get('voyageCargoHistories',{}) }
+                              'voyageHistory': data['loadable'].get('voyageCargoHistories',[]) }
         
         self.rules_json = data['loadable'].get("loadableStudyRuleList", [])
         

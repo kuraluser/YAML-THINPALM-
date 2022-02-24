@@ -816,6 +816,9 @@ class Loadable:
                             if v_ not in rotation_virtual__:
                                 rotation_virtual__.append(v_)
                     # k__ = c__
+                    if len(rotation_cargo_[i__]) == 0:
+                        v_ += 1
+ 
                     i__ += 1
                     
                     rotation_virtual_.append(rotation_virtual__)
