@@ -549,6 +549,15 @@ class Vessel:
                 for k1_, v1_ in v_.items():
                     tank_ = self.info['tankId'][k1_]
                     info_[k_][tank_] = v1_
+                    density_ = inputs.loadable.info['parcel'][k_]['maxtempSG']
+                    vol_ = v1_/density_
+                    capacity_ = self.info['cargoTanks'][tank_]['capacityCubm']
+                    if round(vol_/capacity_,3) > 0.98:
+                        print(tank_, round(vol_/capacity_,3))
+                        if 'Preloading Error' not in inputs.error.keys():
+                            inputs.error['Preloading Error'] = ['Fill ratio exceeded in tank ' +  tank_ + '!!']
+                        else:
+                            inputs.error['Preloading Error'].append('Fill ratio exceeded in tank ' +  tank_ + '!!')
                     wt_ += v1_
                     
             inputs.loadable.info['preloadOperation'] = info_

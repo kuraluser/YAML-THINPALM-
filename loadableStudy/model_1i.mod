@@ -214,6 +214,7 @@ set TB; #set of ballast tanks
 set TB1; # set of ballast tanks with no pw tcg details
 set TB2; # set of ballast tanks with no pw lcg details
 set TB3 default {}; 
+set TB4 default TB; # for rotation port 2
 set minTB default {}; # set of ballast tanks >= 30cm ullage
 set toBallastTank default {};
 set toDeballastTank default {};
@@ -307,8 +308,9 @@ set loadingPortNotLast within 1..NP cross 1..NP; # loading port except last
 
 set depArrPort1 within 1..NP cross 1..NP; # with ROB
 set depArrPort2 within 1..NP cross 1..NP; # no ROB
-set rotatingPort1 within 0..NP cross 0..NP; 
-set rotatingPort2 within 0..NP cross 0..NP; 
+set rotatingPort1 within 0..NP cross 0..NP default {}; 
+set rotatingPort2 within 0..NP cross 0..NP default {}; 
+
 set specialBallastPort default {LP-1, LP}; # default LP-1
 set zeroBallastPort default {}; # default LP
 
@@ -672,9 +674,9 @@ subject to Condition114e1 {t in TB diff TB3, (u,v) in rotatingPort1}:  -wB[t,u] 
 subject to Condition114e2 {t in TB diff TB3, (u,v) in rotatingPort1}:    wB[t,u] -  wB[t,v] <= 1e6*(1-zBb1[t]);
 subject to Condition114e3 {t in TB diff TB3}: zBa1[t] + zBb1[t] = 1;
 
-subject to Condition114e4 {t in TB, (u,v) in rotatingPort2}:  -wB[t,u] +  wB[t,v] <= 1e6*(1-zBa2[t]);
-subject to Condition114e5 {t in TB, (u,v) in rotatingPort2}:    wB[t,u] -  wB[t,v] <= 1e6*(1-zBb2[t]);
-subject to Condition114e6 {t in TB}: zBa2[t] + zBb2[t] = 1;
+subject to Condition114e4 {t in TB4, (u,v) in rotatingPort2}:  -wB[t,u] +  wB[t,v] <= 1e6*(1-zBa2[t]);
+subject to Condition114e5 {t in TB4, (u,v) in rotatingPort2}:    wB[t,u] -  wB[t,v] <= 1e6*(1-zBb2[t]);
+subject to Condition114e6 {t in TB4}: zBa2[t] + zBb2[t] = 1;
 
 # fixed ballast
 subject to Condition114f1 {t in TB, p in fixBallastPort}:  B_locked[t,p] = wB[t,p];

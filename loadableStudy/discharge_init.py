@@ -70,6 +70,7 @@ class Process_input1(object):
         ## for reballast
         self.lcg_port = None
         self.weight = None
+        self.tide_info = None
         
     def prepare_dat_file(self, ballast_weight=1000):
         

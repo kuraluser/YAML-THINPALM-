@@ -111,6 +111,8 @@ class Process_input(object):
         self.feedback_sf_bm_frac = data['loadable'].get('feedbackLoopBMSF', 1)
         
         self.accurate = False # False lower complexity
+
+        self.tide_info = None
     
     def _set_config(self, config):
         

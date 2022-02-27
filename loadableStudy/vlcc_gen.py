@@ -143,24 +143,30 @@ class Generate_plan:
                     print('Rerun AMPL ....')
                     
                     # case 0: -----------------------------------------------
-                    self.input.get_stability_param(reduce_disp_limit = 2000)
-                    self.input.write_dat_file()
-                    self.IIS = False
-                    result = self._run_ampl(dat_file='input.dat') 
+                    # for initial balance
+                    print('##**Rerun AMPL reduce displacement limit ....')
+                    # input("Press Enter to continue...")
+                    self.input.get_stability_param(reduce_disp_limit = 3000)
+                    self.input.write_dat_file(file=dat_file, IIS = False)
+                    result = self._run_ampl(dat_file=dat_file) 
                     if result['succeed']:
                         self._process_ampl(result, num_plans=num_plans)
                         self._process_checking_plans(result)
                     
                     # case 1: -----------------------------------------------
-                    if self.input.vessel_id in [1]:
-                        self.input.write_dat_file(incDec_ballast = ['LFPT']) # relax list mom to 100000
-                    elif self.input.vessel_id in [2]:
-                        self.input.write_dat_file(incDec_ballast = ['FPT']) # relax list mom to 100000
+                    if not result['succeed'] and dat_file in ['input.dat']:
                         
-                    result = self._run_ampl(dat_file='input.dat') 
-                    if result['succeed']:
-                        self._process_ampl(result, num_plans=num_plans)
-                        self._process_checking_plans(result)
+                        if self.input.vessel_id in [1]:
+                            self.input.write_dat_file(file=dat_file,incDec_ballast = ['LFPT'], IIS = False) # 
+                        elif self.input.vessel_id in [2]:
+                            self.input.write_dat_file(file=dat_file,incDec_ballast = ['FPT'], IIS = False) # 
+                        
+                        result = self._run_ampl(dat_file=dat_file) 
+                        if result['succeed']:
+                            self._process_ampl(result, num_plans=num_plans)
+                            self._process_checking_plans(result)
+                        
+
                         
                         
                     if not result['succeed']:
@@ -270,30 +276,65 @@ class Generate_plan:
                     
                     if not result['succeed'] and len(self.input.loading.info['loading_order1']) > 1:
                         print('Relax intermitted trim ...')
+                        # input("Press Enter to continue...")
                         self.input.get_param(min_int_trim = 0.5, max_int_trim = 1.5)
-                        self.input.write_ampl(IIS = self.IIS)
+                        self.input.write_ampl(IIS = False)
                         result = self._run_ampl(dat_file='input_load.dat') 
                         
+                        
+                        if result['succeed']:
+                            self._process_ampl(result, num_plans=num_plans)
+                            self._process_checking_plans(result)
+                            
+                    if not result['succeed']:
+                        print('Relax use APT for trim ...')
                         # input("Press Enter to continue...")
+                        
+                        # case 1:
+                        self.input.write_ampl(incDec_ballast = ['APT'], IIS = False) # 
+                        result = self._run_ampl(dat_file='input_load.dat') 
+                        
                         if result['succeed']:
                             self._process_ampl(result, num_plans=num_plans)
                             self._process_checking_plans(result)
                         
+                    if not result['succeed']:
+                        print('Relax AWB ballast for List...')
+                        # input("Press Enter to continue...")
+                        
+                        # case 2:
+                        if self.input.vessel_id in [1]:
+                            
+                            self.input.write_ampl(incDec_ballast = ['AWBP'], IIS = False) # 
+                            result = self._run_ampl(dat_file='input_load.dat') 
+                            
+                            if result['succeed']:
+                                self._process_ampl(result, num_plans=num_plans)
+                                self._process_checking_plans(result)
+                                
+                            if not result['succeed']:
+                                self.input.write_ampl(incDec_ballast = ['AWBS'], IIS = False) # 
+                                result = self._run_ampl(dat_file='input_load.dat') 
+                                
+                                if result['succeed']:
+                                    self._process_ampl(result, num_plans=num_plans)
+                                    self._process_checking_plans(result)
                     
                     if not result['succeed'] and (self.input.loading.info['deballastAmt'] < 1200):
                         print('For small ballast amt ...')
-                        self.input.write_ampl(listMOM = True, IIS = self.IIS) # relax list mom to 100000
+                        # input("Press Enter to continue...")
+                        self.input.write_ampl(listMOM = False, IIS = False) # 
                         drop_const = ['Condition21c']
                         result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
                          
-                        # input("Press Enter to continue...")
+                        
                         if result['succeed']:
                             self._process_ampl(result, num_plans=num_plans)
                             self._process_checking_plans(result)
                             
                         else:
                             
-                            self.input.write_ampl(listMOM = True, IIS = self.IIS) # relax list mom to 100000
+                            self.input.write_ampl(listMOM = False, IIS = self.IIS) # 
                             drop_const = ['Condition21c', 'Constr16a']
                             result = self._run_ampl(dat_file='input_load.dat', drop_const = drop_const) 
                         
@@ -301,7 +342,6 @@ class Generate_plan:
                             if result['succeed']:
                                 self._process_ampl(result, num_plans=num_plans)
                                 self._process_checking_plans(result)
-
                     
                     if not result['succeed']:
                         self.plans['message']['Optimization Error'] = result['message']

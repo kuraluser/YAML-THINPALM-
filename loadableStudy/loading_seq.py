@@ -16,7 +16,7 @@ data.input.loadable['stages']
 import numpy as np
 from copy import deepcopy
 
-STAGE_INFO = ['time', 'foreDraft', 'meanDraft', 'afterDraft', 'trim', 'heel', 'airDraft', 'bendinMoment', 'shearForce' ]
+STAGE_INFO = ['time', 'foreDraft', 'meanDraft', 'afterDraft', 'trim', 'heel', 'airDraft', 'bendinMoment', 'shearForce', 'UKC']
 
 class Loading_seq:
     def __init__(self, data, stability):
@@ -124,7 +124,7 @@ class Loading_seq:
             if cargo_order == 1:
                 self._get_plan(plan_)
             else:
-                plan_ = {k_: v_ for k_, v_ in self.last_plan.items() if k_ in ['time', 'loadableQuantityCommingleCargoDetails', 'loadablePlanStowageDetails', 'loadablePlanBallastDetails', 'loadablePlanRoBDetails', 'ballastVol', 'cargoVol', 'foreDraft', 'meanDraft', 'afterDraft', 'trim', 'heel', 'airDraft', 'bendinMoment', 'shearForce']}
+                plan_ = {k_: v_ for k_, v_ in self.last_plan.items() if k_ in ['time', 'loadableQuantityCommingleCargoDetails', 'loadablePlanStowageDetails', 'loadablePlanBallastDetails', 'loadablePlanRoBDetails', 'ballastVol', 'cargoVol', 'foreDraft', 'meanDraft', 'afterDraft', 'trim', 'heel', 'airDraft', 'bendinMoment', 'shearForce', 'UKC']}
             
             
             plan_['time'] = info["timeEnd"]
@@ -146,7 +146,8 @@ class Loading_seq:
                          'gom': None,
                          'airDraft': plan_['airDraft'],
                          'bendinMoment': plan_['bendinMoment'], 
-                         'shearForce': plan_['shearForce']
+                         'shearForce': plan_['shearForce'],
+                         'UKC': plan_['UKC']
                          }
                 self.stages.append(info_)
             
@@ -799,7 +800,7 @@ class Loading_seq:
             info_['sounding'] = str(round(v_[0]['corrLevel'],3))
             
             info_['sg'] = str(v_[0]['SG'])
-            info_['colorCode'] = self.plans.input.loading.ballast_color[k_]
+            info_['colorCode'] = self.plans.input.loading.ballast_color.get(k_, self.plans.input.loading.default_ballast_color)
             
             if k_ not in ballast_tanks_added_:
                 ballast_tanks_added_.append(k_)
@@ -873,6 +874,7 @@ class Loading_seq:
         plan["bendinMoment"] = self.stability[str(port)]['bendinMoment']
         plan["shearForce"] = self.stability[str(port)]['shearForce']
         plan["gom"] = self.stability[str(port)]['gom']
+        plan["UKC"] = self.stability[str(port)]['UKC']
         plan["manifoldHeight"] = self.stability[str(port)]['manifoldHeight']
         plan["freeboard"] = self.stability[str(port)]['freeboard']
         

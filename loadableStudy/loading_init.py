@@ -53,11 +53,15 @@ class Process_input(object):
                                   "loadingSequences":data['loading']['loadingInformation']["loadingSequences"],
                                   "toppingOffSequence":data['loading']['loadingInformation']["toppingOffSequence"],
                                   "loadableQuantityCargoDetails":data['loading']['loadingInformation']["loadableQuantityCargoDetails"],
-                                  "loadingMachinesInUses":data['loading']['loadingInformation']["machineryInUses"]["loadingMachinesInUses"]
+                                  "loadingMachinesInUses":data['loading']['loadingInformation']["machineryInUses"]["loadingMachinesInUses"],
+                                  "berthDetails": data['loading']['loadingInformation']["berthDetails"]
                                   }
         
         self.loading_information = data['loading']['loadingInformation']
+        self.port_tide_json = data['loading'].get("portTideDetails",[])
         
+        self._get_tide()
+
         
         self.config = data['config']
         self.error = {}
@@ -77,6 +81,12 @@ class Process_input(object):
         self.max_airdraft = 100.0 if self.max_airdraft in [None] else self.max_airdraft
         self.mode = ""
         
+        self.start_time = data['loading']['loadingInformation']["loadingDetails"].get("startTime",0)
+        if type(self.start_time) == str and self.start_time not in [""]:
+            time_ = self.start_time.split(":")
+            self.start_time = int(time_[0])*60 + int(time_[0]) 
+        elif self.start_time == "":
+            self.start_time = 0
 
     def prepare_data(self):
         
@@ -95,6 +105,28 @@ class Process_input(object):
             self.get_param()
         else:
             self.error = {**self.error, **self.loading.error}
+    def _get_tide(self):
+        
+        self.tide_info = {}
+        
+        add_ = 0
+        
+        for t__, t_ in enumerate(self.port_tide_json):
+            if t__ == 0:
+                date_ = t_['tideDate']
+                self.tide_info['time'] = []
+                self.tide_info['tide'] = []
+                self.tide_info['depth'] = self.loading_info_json['berthDetails'][0].get('maxShipDepth',99)
+                
+            if date_ != t_['tideDate']:
+                # next day
+                add_ += 60*24
+            
+            time_ = t_["tideTime"].split(":")
+            time_ = float(time_[0])*60 + float(time_[1]) + add_
+            self.tide_info['time'].append(time_)
+            self.tide_info['tide'].append(t_["tideHeight"])
+            
         
     def get_param(self, base_draft = None, min_int_trim = 0.96, max_int_trim = 1.1):
         
@@ -291,7 +323,7 @@ class Process_input(object):
                 if not last_cargo_ and d_ in [self.loading.seq[c_]['justBeforeTopping'] + str(c__+1)]:
                     a_, b_ = min(max_trim_, top_trim_), 0.05
                     print(d_,'justBeforeTopping trim -- constraint:', b_, a_)
-                    self.trim_upper[str(port_)] = a_
+                    self.trim_upper[str(port_)] = min(2.95,a_)
                     self.trim_lower[str(port_)] = b_
                     
                 elif not last_cargo_ and d_ in [self.loading.seq[c_]['lastStage'] + str(c__+1)]:
@@ -303,7 +335,7 @@ class Process_input(object):
                 elif  d_[0:3] in ['Max']:
                     a_, b_ = max_trim_, 0.05
                     print(d_,'Max loading -- trim constraint:', b_, a_)
-                    self.trim_upper[str(port_)] =  a_
+                    self.trim_upper[str(port_)] =  min(2.95,a_)
                     self.trim_lower[str(port_)] =  b_
                     
         
@@ -459,7 +491,7 @@ class Process_input(object):
             
             
     
-    def write_ampl(self, file = 'input_load.dat', listMOM = None, IIS = True, ave_trim = None):
+    def write_ampl(self, file = 'input_load.dat', listMOM = None, IIS = True, ave_trim = None, incDec_ballast = None):
         
         if not self.error and self.solver in ['AMPL']:
             
@@ -831,6 +863,12 @@ class Process_input(object):
                     if i_ not in tb_list_:
                         str1 += i_ + ' '
                 print(str1+';', file=text_file)
+                if incDec_ballast:
+                    print('# ballast tanks which can be ballast or deballast anytime',file=text_file)#  
+                    str1 = 'set TB3 := '
+                    for i_ in incDec_ballast:
+                        str1 += i_ + ' '
+                    print(str1+';', file=text_file)
     #            
                 # density of seawater
                 print('# density of seawater ',file=text_file)#
@@ -920,12 +958,11 @@ class Process_input(object):
                     str1 += '('+ str(k_)  + ',' + str(k_+1)+ ') '
                 print(str1+';', file=text_file)
                 
-                str1 = 'set rotatingPort2 := '
-                # if len(self.vessel.info['rotationVirtual']) >= 2:
-                #     for k__, k_  in enumerate(self.vessel.info['rotationVirtual'][1]):
-                #         if k__ < len(self.vessel.info['rotationVirtual'][1])-1:
-                #             str1 += '('+ str(k_)  + ',' + str(self.vessel.info['rotationVirtual'][1][k__+1])+ ') '
-                print(str1+';', file=text_file)
+                if incDec_ballast:
+                    str1 = 'set rotatingPort2 := '
+                    for k_  in range(1, self.loadable['lastVirtualPort']):
+                        str1 += '('+ str(k_)  + ',' + str(k_+1)+ ') '
+                    print(str1+';', file=text_file)
                 
                 ##
                 print('# lastLoadingPortBallastBan ',file=text_file)#

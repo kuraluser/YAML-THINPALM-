@@ -11,6 +11,7 @@ from vlcc_gen import Generate_plan
 # from api_vlcc import manual_mode
 # from vlcc_init import Process_input
 # from vlcc_ullage import get_correction
+from scipy.interpolate import interp1d
 
 DEC_PLACE = 3
 
@@ -23,6 +24,11 @@ class Check_plans:
         # self.outputs = outputs
         self.reballast = reballast
         self.index = indx # index plan
+        
+        if self.input.tide_info:
+            self.tide_func = interp1d(self.input.tide_info['time'], self.input.tide_info['tide'])
+        else:
+            self.tide_func = None
     
     def _check_plans(self, outputs):
         
@@ -65,7 +71,7 @@ class Check_plans:
                     
                     print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],5))
                     print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
-                    print('da:', round(result.get('da', 0),4), 'dc:', round(result.get('dc', 0),4))
+                    print('da:', round(result.get('da', 0),4), 'dc:', round(result.get('dc', 0),4), 'ukc:', round(result['UKC'],3))
                     stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
                                       'meanDraft': "{:.2f}".format(result['dm']),
                                       'afterDraft': "{:.2f}".format(result['da']),
@@ -77,7 +83,8 @@ class Check_plans:
                                       'manifoldHeight':"{:.2f}".format(result['manifoldHeight']),
                                       'bendinMoment': "{:.2f}".format(result.get('maxBM',[None, 10000])[1]),
                                       'shearForce':  "{:.2f}".format(result.get('maxSF',[None, 10000])[1]),
-                                      'sdraft': "{:.2f}".format(result['sdraft'])
+                                      'sdraft': "{:.2f}".format(result['sdraft']),
+                                      'UKC': "{:.2f}".format(result['UKC'])
                                       }
                     
                     # update correction ullage
@@ -365,7 +372,7 @@ class Check_plans:
                 
                 print('Port: ',k_,'Cargo:', round(result['wt']['cargoTanks'],DEC_PLACE), 'Ballast:', round(result['wt']['ballastTanks'],DEC_PLACE), 'Displacement:', round(result['disp'],DEC_PLACE), 'tcg_moment:', round(result['tcg_mom'],DEC_PLACE), 'Mean Draft:', round(result['dm'],4), 'Trim:', round(result['trim'],5))
                 print('frame:', result.get('maxBM',['NA','NA'])[0], 'BM:', result.get('maxBM',['NA','NA'])[1],'frame:', result.get('maxSF',['NA','NA'])[0], 'SF:', result.get('maxSF',['NA','NA'])[1])
-                print('da:', round(result.get('da', 0),4), 'dc:', round(result.get('dc', 0),4))
+                print('da:', round(result.get('da', 0),4), 'dc:', round(result.get('dc', 0),4), 'ukc:', round(result['UKC'],3))
                 
                 stability_[k_] = {'forwardDraft': "{:.2f}".format(result['df']), 
                                   'meanDraft': "{:.2f}".format(result['dm']),
@@ -377,7 +384,8 @@ class Check_plans:
                                   'freeboard':"{:.2f}".format(result['freeboard']),
                                   'manifoldHeight':"{:.2f}".format(result['manifoldHeight']),
                                   'bendinMoment': "{:.2f}".format(result.get('maxBM',[None, 10000])[1]),
-                                  'shearForce':  "{:.2f}".format(result.get('maxSF',[None, 10000])[1])
+                                  'shearForce':  "{:.2f}".format(result.get('maxSF',[None, 10000])[1]),
+                                  'UKC': "{:.2f}".format(result['UKC'])
                                   }
                 
                 # update correction ullage
@@ -511,14 +519,28 @@ class Check_plans:
         result['km'] = km_
         result['gm'] = gm_
         
-        
+        depth_ = 99
         if self.input.module in ['LOADABLE']:
             # air draft
             port_order_ =  self.input.loadable.info['virtualArrDepPort'][virtual_port][:-1]
             origin_port_ = self.input.port.info['portOrder'][port_order_]
             tide_ = self.input.port.info['portRotation'][origin_port_]['tideHeight']
             
-        elif self.input.module in ['LOADING', 'DISCHARGE', 'DISCHARGING']:
+        elif self.input.module in ['LOADING']:
+            if virtual_port in ['0']:
+                time_ = self.input.start_time
+            else:
+                time_ = self.input.start_time + self.input.loading.seq['times'][int(virtual_port)-1]
+                
+            tide_ = 0    
+            if self.tide_func:
+                if  min(self.input.tide_info['time']) < time_ < max(self.input.tide_info['time']):
+                    tide_ = self.tide_func(time_)
+                    depth_ = self.input.tide_info.get('depth', 99)
+           
+                
+        elif self.input.module in ['DISCHARGE', 'DISCHARGING']:
+
             tide_ = 0.
         elif self.input.module in ["ULLAGE"]:
             tide_ = self.input.port.info['tide']
@@ -526,6 +548,8 @@ class Check_plans:
         result['airDraft'] = self.input.vessel.info['height'] - da_ + tide_
         result['freeboard'] = self.input.vessel.info['depth'] - dm_
         result['manifoldHeight'] = result['freeboard'] + self.input.vessel.info['manifoldHeight'] + tide_
+        result['UKC'] = -max(da_,df_) + tide_ + depth_
+
             
         # print('airDraft:', result['airDraft'])
         
